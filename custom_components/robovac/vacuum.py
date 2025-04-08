@@ -187,9 +187,15 @@ class RoboVacEntity(StateVacuumEntity):
         return self._attr_ip_address
 
     @property
-    def activity(self) -> str | None:
+    def activity(self) -> VacuumActivity | None:
+        """Return the activity of the vacuum cleaner.
+        
+        This property is used by Home Assistant to determine the state of the vacuum.
+        As of Home Assistant Core 2025.1, this property should be used instead of directly
+        setting the state property.
+        """
         if self.tuya_state is None:
-            return STATE_UNAVAILABLE
+            return None
         elif (
             type(self.error_code) is not None
             and self.error_code
@@ -211,6 +217,8 @@ class RoboVacEntity(StateVacuumEntity):
             return VacuumActivity.RETURNING
         elif self.tuya_state == "Sleeping" or self.tuya_state == "standby":
             return VacuumActivity.IDLE
+        elif self.tuya_state == "Paused":
+            return VacuumActivity.PAUSED
         else:
             return VacuumActivity.CLEANING
 

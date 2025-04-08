@@ -9,6 +9,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.device_registry import DeviceInfo
 
 from .const import CONF_VACS, DOMAIN, REFRESH_RATE
+from .vacuum import TUYA_CODES
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -20,44 +21,47 @@ async def async_setup_entry(
     config_entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Initialize my test integration 2 config entry."""
+    """Set up the Eufy RoboVac sensor platform."""
     vacuums = config_entry.data[CONF_VACS]
+    entities = []
+    
     for item in vacuums:
         item = vacuums[item]
-        entity = RobovacSensorEntity(item)
-        async_add_entities([entity])
+        entities.append(RobovacBatterySensor(item))
+        
+    async_add_entities(entities)
 
-class RobovacSensorEntity(SensorEntity):
+class RobovacBatterySensor(SensorEntity):
+    """Representation of a Eufy RoboVac Battery Sensor."""
+    
     _attr_has_entity_name = True
     _attr_device_class = SensorDeviceClass.BATTERY
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_native_unit_of_measurement = PERCENTAGE
-    _attr_available = False
-
+    _attr_should_poll = True
+    
     def __init__(self, item):
+        """Initialize the sensor."""
         self.robovac = item
         self.robovac_id = item[CONF_ID]
-        self._attr_unique_id = item[CONF_ID]
-        self._battery_level = None
-
+        self._attr_unique_id = f"{item[CONF_ID]}_battery"
+        self._attr_name = "Battery"
+        
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, item[CONF_ID])},
             name=item[CONF_NAME]
         )
 
-    def update(self):
+    async def async_update(self):
+        """Update the sensor state."""
         try:
-            self._battery_level = self.hass.data[DOMAIN][CONF_VACS][self.robovac_id].battery_level
-            self._attr_available = True
-        except:
-            _LOGGER.debug("Failed to get battery level for {}".format(self.robovac_id))
-            self._battery_level = None
+            vacuum_entity = self.hass.data[DOMAIN][CONF_VACS].get(self.robovac_id)
+            if vacuum_entity and vacuum_entity.tuyastatus:
+                self._attr_native_value = vacuum_entity.tuyastatus.get(TUYA_CODES.BATTERY_LEVEL)
+                self._attr_available = True
+            else:
+                _LOGGER.debug("Vacuum entity or status not available for %s", self.robovac_id)
+                self._attr_available = False
+        except Exception as ex:
+            _LOGGER.error("Failed to update battery sensor for %s: %s", self.robovac_id, ex)
             self._attr_available = False
-    
-    @property
-    def native_value(self) -> str | None:
-        """Return the state."""
-        if self._battery_level is not None:
-            return self._battery_level
-        return None
-
