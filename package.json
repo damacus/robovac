@@ -1,6 +1,6 @@
 {
   "devDependencies": {
     "conventional-changelog-conventionalcommits": "^7.0.2",
-    "semantic-release": "^23.0.2"
+    "semantic-release": "^24.0.0"
   }
 }
