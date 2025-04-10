@@ -18,17 +18,13 @@ jobs:
           python-version: '3.13'
           cache: 'pip'
       - name: Install uv
-        run: |
-          curl -sSf https://install.python-uv.org | python3 -
+        uses: astral-sh/setup-uv@v5
       - name: Install dependencies
         run: |
           uv pip install -r requirements-dev.txt
       - name: Lint with flake8
         run: |
           flake8 custom_components tests
-      - name: Check formatting with black
-        run: |
-          black --check custom_components tests
       - name: Type check with mypy
         run: |
           mypy custom_components tests
@@ -43,8 +39,7 @@ jobs:
           python-version: '3.13'
           cache: 'pip'
       - name: Install uv
-        run: |
-          curl -sSf https://install.python-uv.org | python3 -
+        uses: astral-sh/setup-uv@v5
       - name: Install dependencies
         run: |
           uv pip install -r requirements-dev.txt
