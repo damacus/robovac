@@ -16,12 +16,7 @@
 # limitations under the License.
 
 
-import re
 from setuptools import setup, find_packages
-import sys
-import warnings
-
-dynamic_requires = []
 
 setup(
     name="robovac",

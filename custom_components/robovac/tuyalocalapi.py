@@ -47,7 +47,7 @@ import struct
 import time
 import traceback
 from typing import Any, Awaitable, Callable, Coroutine, Optional, Union
-from asyncio import Semaphore, StreamReader, StreamWriter
+from asyncio import Semaphore, StreamWriter
 
 from cryptography.hazmat.backends.openssl import backend as openssl_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes

@@ -18,7 +18,7 @@ from __future__ import annotations
 import json
 
 import logging
-from typing import Any, Optional
+from typing import Any, Optional, TypeAlias
 from copy import deepcopy
 
 import voluptuous as vol
@@ -27,7 +27,9 @@ import homeassistant.helpers.config_validation as cv
 from homeassistant import config_entries
 from homeassistant.core import callback
 from homeassistant.core import HomeAssistant
-from homeassistant.data_entry_flow import FlowResult
+# Import ConfigFlowResult directly from config_entries
+from homeassistant.config_entries import ConfigFlowResult
+
 from homeassistant.exceptions import HomeAssistantError
 # from homeassistant.helpers.selector import selector
 
@@ -200,10 +202,13 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ignore[call
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Handle the initial step."""
         if user_input is None:
-            return self.async_show_form(step_id="user", data_schema=USER_SCHEMA)
+            # Return form for user input
+            return self.async_show_form(
+                step_id="user", data_schema=USER_SCHEMA
+            )  # type: ignore[return-value]
         errors = {}
         try:
             unique_id = user_input[CONF_USERNAME]
@@ -219,10 +224,13 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ignore[call
             await self.async_set_unique_id(unique_id)
             self._abort_if_unique_id_configured()
             # return await self.async_step_repo(valid_data)
-            return self.async_create_entry(title=unique_id, data=valid_data)
+            # Create the config entry with validated data
+            return self.async_create_entry(
+                title=unique_id, data=valid_data
+            )  # type: ignore[return-value]
         return self.async_show_form(
             step_id="user", data_schema=USER_SCHEMA, errors=errors
-        )
+        )  # type: ignore[return-value]
 
     @staticmethod
     @callback
@@ -246,7 +254,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         self._config_entry = config_entry
         self.selected_vacuum = None
 
-    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Handle the initial step."""
         errors: dict[str, str] = {}
 
@@ -265,9 +273,9 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
         return self.async_show_form(
             step_id="init", data_schema=devices_schema, errors=errors
-        )
+        )  # type: ignore[return-value]
 
-    async def async_step_edit(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+    async def async_step_edit(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Handle the edit step."""
         errors: dict[str, str] = {}
 
@@ -288,7 +296,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 data={CONF_VACS: updated_vacuums},
             )
 
-            return self.async_create_entry(title="", data={})
+            return self.async_create_entry(title="", data={})  # type: ignore[return-value]
 
         options_schema = vol.Schema(
             {
@@ -305,4 +313,4 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
         return self.async_show_form(
             step_id="edit", data_schema=options_schema, errors=errors
-        )
+        )  # type: ignore[return-value]

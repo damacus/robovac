@@ -3,7 +3,7 @@
 Original Work from: Andre Borie https://gitlab.com/Rjevski/eufy-device-id-and-local-key-grabber
 """
 
-from typing import Dict, Optional, Any
+from typing import Optional
 import requests
 
 eufyheaders = {

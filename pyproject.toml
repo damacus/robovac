@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.13.0"
 license = {text = "Apache-2.0"}
 authors = [
-    {name = "Brendan McCluskey", email = "dan.webb@damacus.io"}
+    {name = "Dan Webb", email = "dan.webb@damacus.io"}
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -36,6 +36,23 @@ warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
+
+# Ignore errors about missing stubs for external libraries
+[[tool.mypy.overrides]]
+module = [
+    "voluptuous.*",
+    "homeassistant.*",
+    "numpy.*"
+]
+ignore_missing_imports = true
+
+# Disable override check for config_flow.py
+[[tool.mypy.overrides]]
+module = "custom_components.robovac.config_flow"
+disallow_subclassing_any = false
+disable_error_code = ["override"]
+strict_optional = false
+check_untyped_defs = false
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
