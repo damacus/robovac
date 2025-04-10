@@ -12,21 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Eufy Robovac sensor platform."""
-from __future__ import annotations
-from collections.abc import Mapping
+"""Eufy Robovac vacuum platform.
 
-from datetime import timedelta
-import logging
-import asyncio
+This module provides the vacuum entity integration for Eufy Robovac devices.
+"""
+from __future__ import annotations
+
+# Standard library imports
+import ast
 import base64
 import json
+import logging
 import time
-import ast
+from datetime import timedelta
+from enum import StrEnum
+from typing import Any, Optional
 
-from typing import Any
-from enum import IntEnum, StrEnum
-from homeassistant.loader import bind_hass
+# Home Assistant imports
 from homeassistant.components.vacuum import (
     StateVacuumEntity,
     VacuumEntityFeature,
@@ -115,7 +117,12 @@ async def async_setup_entry(
 
 
 class RoboVacEntity(StateVacuumEntity):
-    """Eufy Robovac version of a Vacuum entity"""
+    """Eufy Robovac vacuum entity.
+
+    This class represents a Eufy Robovac vacuum cleaner in Home Assistant.
+    It handles the communication with the vacuum via the Tuya local API and
+    provides the necessary functionality to control and monitor the vacuum.
+    """
 
     _attr_should_poll = True
 
@@ -319,26 +326,36 @@ class RoboVacEntity(StateVacuumEntity):
         return data
 
     def __init__(self, item: dict[str, Any]) -> None:
-        """Initialize Eufy Robovac.
+        """Initialize Eufy Robovac entity.
+
+        This method initializes the vacuum entity with the configuration provided
+        and establishes a connection to the physical device via the Tuya local API.
 
         Args:
-            item: Dictionary containing vacuum configuration.
+            item: Dictionary containing vacuum configuration including name, ID,
+                  model, IP address, access token, and other required parameters.
         """
         super().__init__()
+
+        # Initialize basic attributes
         self._attr_battery_level = 0
         self._attr_name = item[CONF_NAME]
         self._attr_unique_id = item[CONF_ID]
         self._attr_model_code = item[CONF_MODEL]
         self._attr_ip_address = item[CONF_IP_ADDRESS]
         self._attr_access_token = item[CONF_ACCESS_TOKEN]
-
+        self.vacuum: Optional[RoboVac] = None
         self.update_failures = 0
+        self.tuyastatus: dict[str, Any] | None = None
 
+        # Initialize the RoboVac connection
         try:
+            # Extract model code prefix for device identification
+            model_code_prefix = ""
             if self.model_code is not None:
                 model_code_prefix = self.model_code[0:5]
-            else:
-                model_code_prefix = ""
+
+            # Create the RoboVac instance
             self.vacuum = RoboVac(
                 device_id=self.unique_id,
                 host=self.ip_address,
@@ -348,17 +365,46 @@ class RoboVacEntity(StateVacuumEntity):
                 model_code=model_code_prefix,
                 update_entity_state=self.pushed_update_handler,
             )
+            _LOGGER.debug(
+                "Initialized RoboVac connection for %s (model: %s)",
+                self._attr_name,
+                self._attr_model_code
+            )
         except ModelNotSupportedException:
+            _LOGGER.error(
+                "Model %s is not supported",
+                self._attr_model_code
+            )
             self._attr_error_code = "UNSUPPORTED_MODEL"
 
-        # Set supported features from the vacuum capabilities
-        features = int(self.vacuum.getHomeAssistantFeatures())
-        self._attr_supported_features = VacuumEntityFeature(features)
-        self._attr_robovac_supported = self.vacuum.getRoboVacFeatures()
-        self._attr_fan_speed_list = self.vacuum.getFanSpeeds()
+        # Set supported features if vacuum was initialized successfully
+        if self.vacuum is not None:
+            # Get the supported features from the vacuum
+            features = int(self.vacuum.getHomeAssistantFeatures())
+            self._attr_supported_features = VacuumEntityFeature(features)
+            self._attr_robovac_supported = self.vacuum.getRoboVacFeatures()
+            self._attr_fan_speed_list = self.vacuum.getFanSpeeds()
 
+            _LOGGER.debug(
+                "Vacuum %s supports features: %s",
+                self._attr_name,
+                self._attr_supported_features
+            )
+        else:
+            # Set default values if vacuum initialization failed
+            self._attr_supported_features = VacuumEntityFeature(0)
+            self._attr_robovac_supported = 0
+            self._attr_fan_speed_list = []
+            _LOGGER.warning(
+                "Vacuum %s initialization failed, features not available",
+                self._attr_name
+            )
+
+        # Initialize additional attributes
         self._attr_mode = None
         self._attr_consumables = None
+
+        # Set up device info for Home Assistant device registry
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, item[CONF_ID])},
             name=item[CONF_NAME],
@@ -368,31 +414,58 @@ class RoboVacEntity(StateVacuumEntity):
                 (CONNECTION_NETWORK_MAC, item[CONF_MAC]),
             },
         )
-        # Initialize state variables
-        self.tuyastatus: dict[str, Any] | None = None
 
     async def async_update(self) -> None:
-        """Synchronise state from the vacuum."""
+        """Synchronize state from the vacuum.
+
+        This method is called periodically by Home Assistant to update the entity state.
+        It retrieves the current state from the vacuum via the Tuya API and updates
+        the entity attributes accordingly.
+
+        If the vacuum is not supported or the IP address is not set, the method returns
+        early. If the update fails, it increments a failure counter and sets an error
+        code after a certain number of retries.
+        """
+        # Skip update if the model is not supported
         if self._attr_error_code == "UNSUPPORTED_MODEL":
+            _LOGGER.debug("Skipping update for unsupported model: %s", self._attr_model_code)
             return
 
-        if self.ip_address == "":
+        # Skip update if the IP address is not set
+        if not self.ip_address:
+            _LOGGER.warning("Cannot update vacuum %s: IP address not set", self._attr_name)
             self._attr_error_code = "IP_ADDRESS"
             return
 
+        # Skip update if vacuum object is not initialized
+        if self.vacuum is None:
+            _LOGGER.warning("Cannot update %s: vacuum not initialized", self._attr_name)
+            self._attr_error_code = "INITIALIZATION_FAILED"
+            return
+
+        # Try to update the vacuum state
         try:
             await self.vacuum.async_get()
             self.update_failures = 0
             self.update_entity_values()
+            _LOGGER.debug("Successfully updated vacuum %s", self._attr_name)
         except TuyaException as e:
             self.update_failures += 1
             _LOGGER.warning(
-                "Update errored. Current update failure count: {}. Reason: {}".format(
-                    self.update_failures, e
-                )
+                "Failed to update vacuum %s. Failure count: %d/%d. Error: %s",
+                self._attr_name,
+                self.update_failures,
+                UPDATE_RETRIES,
+                str(e)
             )
+
+            # Set error code after maximum retries
             if self.update_failures >= UPDATE_RETRIES:
                 self._attr_error_code = "CONNECTION_FAILED"
+                _LOGGER.error(
+                    "Maximum update retries reached for vacuum %s. Marking as unavailable",
+                    self._attr_name
+                )
 
     async def pushed_update_handler(self) -> None:
         """Handle updates pushed from the vacuum.
@@ -407,27 +480,86 @@ class RoboVacEntity(StateVacuumEntity):
         """Update entity values from the vacuum's data points.
 
         This method updates all the entity attributes based on the current
-        state of the vacuum's data points (DPS).
+        state of the vacuum's data points (DPS). It handles different vacuum models
+        and ensures that all values are properly typed and formatted.
+
+        The method is called both during periodic updates and when pushed updates
+        are received from the vacuum.
         """
+        # Skip if vacuum is not initialized
+        if self.vacuum is None:
+            _LOGGER.warning("Cannot update entity values: vacuum not initialized")
+            return
+
+        # Get the current data points from the vacuum
         self.tuyastatus = self.vacuum._dps
 
-        # for 15C
-        if self.tuyastatus is not None:
-            # Handle potentially None values from dictionary lookups
-            battery_level = self.tuyastatus.get(TUYA_CODES.BATTERY_LEVEL)
-            self._attr_battery_level = battery_level if battery_level is not None else 0
+        if self.tuyastatus is None:
+            _LOGGER.warning("Cannot update entity values: no data points available")
+            return
 
-            tuya_state = self.tuyastatus.get(TUYA_CODES.STATE)
-            self._attr_tuya_state = tuya_state if tuya_state is not None else 0
+        _LOGGER.debug("Updating entity values from data points: %s", self.tuyastatus)
 
-            error_code = self.tuyastatus.get(TUYA_CODES.ERROR_CODE)
-            self._attr_error_code = error_code if error_code is not None else 0
+        # Update common attributes for all models
+        self._update_battery_level()
+        self._update_state_and_error()
+        self._update_mode_and_fan_speed()
 
-            mode = self.tuyastatus.get(TUYA_CODES.MODE)
-            self._attr_mode = mode if mode is not None else ""
+        # Update model-specific attributes
+        self._update_cleaning_stats()
+        self._update_additional_features()
 
-            fan_speed = self.tuyastatus.get(TUYA_CODES.FAN_SPEED)
-            self._attr_fan_speed = fan_speed if fan_speed is not None else ""
+    def _update_battery_level(self) -> None:
+        """Update the battery level attribute."""
+        if self.tuyastatus is None:
+            return
+
+        # Get battery level from data points
+        battery_level = self.tuyastatus.get(TUYA_CODES.BATTERY_LEVEL)
+
+        # Ensure battery level is an integer between 0 and 100
+        if battery_level is not None:
+            try:
+                self._attr_battery_level = int(battery_level)
+                # Ensure the value is within valid range
+                self._attr_battery_level = max(0, min(100, self._attr_battery_level))
+            except (ValueError, TypeError):
+                _LOGGER.warning("Invalid battery level value: %s", battery_level)
+                self._attr_battery_level = 0
+        else:
+            self._attr_battery_level = 0
+
+    def _update_state_and_error(self) -> None:
+        """Update the state and error code attributes."""
+        if self.tuyastatus is None:
+            return
+
+        # Get state and error code from data points
+        tuya_state = self.tuyastatus.get(TUYA_CODES.STATE)
+        error_code = self.tuyastatus.get(TUYA_CODES.ERROR_CODE)
+
+        # Update state attribute
+        self._attr_tuya_state = tuya_state if tuya_state is not None else 0
+
+        # Update error code attribute
+        self._attr_error_code = error_code if error_code is not None else 0
+
+    def _update_mode_and_fan_speed(self) -> None:
+        """Update the mode and fan speed attributes."""
+        if self.tuyastatus is None:
+            return
+
+        # Get mode and fan speed from data points
+        mode = self.tuyastatus.get(TUYA_CODES.MODE)
+        fan_speed = self.tuyastatus.get(TUYA_CODES.FAN_SPEED)
+
+        # Update mode attribute
+        self._attr_mode = mode if mode is not None else ""
+
+        # Update fan speed attribute
+        self._attr_fan_speed = fan_speed if fan_speed is not None else ""
+
+        # Format fan speed for display
         if isinstance(self.fan_speed, str):
             if self.fan_speed == "No_suction":
                 self._attr_fan_speed = "No Suction"
@@ -435,14 +567,21 @@ class RoboVacEntity(StateVacuumEntity):
                 self._attr_fan_speed = "Boost IQ"
             elif self.fan_speed == "Quiet":
                 self._attr_fan_speed = "Pure"
-        # for G30
-        if self.tuyastatus is not None:
-            # Handle potentially None values from dictionary lookups
-            cleaning_area = self.tuyastatus.get(TUYA_CODES.CLEANING_AREA)
-            self._attr_cleaning_area = str(cleaning_area) if cleaning_area is not None else None
 
-            cleaning_time = self.tuyastatus.get(TUYA_CODES.CLEANING_TIME)
-            self._attr_cleaning_time = str(cleaning_time) if cleaning_time is not None else None
+    def _update_cleaning_stats(self) -> None:
+        """Update cleaning statistics (area and time)."""
+        if self.tuyastatus is None:
+            return
+
+        # Update cleaning area (for G30 and similar models)
+        cleaning_area = self.tuyastatus.get(TUYA_CODES.CLEANING_AREA)
+        if cleaning_area is not None:
+            self._attr_cleaning_area = str(cleaning_area)
+
+        # Update cleaning time (for G30 and similar models)
+        cleaning_time = self.tuyastatus.get(TUYA_CODES.CLEANING_TIME)
+        if cleaning_time is not None:
+            self._attr_cleaning_time = str(cleaning_time)
 
             auto_return = self.tuyastatus.get(TUYA_CODES.AUTO_RETURN)
             self._attr_auto_return = str(auto_return) if auto_return is not None else None
@@ -482,6 +621,10 @@ class RoboVacEntity(StateVacuumEntity):
             **kwargs: Additional arguments passed from Home Assistant.
         """
         _LOGGER.info("Locate Pressed")
+        if self.vacuum is None:
+            _LOGGER.error("Cannot locate vacuum: vacuum not initialized")
+            return
+
         if self.tuyastatus is not None and self.tuyastatus.get("103"):
             await self.vacuum.async_set({"103": False})
         else:
@@ -494,6 +637,10 @@ class RoboVacEntity(StateVacuumEntity):
             **kwargs: Additional arguments passed from Home Assistant.
         """
         _LOGGER.info("Return home Pressed")
+        if self.vacuum is None:
+            _LOGGER.error("Cannot return to base: vacuum not initialized")
+            return
+
         await self.vacuum.async_set({"101": True})
 
     async def async_start(self, **kwargs: Any) -> None:
@@ -503,6 +650,10 @@ class RoboVacEntity(StateVacuumEntity):
             **kwargs: Additional arguments passed from Home Assistant.
         """
         self._attr_mode = "auto"
+        if self.vacuum is None:
+            _LOGGER.error("Cannot start vacuum: vacuum not initialized")
+            return
+
         await self.vacuum.async_set({"5": self.mode})
 
     async def async_pause(self, **kwargs: Any) -> None:
@@ -511,6 +662,10 @@ class RoboVacEntity(StateVacuumEntity):
         Args:
             **kwargs: Additional arguments passed from Home Assistant.
         """
+        if self.vacuum is None:
+            _LOGGER.error("Cannot pause vacuum: vacuum not initialized")
+            return
+
         await self.vacuum.async_set({"2": False})
 
     async def async_stop(self, **kwargs: Any) -> None:
@@ -528,6 +683,10 @@ class RoboVacEntity(StateVacuumEntity):
             **kwargs: Additional arguments passed from Home Assistant.
         """
         _LOGGER.info("Spot Clean Pressed")
+        if self.vacuum is None:
+            _LOGGER.error("Cannot clean spot: vacuum not initialized")
+            return
+
         await self.vacuum.async_set({"5": "Spot"})
 
     async def async_set_fan_speed(self, fan_speed: str, **kwargs: Any) -> None:
@@ -538,6 +697,10 @@ class RoboVacEntity(StateVacuumEntity):
             **kwargs: Additional arguments passed from Home Assistant.
         """
         _LOGGER.info("Fan Speed Selected")
+        if self.vacuum is None:
+            _LOGGER.error("Cannot set fan speed: vacuum not initialized")
+            return
+
         if fan_speed == "No Suction":
             fan_speed = "No_suction"
         elif fan_speed == "Boost IQ":
@@ -557,6 +720,10 @@ class RoboVacEntity(StateVacuumEntity):
             **kwargs: Additional arguments passed from Home Assistant.
         """
         _LOGGER.info("Send Command %s Pressed", command)
+        if self.vacuum is None:
+            _LOGGER.error("Cannot send command: vacuum not initialized")
+            return
+
         if command == "edgeClean":
             await self.vacuum.async_set({"5": "Edge"})
         elif command == "smallRoomClean":
@@ -604,4 +771,8 @@ class RoboVacEntity(StateVacuumEntity):
 
     async def async_will_remove_from_hass(self) -> None:
         """Handle removal from Home Assistant."""
+        if self.vacuum is None:
+            _LOGGER.debug("Cannot disable vacuum: vacuum not initialized")
+            return
+
         await self.vacuum.async_disable()

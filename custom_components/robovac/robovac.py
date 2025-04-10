@@ -1,7 +1,7 @@
 from enum import IntEnum
 from homeassistant.components.vacuum import VacuumEntityFeature
 from .tuyalocalapi import TuyaDevice
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 
 class RoboVacEntityFeature(IntEnum):
