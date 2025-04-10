@@ -5,7 +5,6 @@ pytest-cov>=4.1.0
 pytest-homeassistant-custom-component>=0.13.233
 
 # Code quality tools
-black>=25.1.0
 flake8>=7.0.0
 mypy>=1.7.1
 pre-commit>=3.5.0

@@ -888,7 +888,7 @@ class TuyaDevice:
         encrypt = False if self.version < (3, 3) else True
         message = Message(Message.GET_COMMAND, payload_bytes, encrypt=encrypt, device=self)
         self._queue.append(message)
-        response = await self.async_recieve(message)
+        response = await self.async_receive(message)
         if response is not None:
             asyncio.create_task(self.async_update_state(response))
 
@@ -1077,7 +1077,7 @@ class TuyaDevice:
             await asyncio.sleep(0.25)
             await self._async_send(message, retries=retries - 1)
 
-    async def async_recieve(self, message: Message) -> Message | None:
+    async def async_receive(self, message: Message) -> Message | None:
         """Receive a message from the device.
 
         This method receives a message from the device.

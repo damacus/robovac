@@ -507,7 +507,6 @@ class RoboVacEntity(StateVacuumEntity):
 
         # Update model-specific attributes
         self._update_cleaning_stats()
-        self._update_additional_features()
 
     def _update_battery_level(self) -> None:
         """Update the battery level attribute."""
