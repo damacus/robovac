@@ -239,7 +239,8 @@ class TuyaAPISession:
 
         Raises:
             ValueError: If the session is required but could not be acquired.
-            requests.HTTPError: If the HTTP request fails.
+            requests.HTTPError: If the HTTP request fails with an HTTP error status.
+            RuntimeError: If the API request fails for other reasons.
             TypeError: If the response is not a valid JSON object.
             KeyError: If the response does not contain a 'result' key.
         """
@@ -272,7 +273,11 @@ class TuyaAPISession:
             resp.raise_for_status()
             response_data: Dict[str, Any] = resp.json()
         except requests.RequestException as e:
-            raise requests.HTTPError(f"API request to {action} failed: {str(e)}") from e
+            # Re-raise the original exception if it's already an HTTPError
+            if isinstance(e, requests.HTTPError):
+                raise
+            # Otherwise, raise a RuntimeError with our custom message
+            raise RuntimeError(f"API request to {action} failed: {str(e)}") from e
         except json.JSONDecodeError as e:
             raise TypeError(f"Invalid JSON response from API: {str(e)}") from e
 
