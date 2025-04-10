@@ -1,0 +1,18 @@
+[flake8]
+max-line-length = 100
+exclude = .git,__pycache__,docs/source/conf.py,old,build,dist,.venv
+ignore =
+    # D100: Missing docstring in public module
+    D100,
+    # D101: Missing docstring in public class
+    D101,
+    # D107: Missing docstring in __init__
+    D107,
+    # D400: First line should end with a period
+    D400,
+    # E402: Module level import not at top of file (sometimes needed in test fixtures)
+    E402,
+    # F401: Module imported but unused (sometimes needed for type hints or fixtures)
+    F401,
+    # W503: Line break before binary operator (conflicts with black formatting)
+    W503

@@ -186,7 +186,15 @@ COUNTRIES = [
 ]
 
 
-def get_region_by_country_code(country_code):
+def get_region_by_country_code(country_code: str) -> str:
+    """Get the Tuya region code based on a country code.
+
+    Args:
+        country_code: The ISO country code (e.g., 'GB', 'US').
+
+    Returns:
+        The Tuya region code (e.g., 'EU', 'AZ'). Defaults to 'EU' if not found.
+    """
     country = next(
         (item for item in COUNTRIES if item["country_code"] == country_code), None
     )
@@ -197,7 +205,15 @@ def get_region_by_country_code(country_code):
     return country["tuya_region"]
 
 
-def get_region_by_phone_code(phone_code):
+def get_region_by_phone_code(phone_code: str) -> str:
+    """Get the Tuya region code based on a phone country code.
+
+    Args:
+        phone_code: The phone country code (e.g., '44', '1').
+
+    Returns:
+        The Tuya region code (e.g., 'EU', 'AZ'). Defaults to 'EU' if not found.
+    """
     country = next(
         (item for item in COUNTRIES if item["phone_code"] == phone_code), None
     )
@@ -208,7 +224,15 @@ def get_region_by_phone_code(phone_code):
     return country["tuya_region"]
 
 
-def get_phone_code_by_region(region):
+def get_phone_code_by_region(region: str) -> str:
+    """Get the phone country code based on a Tuya region code.
+
+    Args:
+        region: The Tuya region code (e.g., 'EU', 'AZ').
+
+    Returns:
+        The phone country code (e.g., '44', '1'). Defaults to '44' if not found.
+    """
     country = next((item for item in COUNTRIES if item["tuya_region"] == region), None)
 
     if country is None:
@@ -217,7 +241,15 @@ def get_phone_code_by_region(region):
     return country["phone_code"]
 
 
-def get_phone_code_by_country_code(country_code):
+def get_phone_code_by_country_code(country_code: str) -> str:
+    """Get the phone country code based on a country code.
+
+    Args:
+        country_code: The ISO country code (e.g., 'GB', 'US').
+
+    Returns:
+        The phone country code (e.g., '44', '1'). Defaults to '44' if not found.
+    """
     country = next(
         (item for item in COUNTRIES if item["country_code"] == country_code), None
     )

@@ -129,10 +129,12 @@ class RoboVacEntity(StateVacuumEntity):
     _attr_boost_iq: str | None = None
     _attr_consumables: str | None = None
     _attr_mode: str | None = None
-    _attr_robovac_supported: str | None = None
+    _attr_robovac_supported: int | None = None
+    _attr_error_code: int | str | None = None
+    _attr_tuya_state: int | str | None = None
 
     @property
-    def robovac_supported(self) -> str | None:
+    def robovac_supported(self) -> int | None:
         """Return the supported features of the vacuum cleaner."""
         return self._attr_robovac_supported
 
@@ -163,13 +165,45 @@ class RoboVacEntity(StateVacuumEntity):
 
     @property
     def do_not_disturb(self) -> str | None:
-        """Return the do not disturb mode of the vacuum cleaner."""
+        """Return the do_not_disturb mode of the vacuum cleaner."""
         return self._attr_do_not_disturb
 
     @property
     def boost_iq(self) -> str | None:
-        """Return the boost iq mode of the vacuum cleaner."""
+        """Return the boost_iq mode of the vacuum cleaner."""
         return self._attr_boost_iq
+
+    @property
+    def tuya_state(self) -> str | int | None:
+        """Return the state of the vacuum cleaner.
+
+        This property is for backward compatibility with tests.
+        """
+        return self._attr_tuya_state
+
+    @tuya_state.setter
+    def tuya_state(self, value: str | int | None) -> None:
+        """Set the state of the vacuum cleaner.
+
+        This setter is for backward compatibility with tests.
+        """
+        self._attr_tuya_state = value
+
+    @property
+    def error_code(self) -> int | str | None:
+        """Return the error code of the vacuum cleaner.
+
+        This property is for backward compatibility with tests.
+        """
+        return self._attr_error_code
+
+    @error_code.setter
+    def error_code(self, value: int | str | None) -> None:
+        """Set the error code of the vacuum cleaner.
+
+        This setter is for backward compatibility with tests.
+        """
+        self._attr_error_code = value
 
     @property
     def model_code(self) -> str | None:
@@ -186,15 +220,30 @@ class RoboVacEntity(StateVacuumEntity):
         """Return the ip address of the vacuum cleaner."""
         return self._attr_ip_address
 
+    def _is_value_true(self, value: Any) -> bool:
+        """Check if a value is considered 'true', either as a boolean or string.
+
+        Args:
+            value: The value to check.
+
+        Returns:
+            bool: True if the value is considered 'true', False otherwise.
+        """
+        if value is True:
+            return True
+        if isinstance(value, str):
+            return value == "True" or value.lower() == "true"
+        return False
+
     @property
     def activity(self) -> VacuumActivity | None:
         """Return the activity of the vacuum cleaner.
-        
+
         This property is used by Home Assistant to determine the state of the vacuum.
         As of Home Assistant Core 2025.1, this property should be used instead of directly
         setting the state property.
         """
-        if self.tuya_state is None:
+        if self._attr_tuya_state is None:
             return None
         elif (
             type(self.error_code) is not None
@@ -211,13 +260,13 @@ class RoboVacEntity(StateVacuumEntity):
                 )
             )
             return VacuumActivity.ERROR
-        elif self.tuya_state == "Charging" or self.tuya_state == "completed":
+        elif self._attr_tuya_state == "Charging" or self._attr_tuya_state == "completed":
             return VacuumActivity.DOCKED
-        elif self.tuya_state == "Recharge":
+        elif self._attr_tuya_state == "Recharge":
             return VacuumActivity.RETURNING
-        elif self.tuya_state == "Sleeping" or self.tuya_state == "standby":
+        elif self._attr_tuya_state == "Sleeping" or self._attr_tuya_state == "standby":
             return VacuumActivity.IDLE
-        elif self.tuya_state == "Paused":
+        elif self._attr_tuya_state == "Paused":
             return VacuumActivity.PAUSED
         else:
             return VacuumActivity.CLEANING
@@ -227,32 +276,41 @@ class RoboVacEntity(StateVacuumEntity):
         """Return the device-specific state attributes of this vacuum."""
         data: dict[str, Any] = {}
 
-        if type(self.error_code) is not None and self.error_code not in [0, "no_error"]:
-            data[ATTR_ERROR] = getErrorMessage(self.error_code)
+        if self._attr_error_code is not None and self._attr_error_code not in [0, "no_error"]:
+            data[ATTR_ERROR] = getErrorMessage(self._attr_error_code)
         if (
-            self.robovac_supported & RoboVacEntityFeature.CLEANING_AREA
+            self.robovac_supported is not None
+            and self.robovac_supported & RoboVacEntityFeature.CLEANING_AREA
             and self.cleaning_area
         ):
             data[ATTR_CLEANING_AREA] = self.cleaning_area
         if (
-            self.robovac_supported & RoboVacEntityFeature.CLEANING_TIME
+            self.robovac_supported is not None
+            and self.robovac_supported & RoboVacEntityFeature.CLEANING_TIME
             and self.cleaning_time
         ):
             data[ATTR_CLEANING_TIME] = self.cleaning_time
         if (
-            self.robovac_supported & RoboVacEntityFeature.AUTO_RETURN
+            self.robovac_supported is not None
+            and self.robovac_supported & RoboVacEntityFeature.AUTO_RETURN
             and self.auto_return
         ):
             data[ATTR_AUTO_RETURN] = self.auto_return
         if (
-            self.robovac_supported & RoboVacEntityFeature.DO_NOT_DISTURB
+            self.robovac_supported is not None
+            and self.robovac_supported & RoboVacEntityFeature.DO_NOT_DISTURB
             and self.do_not_disturb
         ):
             data[ATTR_DO_NOT_DISTURB] = self.do_not_disturb
-        if self.robovac_supported & RoboVacEntityFeature.BOOST_IQ and self.boost_iq:
+        if (
+            self.robovac_supported is not None
+            and self.robovac_supported & RoboVacEntityFeature.BOOST_IQ
+            and self.boost_iq
+        ):
             data[ATTR_BOOST_IQ] = self.boost_iq
         if (
-            self.robovac_supported & RoboVacEntityFeature.CONSUMABLES
+            self.robovac_supported is not None
+            and self.robovac_supported & RoboVacEntityFeature.CONSUMABLES
             and self.consumables
         ):
             data[ATTR_CONSUMABLES] = self.consumables
@@ -260,8 +318,12 @@ class RoboVacEntity(StateVacuumEntity):
             data[ATTR_MODE] = self.mode
         return data
 
-    def __init__(self, item) -> None:
-        """Initialize Eufy Robovac"""
+    def __init__(self, item: dict[str, Any]) -> None:
+        """Initialize Eufy Robovac.
+
+        Args:
+            item: Dictionary containing vacuum configuration.
+        """
         super().__init__()
         self._attr_battery_level = 0
         self._attr_name = item[CONF_NAME]
@@ -273,17 +335,21 @@ class RoboVacEntity(StateVacuumEntity):
         self.update_failures = 0
 
         try:
+            if self.model_code is not None:
+                model_code_prefix = self.model_code[0:5]
+            else:
+                model_code_prefix = ""
             self.vacuum = RoboVac(
                 device_id=self.unique_id,
                 host=self.ip_address,
                 local_key=self.access_token,
                 timeout=TIMEOUT,
                 ping_interval=PING_RATE,
-                model_code=self.model_code[0:5],
+                model_code=model_code_prefix,
                 update_entity_state=self.pushed_update_handler,
             )
         except ModelNotSupportedException:
-            self.error_code = "UNSUPPORTED_MODEL"
+            self._attr_error_code = "UNSUPPORTED_MODEL"
 
         self._attr_supported_features = self.vacuum.getHomeAssistantFeatures()
         self._attr_robovac_supported = self.vacuum.getRoboVacFeatures()
@@ -296,22 +362,20 @@ class RoboVacEntity(StateVacuumEntity):
             name=item[CONF_NAME],
             manufacturer="Eufy",
             model=item[CONF_DESCRIPTION],
-            connections=[
+            connections={
                 (CONNECTION_NETWORK_MAC, item[CONF_MAC]),
-            ],
+            },
         )
+        # Initialize state variables
+        self.tuyastatus: dict[str, Any] | None = None
 
-        self.error_code = None
-        self.tuya_state = None
-        self.tuyastatus = None
-
-    async def async_update(self):
+    async def async_update(self) -> None:
         """Synchronise state from the vacuum."""
-        if self.error_code == "UNSUPPORTED_MODEL":
+        if self._attr_error_code == "UNSUPPORTED_MODEL":
             return
 
         if self.ip_address == "":
-            self.error_code = "IP_ADDRESS"
+            self._attr_error_code = "IP_ADDRESS"
             return
 
         try:
@@ -320,88 +384,157 @@ class RoboVacEntity(StateVacuumEntity):
             self.update_entity_values()
         except TuyaException as e:
             self.update_failures += 1
-            _LOGGER.warn(
+            _LOGGER.warning(
                 "Update errored. Current update failure count: {}. Reason: {}".format(
                     self.update_failures, e
                 )
             )
             if self.update_failures >= UPDATE_RETRIES:
-                self.error_code = "CONNECTION_FAILED"
+                self._attr_error_code = "CONNECTION_FAILED"
 
-    async def pushed_update_handler(self):
+    async def pushed_update_handler(self) -> None:
+        """Handle updates pushed from the vacuum.
+
+        This method is called when the vacuum sends an update via the Tuya API.
+        It updates the entity values and writes the state to Home Assistant.
+        """
         self.update_entity_values()
         self.async_write_ha_state()
 
-    def update_entity_values(self):
+    def update_entity_values(self) -> None:
+        """Update entity values from the vacuum's data points.
+
+        This method updates all the entity attributes based on the current
+        state of the vacuum's data points (DPS).
+        """
         self.tuyastatus = self.vacuum._dps
 
         # for 15C
-        self._attr_battery_level = self.tuyastatus.get(TUYA_CODES.BATTERY_LEVEL)
-        self.tuya_state = self.tuyastatus.get(TUYA_CODES.STATE)
-        self.error_code = self.tuyastatus.get(TUYA_CODES.ERROR_CODE)
-        self._attr_mode = self.tuyastatus.get(TUYA_CODES.MODE)
-        self._attr_fan_speed = self.tuyastatus.get(TUYA_CODES.FAN_SPEED)
-        if self.fan_speed == "No_suction":
-            self._attr_fan_speed = "No Suction"
-        elif self.fan_speed == "Boost_IQ":
-            self._attr_fan_speed = "Boost IQ"
-        elif self.fan_speed == "Quiet":
-            self._attr_fan_speed = "Pure"
+        if self.tuyastatus is not None:
+            # Handle potentially None values from dictionary lookups
+            battery_level = self.tuyastatus.get(TUYA_CODES.BATTERY_LEVEL)
+            self._attr_battery_level = battery_level if battery_level is not None else 0
+
+            tuya_state = self.tuyastatus.get(TUYA_CODES.STATE)
+            self._attr_tuya_state = tuya_state if tuya_state is not None else 0
+
+            error_code = self.tuyastatus.get(TUYA_CODES.ERROR_CODE)
+            self._attr_error_code = error_code if error_code is not None else 0
+
+            mode = self.tuyastatus.get(TUYA_CODES.MODE)
+            self._attr_mode = mode if mode is not None else ""
+
+            fan_speed = self.tuyastatus.get(TUYA_CODES.FAN_SPEED)
+            self._attr_fan_speed = fan_speed if fan_speed is not None else ""
+        if isinstance(self.fan_speed, str):
+            if self.fan_speed == "No_suction":
+                self._attr_fan_speed = "No Suction"
+            elif self.fan_speed == "Boost_IQ":
+                self._attr_fan_speed = "Boost IQ"
+            elif self.fan_speed == "Quiet":
+                self._attr_fan_speed = "Pure"
         # for G30
-        self._attr_cleaning_area = self.tuyastatus.get(TUYA_CODES.CLEANING_AREA)
-        self._attr_cleaning_time = self.tuyastatus.get(TUYA_CODES.CLEANING_TIME)
-        self._attr_auto_return = self.tuyastatus.get(TUYA_CODES.AUTO_RETURN)
-        self._attr_do_not_disturb = self.tuyastatus.get(TUYA_CODES.DO_NOT_DISTURB)
-        self._attr_boost_iq = self.tuyastatus.get(TUYA_CODES.BOOST_IQ)
+        if self.tuyastatus is not None:
+            # Handle potentially None values from dictionary lookups
+            cleaning_area = self.tuyastatus.get(TUYA_CODES.CLEANING_AREA)
+            self._attr_cleaning_area = str(cleaning_area) if cleaning_area is not None else None
+
+            cleaning_time = self.tuyastatus.get(TUYA_CODES.CLEANING_TIME)
+            self._attr_cleaning_time = str(cleaning_time) if cleaning_time is not None else None
+
+            auto_return = self.tuyastatus.get(TUYA_CODES.AUTO_RETURN)
+            self._attr_auto_return = str(auto_return) if auto_return is not None else None
+
+            do_not_disturb = self.tuyastatus.get(TUYA_CODES.DO_NOT_DISTURB)
+            self._attr_do_not_disturb = str(do_not_disturb) if do_not_disturb is not None else None
+
+            boost_iq = self.tuyastatus.get(TUYA_CODES.BOOST_IQ)
+            self._attr_boost_iq = str(boost_iq) if boost_iq is not None else None
         # self.map_data = self.tuyastatus.get("121")
         # self.erro_msg? = self.tuyastatus.get("124")
-        if self.robovac_supported & RoboVacEntityFeature.CONSUMABLES:
+        if (
+            isinstance(self.robovac_supported, int)
+            and self.robovac_supported & RoboVacEntityFeature.CONSUMABLES
+            and self.tuyastatus is not None
+        ):
             for CONSUMABLE_CODE in TUYA_CONSUMABLES_CODES:
                 if (
                     CONSUMABLE_CODE in self.tuyastatus
                     and self.tuyastatus.get(CONSUMABLE_CODE) is not None
                 ):
-                    consumables = ast.literal_eval(
-                        base64.b64decode(self.tuyastatus.get(CONSUMABLE_CODE)).decode(
-                            "ascii"
+                    consumable_data = self.tuyastatus.get(CONSUMABLE_CODE)
+                    if isinstance(consumable_data, str):
+                        consumables = ast.literal_eval(
+                            base64.b64decode(consumable_data).decode("ascii")
                         )
-                    )
                     if (
                         "consumable" in consumables
                         and "duration" in consumables["consumable"]
                     ):
                         self._attr_consumables = consumables["consumable"]["duration"]
 
-    async def async_locate(self, **kwargs):
-        """Locate the vacuum cleaner."""
+    async def async_locate(self, **kwargs: Any) -> None:
+        """Locate the vacuum cleaner.
+
+        Args:
+            **kwargs: Additional arguments passed from Home Assistant.
+        """
         _LOGGER.info("Locate Pressed")
-        if self.tuyastatus.get("103"):
+        if self.tuyastatus is not None and self.tuyastatus.get("103"):
             await self.vacuum.async_set({"103": False})
         else:
             await self.vacuum.async_set({"103": True})
 
-    async def async_return_to_base(self, **kwargs):
-        """Set the vacuum cleaner to return to the dock."""
+    async def async_return_to_base(self, **kwargs: Any) -> None:
+        """Set the vacuum cleaner to return to the dock.
+
+        Args:
+            **kwargs: Additional arguments passed from Home Assistant.
+        """
         _LOGGER.info("Return home Pressed")
         await self.vacuum.async_set({"101": True})
 
-    async def async_start(self, **kwargs):
+    async def async_start(self, **kwargs: Any) -> None:
+        """Start the vacuum cleaner in auto mode.
+
+        Args:
+            **kwargs: Additional arguments passed from Home Assistant.
+        """
         self._attr_mode = "auto"
         await self.vacuum.async_set({"5": self.mode})
 
-    async def async_pause(self, **kwargs):
+    async def async_pause(self, **kwargs: Any) -> None:
+        """Pause the vacuum cleaner.
+
+        Args:
+            **kwargs: Additional arguments passed from Home Assistant.
+        """
         await self.vacuum.async_set({"2": False})
 
-    async def async_stop(self, **kwargs):
+    async def async_stop(self, **kwargs: Any) -> None:
+        """Stop the vacuum cleaner.
+
+        Args:
+            **kwargs: Additional arguments passed from Home Assistant.
+        """
         await self.async_return_to_base()
 
-    async def async_clean_spot(self, **kwargs):
-        """Perform a spot clean-up."""
+    async def async_clean_spot(self, **kwargs: Any) -> None:
+        """Perform a spot clean-up.
+
+        Args:
+            **kwargs: Additional arguments passed from Home Assistant.
+        """
         _LOGGER.info("Spot Clean Pressed")
         await self.vacuum.async_set({"5": "Spot"})
 
-    async def async_set_fan_speed(self, fan_speed, **kwargs):
-        """Set fan speed."""
+    async def async_set_fan_speed(self, fan_speed: str, **kwargs: Any) -> None:
+        """Set fan speed.
+
+        Args:
+            fan_speed: The fan speed to set.
+            **kwargs: Additional arguments passed from Home Assistant.
+        """
         _LOGGER.info("Fan Speed Selected")
         if fan_speed == "No Suction":
             fan_speed = "No_suction"
@@ -412,9 +545,15 @@ class RoboVacEntity(StateVacuumEntity):
         await self.vacuum.async_set({"102": fan_speed})
 
     async def async_send_command(
-        self, command: str, params: dict | list | None = None, **kwargs
+        self, command: str, params: dict[str, Any] | list[Any] | None = None, **kwargs: Any
     ) -> None:
-        """Send a command to a vacuum cleaner."""
+        """Send a command to a vacuum cleaner.
+
+        Args:
+            command: The command to send.
+            params: Optional parameters for the command.
+            **kwargs: Additional arguments passed from Home Assistant.
+        """
         _LOGGER.info("Send Command %s Pressed", command)
         if command == "edgeClean":
             await self.vacuum.async_set({"5": "Edge"})
@@ -423,26 +562,34 @@ class RoboVacEntity(StateVacuumEntity):
         elif command == "autoClean":
             await self.vacuum.async_set({"5": "auto"})
         elif command == "autoReturn":
-            if self.auto_return:
+            # Handle both boolean and string values
+            if self._is_value_true(self.auto_return):
                 await self.vacuum.async_set({"135": False})
             else:
                 await self.vacuum.async_set({"135": True})
         elif command == "doNotDisturb":
-            if self.do_not_disturb:
+            # Handle both boolean and string values
+            if self._is_value_true(self.do_not_disturb):
                 await self.vacuum.async_set({"139": "MEQ4MDAwMDAw"})
                 await self.vacuum.async_set({"107": False})
             else:
                 await self.vacuum.async_set({"139": "MTAwMDAwMDAw"})
                 await self.vacuum.async_set({"107": True})
         elif command == "boostIQ":
-            if self.boost_iq:
+            # Handle both boolean and string values
+            if self._is_value_true(self.boost_iq):
                 await self.vacuum.async_set({"118": False})
             else:
                 await self.vacuum.async_set({"118": True})
-        elif command == "roomClean":
-            roomIds = params.get("roomIds", [1])
+        elif command == "roomClean" and params is not None and isinstance(params, dict):
+            # Get room IDs and count from params, with defaults
+            room_ids = params.get("roomIds", [1])
             count = params.get("count", 1)
-            clean_request = {"roomIds": roomIds, "cleanTimes": count}
+
+            # Create the clean request
+            clean_request = {"roomIds": room_ids, "cleanTimes": count}
+
+            # Create the method call
             method_call = {
                 "method": "selectRoomsClean",
                 "data": clean_request,
@@ -453,5 +600,6 @@ class RoboVacEntity(StateVacuumEntity):
             _LOGGER.info("roomClean call %s", json_str)
             await self.vacuum.async_set({"124": base64_str})
 
-    async def async_will_remove_from_hass(self):
+    async def async_will_remove_from_hass(self) -> None:
+        """Handle removal from Home Assistant."""
         await self.vacuum.async_disable()

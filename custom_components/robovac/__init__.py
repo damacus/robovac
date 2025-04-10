@@ -16,6 +16,7 @@
 """The Eufy Robovac integration."""
 from __future__ import annotations
 import logging
+from typing import Any, Dict, Optional
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EVENT_HOMEASSISTANT_STOP, Platform, CONF_IP_ADDRESS
@@ -28,13 +29,24 @@ PLATFORMS = [Platform.VACUUM, Platform.SENSOR]
 _LOGGER = logging.getLogger(__name__)
 
 
-async def async_setup(hass, entry) -> bool:
-    hass.data.setdefault(DOMAIN, {CONF_VACS:{}})
+async def async_setup(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Set up the Eufy Robovac component.
 
-    async def update_device(device):
+    This function initializes the component and sets up the discovery service.
+
+    Args:
+        hass: The Home Assistant instance.
+        entry: The config entry.
+
+    Returns:
+        True if setup was successful.
+    """
+    hass.data.setdefault(DOMAIN, {CONF_VACS: {}})
+
+    async def update_device(device: Dict[str, Any]) -> None:
         entry = async_get_config_entry_for_device(hass, device["gwId"])
 
-        if entry == None:
+        if entry is None:
             return
 
         if not entry.state.recoverable:
@@ -77,19 +89,27 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
-    if unload_ok := await hass.config_entries.async_unload_platforms(
-        entry, PLATFORMS
-    ):
-        """Nothing"""
+    unload_ok: bool = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     return unload_ok
 
 
-async def update_listener(hass, entry):
+async def update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Handle options update."""
     await hass.config_entries.async_reload(entry.entry_id)
 
 
-def async_get_config_entry_for_device(hass, device_id):
+def async_get_config_entry_for_device(
+    hass: HomeAssistant, device_id: str
+) -> Optional[ConfigEntry]:
+    """Find the config entry for a specific device ID.
+
+    Args:
+        hass: The Home Assistant instance.
+        device_id: The device ID to find.
+
+    Returns:
+        The config entry if found, None otherwise.
+    """
     current_entries = hass.config_entries.async_entries(DOMAIN)
     for entry in current_entries:
         if device_id in entry.data[CONF_VACS]:

@@ -1,6 +1,7 @@
 from enum import IntEnum
 from homeassistant.components.vacuum import VacuumEntityFeature
 from .tuyalocalapi import TuyaDevice
+from typing import Any, Dict, Optional
 
 
 class RoboVacEntityFeature(IntEnum):
@@ -69,8 +70,9 @@ HAS_CONSUMABLES = [
     "T2320",
 ]
 
-ROBOVAC_SERIES_FEATURES = {
-    "C": RoboVacEntityFeature.EDGE | RoboVacEntityFeature.SMALL_ROOM,
+ROBOVAC_SERIES_FEATURES: Dict[str, int] = {
+    "C": RoboVacEntityFeature.EDGE
+    | RoboVacEntityFeature.SMALL_ROOM,
     "G": RoboVacEntityFeature.CLEANING_TIME
     | RoboVacEntityFeature.CLEANING_AREA
     | RoboVacEntityFeature.DO_NOT_DISTURB
@@ -109,9 +111,9 @@ class ModelNotSupportedException(Exception):
 
 
 class RoboVac(TuyaDevice):
-    """"""
+    """Tuya RoboVac device."""
 
-    def __init__(self, model_code, *args, **kwargs):
+    def __init__(self, model_code: str, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
         self.model_code = model_code
 
@@ -120,8 +122,13 @@ class RoboVac(TuyaDevice):
                 "Model {} is not supported".format(self.model_code)
             )
 
-    def getHomeAssistantFeatures(self):
-        supportedFeatures = (
+    def getHomeAssistantFeatures(self) -> int:
+        """Get the supported features of the device.
+
+        Returns:
+            An integer representing the supported features of the device.
+        """
+        supportedFeatures: int = (
             VacuumEntityFeature.BATTERY
             | VacuumEntityFeature.CLEAN_SPOT
             | VacuumEntityFeature.FAN_SPEED
@@ -139,8 +146,20 @@ class RoboVac(TuyaDevice):
 
         return supportedFeatures
 
-    def getRoboVacFeatures(self):
-        supportedFeatures = ROBOVAC_SERIES_FEATURES[self.getRoboVacSeries()]
+    def getRoboVacFeatures(self) -> int:
+        """Get the supported features of the device.
+
+        Returns:
+            An integer representing the supported features of the device.
+        """
+        series = self.getRoboVacSeries()
+        supportedFeatures: int
+        if series is None:
+            # Default to empty features if series not found
+            supportedFeatures = 0
+        else:
+            # Explicitly cast to int to satisfy mypy
+            supportedFeatures = int(ROBOVAC_SERIES_FEATURES[series])
 
         if self.model_code in HAS_MAP_FEATURE:
             supportedFeatures |= RoboVacEntityFeature.MAP
@@ -150,10 +169,25 @@ class RoboVac(TuyaDevice):
 
         return supportedFeatures
 
-    def getRoboVacSeries(self):
+    def getRoboVacSeries(self) -> str | None:
+        """Get the series of the device.
+
+        Returns:
+            A string representing the series of the device.
+        """
         for series, models in ROBOVAC_SERIES.items():
             if self.model_code in models:
                 return series
+        return None
 
-    def getFanSpeeds(self):
-        return ROBOVAC_SERIES_FAN_SPEEDS[self.getRoboVacSeries()]
+    def getFanSpeeds(self) -> list[str]:
+        """Get the supported fan speeds of the device.
+
+        Returns:
+            A list of strings representing the supported fan speeds of the device.
+        """
+        series = self.getRoboVacSeries()
+        if series is None:
+            # Return empty list if series not found
+            return []
+        return ROBOVAC_SERIES_FAN_SPEEDS[series]

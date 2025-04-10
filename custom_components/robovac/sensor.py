@@ -16,6 +16,7 @@ _LOGGER = logging.getLogger(__name__)
 BATTERY = "Battery"
 SCAN_INTERVAL = timedelta(seconds=REFRESH_RATE)
 
+
 async def async_setup_entry(
     hass: HomeAssistant,
     config_entry: ConfigEntry,
@@ -24,35 +25,40 @@ async def async_setup_entry(
     """Set up the Eufy RoboVac sensor platform."""
     vacuums = config_entry.data[CONF_VACS]
     entities = []
-    
+
     for item in vacuums:
         item = vacuums[item]
         entities.append(RobovacBatterySensor(item))
-        
+
     async_add_entities(entities)
+
 
 class RobovacBatterySensor(SensorEntity):
     """Representation of a Eufy RoboVac Battery Sensor."""
-    
+
     _attr_has_entity_name = True
     _attr_device_class = SensorDeviceClass.BATTERY
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_native_unit_of_measurement = PERCENTAGE
     _attr_should_poll = True
-    
-    def __init__(self, item):
-        """Initialize the sensor."""
+
+    def __init__(self, item: dict) -> None:
+        """Initialize the sensor.
+
+        Args:
+            item: Dictionary containing vacuum configuration.
+        """
         self.robovac = item
         self.robovac_id = item[CONF_ID]
         self._attr_unique_id = f"{item[CONF_ID]}_battery"
         self._attr_name = "Battery"
-        
+
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, item[CONF_ID])},
             name=item[CONF_NAME]
         )
 
-    async def async_update(self):
+    async def async_update(self) -> None:
         """Update the sensor state."""
         try:
             vacuum_entity = self.hass.data[DOMAIN][CONF_VACS].get(self.robovac_id)
