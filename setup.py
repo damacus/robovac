@@ -22,7 +22,7 @@ setup(
     name="robovac",
     version="1.0",
     author="Luke Morrigan",
-    url="http://github.com/codefoodpixels/robovac",
+    url="http://github.com/damacus/robovac",
     packages=find_packages(),
     scripts=[],
     description="Python API for controlling Eufy Robovac vacuum cleaners",
