@@ -1,8 +1,15 @@
-"""Original Work from here: Andre Borie.
+"""Tuya Web API client for Eufy RoboVac integration.
 
-Source: https://gitlab.com/Rjevski/eufy-device-id-and-local-key-grabber
+This module provides functionality to interact with the Tuya cloud API,
+which is used by Eufy devices. It handles authentication, encryption,
+and API requests needed to control Eufy RoboVac devices.
+
+Original work from: https://gitlab.com/Rjevski/eufy-device-id-and-local-key-grabber
 """
 
+from __future__ import annotations
+
+# Standard library imports
 from hashlib import md5, sha256
 import hmac
 import json
@@ -11,12 +18,13 @@ import random
 import string
 import time
 import uuid
+from typing import Any, Dict, Optional
 
+# Third-party imports
 from cryptography.hazmat.backends.openssl import backend as openssl_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 import requests
-from typing import Dict, MutableMapping, Union, Optional, Any
-
+# Local imports
 from .countries import get_phone_code_by_region
 
 TUYA_INITIAL_BASE_URL = "https://a1.tuyaeu.com"
@@ -110,9 +118,28 @@ DEFAULT_TUYA_QUERY_PARAMS = {
 
 
 class TuyaAPISession:
+    """Session handler for Tuya API authentication and requests.
+
+    This class manages the authentication state and provides methods to
+    interact with the Tuya API endpoints used by Eufy devices. It handles
+    session creation, token acquisition, and making authenticated requests
+    to the Tuya cloud API.
+
+    Attributes:
+        username: The username for the Tuya API account.
+        country_code: The country code for the Tuya API account.
+        session_id: The current session ID for API requests.
+        base_url: The base URL for the Tuya API.
+        session: The requests session object for making HTTP requests.
+        default_query_params: Default query parameters for API requests.
+    """
+
     username: Optional[str] = None
     country_code: Optional[str] = None
     session_id: Optional[str] = None
+    base_url: str
+    session: requests.Session
+    default_query_params: Dict[str, str]
 
     def __init__(self, username: str, region: str, timezone: str, phone_code: str) -> None:
         """Initialize the TuyaAPISession.
@@ -190,25 +217,35 @@ class TuyaAPISession:
         action: str,
         version: str = "1.0",
         data: Optional[Dict[str, Any]] = None,
-        query_params: Optional[Dict[str, Any]] = None,
+        query_params: Optional[Dict[str, str]] = None,
         _requires_session: bool = True,
     ) -> Dict[str, Any]:
         """Make a request to the Tuya API.
 
+        This method handles the construction of the API request, including
+        authentication, request signing, and response parsing. It will automatically
+        acquire a session if one is not already active and the request requires it.
+
         Args:
-            action: The API action to perform.
-            version: The API version to use.
-            data: The data to send in the request body.
-            query_params: Additional query parameters to include.
+            action: The API action to perform (e.g., "tuya.m.device.get").
+            version: The API version to use (default: "1.0").
+            data: The data to send in the request body as a dictionary.
+            query_params: Additional query parameters to include in the request.
             _requires_session: Whether this request requires an active session.
+                Set to False for authentication requests.
 
         Returns:
-            The JSON response from the API as a dictionary.
+            The JSON response from the API as a dictionary containing the result.
 
         Raises:
-            Exception: If the response does not contain a 'result' key.
+            ValueError: If the session is required but could not be acquired.
+            requests.HTTPError: If the HTTP request fails.
+            TypeError: If the response is not a valid JSON object.
+            KeyError: If the response does not contain a 'result' key.
         """
         if not self.session_id and _requires_session:
+            if not self.username or not self.country_code:
+                raise ValueError("Username and country code must be set for session-based requests")
             self.acquire_session()
 
         current_time = time.time()
@@ -222,21 +259,28 @@ class TuyaAPISession:
         }
         query_params = {**self.default_query_params, **extra_query_params}
         encoded_post_data = json.dumps(data, separators=(",", ":")) if data else ""
-        resp = self.session.post(
-            self.base_url + "/api.json",
-            params={
-                **query_params,
-                "sign": self.get_signature(query_params, encoded_post_data),
-            },
-            data={"postData": encoded_post_data} if encoded_post_data else None,
-        )
-        resp.raise_for_status()
-        response_data: Dict[str, Any] = resp.json()
-        # Ensure the response_data has a 'result' key
-        if not isinstance(response_data, dict) or "result" not in response_data:
-            raise Exception(
-                f"No 'result' key in the response - the entire response is {response_data}."
+
+        try:
+            resp = self.session.post(
+                self.base_url + "/api.json",
+                params={
+                    **query_params,
+                    "sign": self.get_signature(query_params, encoded_post_data),
+                },
+                data={"postData": encoded_post_data} if encoded_post_data else None,
             )
+            resp.raise_for_status()
+            response_data: Dict[str, Any] = resp.json()
+        except requests.RequestException as e:
+            raise requests.HTTPError(f"API request to {action} failed: {str(e)}") from e
+        except json.JSONDecodeError as e:
+            raise TypeError(f"Invalid JSON response from API: {str(e)}") from e
+
+        if "result" not in response_data:
+            raise KeyError(
+                f"No 'result' key in the response - the entire response is {response_data}"
+            )
+
         result: Dict[str, Any] = response_data["result"]
         return result
 
