@@ -8,6 +8,28 @@ on:
   workflow_dispatch:
 
 jobs:
+  check-markdown:
+    runs-on: ubuntu-latest
+    name: runner / markdownlint
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+      - name: Run Markdown Lint
+        uses: DavidAnson/markdownlint-cli2-action@v18
+        with:
+          globs: "**/*.md"
+
+  check-links:
+    name: runner / linkspector
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run linkspector
+        uses: umbrelladocs/action-linkspector@v1
+        with:
+          fail_on_error: false
+          reporter: github-pr-review
+
   lint:
     runs-on: ubuntu-latest
     steps:
@@ -20,14 +42,11 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v5
       - name: Install dependencies
-        run: |
-          uv pip install -r requirements-dev.txt
+        run: uv pip install -r requirements-dev.txt
       - name: Lint with flake8
-        run: |
-          flake8 custom_components tests
+        run: flake8 custom_components tests
       - name: Type check with mypy
-        run: |
-          mypy custom_components tests
+        run: mypy custom_components tests
 
   test:
     runs-on: ubuntu-latest
@@ -41,8 +60,6 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v5
       - name: Install dependencies
-        run: |
-          uv pip install -r requirements-dev.txt
+        run: uv pip install -r requirements-dev.txt
       - name: Run tests with pytest
-        run: |
-          pytest --cov=custom_components tests/
+        run: pytest --cov=custom_components tests/

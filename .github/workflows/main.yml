@@ -12,8 +12,6 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-            - name: Run markdownlint
-              uses: actionshub/markdownlint@6c82ff529253530dfbf75c37570876c52692835f # v3.1.4
             # - uses: home-assistant/actions/hassfest@4b258cf2bf1668d8e0adcb6b2be96b6cda36f42f # 1.0.0 TODO: change to a working action that isn't 5+ years old
             # - name: HACS Action
             #   uses: hacs/action@d556e736723344f83838d08488c983a15381059a # 22.5.0
