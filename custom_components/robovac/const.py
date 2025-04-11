@@ -1,4 +1,4 @@
-"""Constants for the Eufy Robovac integration."""
+"""Constants for the Eufy RoboVac integration."""
 
 DOMAIN = "robovac"
 CONF_VACS = "vacuums"

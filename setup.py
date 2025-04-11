@@ -21,11 +21,11 @@ from setuptools import setup, find_packages
 setup(
     name="robovac",
     version="1.0",
-    author="Luke Morrigan",
+    author="Dan Wevv",
     url="http://github.com/damacus/robovac",
     packages=find_packages(),
     scripts=[],
-    description="Python API for controlling Eufy Robovac vacuum cleaners",
+    description="Python API for controlling Eufy RoboVac vacuum cleaners",
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",

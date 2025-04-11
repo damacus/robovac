@@ -20,11 +20,11 @@ This work has evolved from the original work by [Richard Mitchell](https://githu
 2. Then install it.
 3. Restart Home Assistant
 4. Go to the Integrations Page and Click +Add Integration button
-5. Search for Eufy Robovac and select it
+5. Search for Eufy RoboVac and select it
 6. Enter your Eufy username and password (The ones you use to login to the add with) and submit
 7. If youve done it correctly you should get a success dialoge and option to enter an Area for each RoboVac you have
 8. Click Finish
-9. On the Integrations Screen Locate your Eufy Robovac card and click the configure button
+9. On the Integrations Screen Locate your Eufy RoboVac card and click the configure button
 10. Select the Radio button beside the Vacuum name and type its IP addess in the box and press Submit
 (You need to repeat steps 9 and 10 for each RoboVac you have)
 11. Enjoy
@@ -33,9 +33,9 @@ Please note: You may have to get a new version of the access key for your vacuum
 
 ### Option 1: Scripts
 
-The integration is designed to work with the standard Home Assistant Lovelace card but that doesn't support all the options of your Robovac. I have created some scripts to send the relevant commands to the Robovac.
+The integration is designed to work with the standard Home Assistant Lovelace card but that doesn't support all the options of your RoboVac. I have created some scripts to send the relevant commands to the RoboVac.
 
-Add the below text to your scripts.yaml file for a xxC RoboVAC. It should be in the same folder as your configuration.yaml
+Add the below text to your scripts.yaml file for a xxC RoboVac. It should be in the same folder as your configuration.yaml
 
 ```yaml
 15c_smallroomclean:
