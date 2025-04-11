@@ -7,8 +7,6 @@ A brand new version Eufy RoboVac integration for Home Assistant that includes a 
 
 This work has evolved from the original work by [Richard Mitchell](https://github.com/mitchellrj) and the countless others who have contributed over the last couple of years. It also builds on the work done by [Andre Borie](https://gitlab.com/Rjevski/eufy-device-id-and-local-key-grabber) to get the required local ID and key.
 
-This project has been forked many times since the original work done by Richard and attempting to simplify the operation and number of files involved.
-
 ## Installation
 
 ### Prerequisites
