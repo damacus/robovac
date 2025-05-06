@@ -13,41 +13,36 @@
 # limitations under the License.
 
 """Config flow for Eufy Robovac integration."""
+
 from __future__ import annotations
 
 import json
-
 import logging
-from typing import Any, Optional, TypeAlias
 from copy import deepcopy
+from typing import Any, Optional
 
 import voluptuous as vol
+
 import homeassistant.helpers.config_validation as cv
-
 from homeassistant import config_entries
-from homeassistant.core import callback
-from homeassistant.core import HomeAssistant
-# Import ConfigFlowResult directly from config_entries
 from homeassistant.config_entries import ConfigFlowResult
-
-from homeassistant.exceptions import HomeAssistantError
-# from homeassistant.helpers.selector import selector
-
 from homeassistant.const import (
     CONF_ACCESS_TOKEN,
-    CONF_NAME,
-    CONF_ID,
-    CONF_MODEL,
-    CONF_USERNAME,
-    CONF_PASSWORD,
-    CONF_IP_ADDRESS,
-    CONF_DESCRIPTION,
-    CONF_MAC,
     CONF_CLIENT_ID,
+    CONF_COUNTRY_CODE,
+    CONF_DESCRIPTION,
+    CONF_ID,
+    CONF_IP_ADDRESS,
+    CONF_MAC,
+    CONF_MODEL,
+    CONF_NAME,
+    CONF_PASSWORD,
     CONF_REGION,
     CONF_TIME_ZONE,
-    CONF_COUNTRY_CODE,
+    CONF_USERNAME,
 )
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.exceptions import HomeAssistantError
 
 from .countries import (
     get_phone_code_by_country_code,
@@ -55,12 +50,6 @@ from .countries import (
     get_region_by_country_code,
     get_region_by_phone_code,
 )
-
-from .const import CONF_AUTODISCOVERY, DOMAIN, CONF_VACS
-
-from .tuyawebapi import TuyaAPISession
-from .eufywebapi import EufyLogon
-from requests import Response
 
 _LOGGER = logging.getLogger(__name__)
 
