@@ -1,0 +1,11 @@
+---
+version: '3'
+
+tasks:
+  test:
+    cmds:
+      - uv run pytest --cov=custom_components tests
+  install:
+    cmds:
+      - uv venv
+      - uv pip install -r requirements-dev.txt
