@@ -1,0 +1,40 @@
+{
+    "config": {
+        "abort": {
+            "already_configured": "O dispositivo já está configurado"
+        },
+        "error": {
+            "cannot_connect": "Falha ao conectar",
+            "invalid_auth": "Autenticação inválida",
+            "unknown": "Erro inesperado"
+        },
+        "step": {
+            "user": {
+                "data": {
+                    "host": "Host",
+                    "password": "Senha",
+                    "username": "Nome de usuário"
+                },
+                "description": "Insira os detalhes da sua conta Eufy"
+            }
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "title": "Gerenciar aspiradores",
+                "data": {
+                    "selected_vacuum": "Selecione o aspirador para editar"
+                }
+            },
+            "edit": {
+                "title": "Editar aspirador",
+                "data": {
+                    "autodiscovery": "Ativar descoberta automática",
+                    "ip_address": "Endereço IP"
+                },
+                "description": "A descoberta automática atualizará automaticamente o endereço IP"
+            }
+        }
+    }
+}

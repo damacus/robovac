@@ -1,0 +1,40 @@
+{
+    "config": {
+        "abort": {
+            "already_configured": "Mae'r ddyfais eisoes wedi'i ffurfweddu"
+        },
+        "error": {
+            "cannot_connect": "Wedi methu cysylltu",
+            "invalid_auth": "Dilysiad annilys",
+            "unknown": "Gwall annisgwyl"
+        },
+        "step": {
+            "user": {
+                "data": {
+                    "host": "Gwesteiwr",
+                    "password": "Cyfrinair",
+                    "username": "Enw defnyddiwr"
+                },
+                "description": "Rhowch fanylion eich cyfrif Eufy"
+            }
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "title": "Rheoli sugnwyr llwch",
+                "data": {
+                    "selected_vacuum": "Dewiswch y sugnwr llwch i'w olygu"
+                }
+            },
+            "edit": {
+                "title": "Golygu sugnwr llwch",
+                "data": {
+                    "autodiscovery": "Galluogi awto-ddarganfod",
+                    "ip_address": "Cyfeiriad IP"
+                },
+                "description": "Bydd awto-ddarganfod yn diweddaru'r cyfeiriad IP yn awtomatig"
+            }
+        }
+    }
+}

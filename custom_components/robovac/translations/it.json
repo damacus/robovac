@@ -1,0 +1,40 @@
+{
+    "config": {
+        "abort": {
+            "already_configured": "Il dispositivo è già configurato"
+        },
+        "error": {
+            "cannot_connect": "Connessione non riuscita",
+            "invalid_auth": "Autenticazione non valida",
+            "unknown": "Errore imprevisto"
+        },
+        "step": {
+            "user": {
+                "data": {
+                    "host": "Host",
+                    "password": "Password",
+                    "username": "Nome utente"
+                },
+                "description": "Inserisci i dettagli del tuo account Eufy"
+            }
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "title": "Gestisci aspirapolvere",
+                "data": {
+                    "selected_vacuum": "Seleziona l'aspirapolvere da modificare"
+                }
+            },
+            "edit": {
+                "title": "Modifica aspirapolvere",
+                "data": {
+                    "autodiscovery": "Abilita rilevamento automatico",
+                    "ip_address": "Indirizzo IP"
+                },
+                "description": "Il rilevamento automatico aggiornerà automaticamente l'indirizzo IP"
+            }
+        }
+    }
+}

@@ -1,0 +1,40 @@
+{
+    "config": {
+        "abort": {
+            "already_configured": "Gerät ist bereits konfiguriert"
+        },
+        "error": {
+            "cannot_connect": "Verbindung fehlgeschlagen",
+            "invalid_auth": "Ungültige Authentifizierung",
+            "unknown": "Unerwarteter Fehler"
+        },
+        "step": {
+            "user": {
+                "data": {
+                    "host": "Host",
+                    "password": "Passwort",
+                    "username": "Benutzername"
+                },
+                "description": "Geben Sie Ihre Eufy-Kontodaten ein"
+            }
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "title": "Staubsauger verwalten",
+                "data": {
+                    "selected_vacuum": "Wählen Sie den zu bearbeitenden Staubsauger aus"
+                }
+            },
+            "edit": {
+                "title": "Staubsauger bearbeiten",
+                "data": {
+                    "autodiscovery": "Autodiscovery aktivieren",
+                    "ip_address": "IP-Adresse"
+                },
+                "description": "Autodiscovery aktualisiert die IP-Adresse automatisch"
+            }
+        }
+    }
+}
