@@ -5,7 +5,7 @@ from .base import RoboVacEntityFeature, RobovacCommand
 class T2320:
     homeassistant_features = (
         VacuumEntityFeature.BATTERY
-        #        | VacuumEntityFeature.CLEAN_SPOT
+        # | VacuumEntityFeature.CLEAN_SPOT
         | VacuumEntityFeature.FAN_SPEED
         | VacuumEntityFeature.LOCATE
         | VacuumEntityFeature.PAUSE
@@ -14,18 +14,18 @@ class T2320:
         | VacuumEntityFeature.START
         | VacuumEntityFeature.STATE
         | VacuumEntityFeature.STOP
-        #        | VacuumEntityFeature.MAP
+        # | VacuumEntityFeature.MAP
     )
     robovac_features = (
-        #    RoboVacEntityFeature.CLEANING_TIME
-        #     | RoboVacEntityFeature.CLEANING_AREA
+        # RoboVacEntityFeature.CLEANING_TIME
+        # RoboVacEntityFeature.CLEANING_AREA
         RoboVacEntityFeature.DO_NOT_DISTURB
-        #     | RoboVacEntityFeature.AUTO_RETURN
-        #     | RoboVacEntityFeature.ROOM
-        #     | RoboVacEntityFeature.ZONE
+        # RoboVacEntityFeature.AUTO_RETURN
+        # RoboVacEntityFeature.ROOM
+        # RoboVacEntityFeature.ZONE
         | RoboVacEntityFeature.BOOST_IQ
-        #     | RoboVacEntityFeature.MAP
-        #     | RoboVacEntityFeature.CONSUMABLES
+        # RoboVacEntityFeature.MAP
+        # RoboVacEntityFeature.CONSUMABLES
     )
     commands = {
         RobovacCommand.MODE: {  # works   (Start Auto and Return dock commands tested)
