@@ -21,6 +21,7 @@ import logging
 from copy import deepcopy
 from typing import Any, Optional
 
+import requests
 import voluptuous as vol
 
 import homeassistant.helpers.config_validation as cv
@@ -44,12 +45,15 @@ from homeassistant.const import (
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 
+from .const import CONF_AUTODISCOVERY, CONF_VACS, DOMAIN
 from .countries import (
     get_phone_code_by_country_code,
     get_phone_code_by_region,
     get_region_by_country_code,
     get_region_by_phone_code,
 )
+from .eufywebapi import EufyLogon
+from .tuyawebapi import TuyaAPISession
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -61,7 +65,7 @@ USER_SCHEMA = vol.Schema(
 )
 
 
-def get_eufy_vacuums(self: dict[str, Any]) -> Response:
+def get_eufy_vacuums(self: dict[str, Any]) -> requests.Response:
     """Login to Eufy and get the vacuum details.
 
     Returns:
