@@ -15,7 +15,12 @@ class T2251:
         | VacuumEntityFeature.STATE
         | VacuumEntityFeature.STOP
     )
-    robovac_features = RoboVacEntityFeature.CLEANING_TIME | RoboVacEntityFeature.CLEANING_AREA | RoboVacEntityFeature.DO_NOT_DISTURB | RoboVacEntityFeature.AUTO_RETURN
+    robovac_features = (
+        RoboVacEntityFeature.CLEANING_TIME
+        | RoboVacEntityFeature.CLEANING_AREA
+        | RoboVacEntityFeature.DO_NOT_DISTURB
+        | RoboVacEntityFeature.AUTO_RETURN
+    )
     commands = {
         RobovacCommand.START_PAUSE: 2,
         RobovacCommand.DIRECTION: {

@@ -16,7 +16,14 @@ class T2253:
         | VacuumEntityFeature.STOP
         | VacuumEntityFeature.MAP
     )
-    robovac_features = RoboVacEntityFeature.CLEANING_TIME | RoboVacEntityFeature.CLEANING_AREA | RoboVacEntityFeature.DO_NOT_DISTURB | RoboVacEntityFeature.AUTO_RETURN | RoboVacEntityFeature.MAP | RoboVacEntityFeature.CONSUMABLES
+    robovac_features = (
+        RoboVacEntityFeature.CLEANING_TIME
+        | RoboVacEntityFeature.CLEANING_AREA
+        | RoboVacEntityFeature.DO_NOT_DISTURB
+        | RoboVacEntityFeature.AUTO_RETURN
+        | RoboVacEntityFeature.MAP
+        | RoboVacEntityFeature.CONSUMABLES
+    )
     commands = {
         RobovacCommand.START_PAUSE: 2,
         RobovacCommand.DIRECTION: {
