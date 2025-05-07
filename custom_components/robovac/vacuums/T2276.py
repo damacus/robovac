@@ -5,7 +5,6 @@ from .base import RoboVacEntityFeature, RobovacCommand, RobovacModelDetails
 class T2276(RobovacModelDetails):
     homeassistant_features = (
         VacuumEntityFeature.BATTERY
-        #        | VacuumEntityFeature.CLEAN_SPOT
         | VacuumEntityFeature.FAN_SPEED
         | VacuumEntityFeature.LOCATE
         | VacuumEntityFeature.PAUSE
@@ -14,53 +13,37 @@ class T2276(RobovacModelDetails):
         | VacuumEntityFeature.START
         | VacuumEntityFeature.STATE
         | VacuumEntityFeature.STOP
-        #        | VacuumEntityFeature.MAP
     )
     robovac_features = (
-        #    RoboVacEntityFeature.CLEANING_TIME
-        #     | RoboVacEntityFeature.CLEANING_AREA
         RoboVacEntityFeature.DO_NOT_DISTURB
-        #     | RoboVacEntityFeature.AUTO_RETURN
-        #     | RoboVacEntityFeature.ROOM
-        #     | RoboVacEntityFeature.ZONE
         | RoboVacEntityFeature.BOOST_IQ
-        #     | RoboVacEntityFeature.MAP
-        #     | RoboVacEntityFeature.CONSUMABLES
     )
     commands = {
-        RobovacCommand.MODE: {  # works   (Start Auto and Return dock commands tested)
+        RobovacCommand.MODE: {
             "code": 152,
             "values": ["AggN", "AA==", "AggG", "BBoCCAE=", "AggO"],
         },
-        RobovacCommand.STATUS: 173,  # works
-        RobovacCommand.RETURN_HOME: {  # works
+        RobovacCommand.STATUS: 173,
+        RobovacCommand.RETURN_HOME: {
             "code": 153,
             "values": ["AggB"]
         },
-        RobovacCommand.FAN_SPEED: {  # Works
+        RobovacCommand.FAN_SPEED: {
             "code": 154,
             "values": ["AgkBCgIKAQoDCgEKBAoB"]
         },
-        RobovacCommand.LOCATE: {  # Works
+        RobovacCommand.LOCATE: {
             "code": 153,
             "values": ["AggC"]
         },
-        RobovacCommand.BATTERY: 172,  # Works
-        RobovacCommand.ERROR: 169,  # works
-        # These command may have been added to the base.py if not they need codes adding
-        # RoboVacEntityFeature.CLEANING_TIME: 0,
-        # RoboVacEntityFeature.CLEANING_AREA: 0,
-        RoboVacEntityFeature.DO_NOT_DISTURB: {  # Works
+        RobovacCommand.BATTERY: 172,
+        RobovacCommand.ERROR: 169,
+        RoboVacEntityFeature.DO_NOT_DISTURB: {
             "code": 163,
             "values": ["AQ==", "AA=="],
         },
-        # RoboVacEntityFeature.AUTO_RETURN: 0,
-        # RoboVacEntityFeature.ROOM: 0,
-        # RoboVacEntityFeature.ZONE: 0,
-        RoboVacEntityFeature.BOOST_IQ: {  # Works
+        RoboVacEntityFeature.BOOST_IQ: {
             "code": 161,
             "values": ["AQ==", "AA=="],
         },
-        # RoboVacEntityFeature.MAP: 0,
-        # RoboVacEntityFeature.CONSUMABLES: 0,
     }

@@ -17,54 +17,40 @@
 This module provides the vacuum entity integration for Eufy Robovac devices.
 """
 from __future__ import annotations
-
-# Standard library imports
 import ast
 import base64
+from datetime import timedelta
+from enum import StrEnum
 import json
 import logging
 import time
-from datetime import timedelta
-from enum import StrEnum
 from typing import Any, Optional
 
-# Home Assistant imports
 from homeassistant.components.vacuum import (
     StateVacuumEntity,
-    VacuumEntityFeature,
     VacuumActivity,
+    VacuumEntityFeature,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.device_registry import (
-    CONNECTION_NETWORK_MAC,
-)
-from homeassistant.helpers.entity import DeviceInfo
-
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.const import (
     CONF_ACCESS_TOKEN,
-    CONF_MODEL,
-    CONF_NAME,
+    CONF_DESCRIPTION,
     CONF_ID,
     CONF_IP_ADDRESS,
-    CONF_DESCRIPTION,
     CONF_MAC,
-    STATE_UNAVAILABLE,
+    CONF_MODEL,
+    CONF_NAME,
 )
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC
+from homeassistant.helpers.entity import DeviceInfo
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .tuyalocalapi import TuyaException
-from .const import CONF_VACS, DOMAIN, REFRESH_RATE, PING_RATE, TIMEOUT
-
+from .const import CONF_VACS, DOMAIN, PING_RATE, REFRESH_RATE, TIMEOUT
 from .errors import getErrorMessage
-from .robovac import (
-    SUPPORTED_ROBOVAC_MODELS,
-    ModelNotSupportedException,
-    RoboVac,
-    RoboVacEntityFeature,
-)
-
-from homeassistant.const import ATTR_BATTERY_LEVEL
+from .robovac import ModelNotSupportedException, RoboVac
+from .tuyalocalapi import TuyaException
+from .vacuums.base import RoboVacEntityFeature
 
 ATTR_BATTERY_ICON = "battery_icon"
 ATTR_ERROR = "error"

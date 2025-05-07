@@ -40,9 +40,4 @@ class T2254(RobovacModelDetails):
         RobovacCommand.LOCATE: 103,
         RobovacCommand.BATTERY: 104,
         RobovacCommand.ERROR: 106,
-        # These commands need codes adding
-        # RobovacCommand.CLEANING_AREA: 0,
-        # RobovacCommand.CLEANING_TIME: 0,
-        # RobovacCommand.AUTO_RETURN: 0,
-        # RobovacCommand.DO_NOT_DISTURB: 0,
     }
