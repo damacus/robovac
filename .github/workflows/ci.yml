@@ -8,12 +8,21 @@ on:
   workflow_dispatch:
 
 jobs:
+  hacs:
+    runs-on: ubuntu-latest
+    name: runner / hacs
+    steps:
+      - uses: hacs/action@d556e736723344f83838d08488c983a15381059a # 22.5.0
+        with:
+          category: integration
+
   check-markdown:
     runs-on: ubuntu-latest
     name: runner / markdownlint
     steps:
       - name: Check out code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
       - name: Run Markdown Lint
         uses: DavidAnson/markdownlint-cli2-action@05f32210e84442804257b2a6f20b273450ec8265 # v19
         with:
@@ -23,7 +32,9 @@ jobs:
     name: runner / linkspector
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - name: Check out code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
       - name: Run linkspector
         uses: umbrelladocs/action-linkspector@a0567ce1c7c13de4a2358587492ed43cab5d0102 # v1
         with:
@@ -32,33 +43,65 @@ jobs:
 
   lint:
     runs-on: ubuntu-latest
+    name: runner / lint
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-      - name: Set up Python 3.13
+      - name: Check out code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      - name: Set up Python
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: '3.13'
+      
+      - name: Install Taskfile
+        uses: arduino/setup-task@v2
+        with:
+          version: 3.x
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      
       - name: Install uv
         uses: astral-sh/setup-uv@6b9c6063abd6010835644d4c2e1bef4cf5cd0fca # v6
-      - name: Install dependencies
-        run: uv venv && uv pip install -r requirements-dev.txt
+      
+      - name: Install Python dependencies
+        run: task install-dev
+      
       - name: Lint with flake8
-        run: uv run flake8 custom_components tests
+        run: task lint
+      
       - name: Type check with mypy
-        run: uv run mypy --config-file=pyproject.toml custom_components
+        run: task type-check
 
   test:
     runs-on: ubuntu-latest
-    needs: [check-markdown, check-links, lint]
+    name: runner / test
+    needs: [check-markdown, check-links, lint, hacs]
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-      - name: Set up Python 3.13
+      - name: Check out code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      
+      - name: Set up Python
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: '3.13'
-      - name: Install uv
-        uses: astral-sh/setup-uv@6b9c6063abd6010835644d4c2e1bef4cf5cd0fca # v6
+
+      - name: Install Taskfile
+        uses: arduino/setup-task@v2
+        with:
+          version: 3.x
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Install dependencies
-        run: uv venv && uv pip install -r requirements-dev.txt
+        run: task install-dev
+
       - name: Run tests with pytest
-        run: uv run pytest --cov=custom_components tests/
+        run: task test
+
+      - name: Code Coverage Summary
+        uses: irongut/CodeCoverageSummary@v1.3.0
+        with:
+          filename: coverage.xml
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: coverage.xml

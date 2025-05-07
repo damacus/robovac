@@ -19,6 +19,7 @@ env/
 .coverage
 htmlcov/
 .pytest_cache/
+coverage.xml
 
 # IDE specific files
 .idea/

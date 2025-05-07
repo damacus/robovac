@@ -2,10 +2,39 @@
 version: '3'
 
 tasks:
-  test:
+  default:
+    desc: List available tasks
     cmds:
-      - uv run pytest --cov=custom_components tests
-  install:
+      - task -l
+
+  test:
+    desc: Run tests with pytest
+    cmds:
+      - uv run pytest --cov=custom_components tests --cov-report=xml
+
+  install-dev:
+    desc: Install development dependencies
     cmds:
       - uv venv
       - uv pip install -r requirements-dev.txt
+
+  install:
+    desc: Install dependencies
+    cmds:
+      - uv venv
+      - uv pip install -r requirements.txt
+
+  type-check:
+    desc: Type check with mypy
+    cmds:
+      - uv run mypy --config-file=pyproject.toml custom_components
+
+  lint:
+    desc: Lint with flake8
+    cmds:
+      - uv run flake8 custom_components tests
+
+  markdownlint:
+    desc: Lint with markdownlint
+    cmds:
+      - markdownlint-cli2 "**/*.md" "!vendor" "!.venv" --fix
