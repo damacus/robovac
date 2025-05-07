@@ -7,3 +7,5 @@ pre-commit:
       run: task lint
     test:
       run: task test
+    type-check:
+      run: task type-check

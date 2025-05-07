@@ -38,12 +38,12 @@ class T2276(RobovacModelDetails):
         },
         RobovacCommand.BATTERY: 172,
         RobovacCommand.ERROR: 169,
-        RoboVacEntityFeature.DO_NOT_DISTURB: {
-            "code": 163,
-            "values": ["AQ==", "AA=="],
-        },
-        RoboVacEntityFeature.BOOST_IQ: {
-            "code": 161,
-            "values": ["AQ==", "AA=="],
-        },
+        # RoboVacEntityFeature.DO_NOT_DISTURB: {
+        #     "code": 163,
+        #     "values": ["AQ==", "AA=="],
+        # },
+        # RoboVacEntityFeature.BOOST_IQ: {
+        #     "code": 161,
+        #     "values": ["AQ==", "AA=="],
+        # },
     }
