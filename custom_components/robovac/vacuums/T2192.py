@@ -1,8 +1,8 @@
 from homeassistant.components.vacuum import VacuumEntityFeature
-from .base import RoboVacEntityFeature, RobovacCommand
+from .base import RoboVacEntityFeature, RobovacCommand, RobovacModelDetails
 
 
-class T2192:
+class T2192(RobovacModelDetails):
     homeassistant_features = (
         VacuumEntityFeature.BATTERY
         | VacuumEntityFeature.CLEAN_SPOT

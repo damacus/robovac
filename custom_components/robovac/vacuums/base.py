@@ -1,4 +1,5 @@
 from enum import IntEnum, StrEnum
+from typing import Protocol, Dict, List, Any, Type
 
 
 class RoboVacEntityFeature(IntEnum):
@@ -33,3 +34,9 @@ class RobovacCommand(StrEnum):
     DO_NOT_DISTURB = "do_not_disturb"
     BOOST_IQ = "boost_iq"
     CONSUMABLES = "consumables"
+
+
+class RobovacModelDetails(Protocol):
+    homeassistant_features: int
+    robovac_features: int
+    commands: Dict[RobovacCommand, Any]
