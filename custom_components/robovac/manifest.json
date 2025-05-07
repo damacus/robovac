@@ -1,7 +1,9 @@
 {
     "domain": "robovac",
     "name": "Eufy Robovac",
-    "codeowners": ["@damacus"],
+    "codeowners": [
+        "@damacus"
+    ],
     "config_flow": true,
     "dependencies": [],
     "documentation": "https://github.com/damacus/robovac",
@@ -9,5 +11,5 @@
     "iot_class": "local_polling",
     "issue_tracker": "https://github.com/damacus/robovac/issues",
     "requirements": [],
-    "version": "1.0.0"
+    "version": "1.2.1"
 }

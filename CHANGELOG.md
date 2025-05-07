@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1](https://github.com/damacus/robovac/compare/v1.2.0...v1.2.1) (2025-05-07)
+
+
+### Bug Fixes
+
+* Also bump the version in manifest.json ([#71](https://github.com/damacus/robovac/issues/71)) ([64b1f6b](https://github.com/damacus/robovac/commit/64b1f6ba8b0d6f1f31171d37eb9402fc2cd2b1d0))
+* Fix return types from RoboVac ([#72](https://github.com/damacus/robovac/issues/72)) ([f9fb413](https://github.com/damacus/robovac/commit/f9fb413a474048ff4d1528c74586ab8e5ff65063))
+
 ## [1.2.0](https://github.com/damacus/robovac/compare/v1.1.0...v1.2.0) (2025-05-07)
 
 
