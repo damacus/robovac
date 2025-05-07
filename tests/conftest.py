@@ -22,7 +22,7 @@ from homeassistant.const import (
     CONF_MAC,
 )
 
-from custom_components.robovac.robovac import RoboVacEntityFeature
+from custom_components.robovac.vacuums.base import RoboVacEntityFeature
 
 
 # This fixture is required for testing custom components

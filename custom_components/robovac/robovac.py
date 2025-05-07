@@ -39,14 +39,6 @@ class RoboVac(TuyaDevice):
         """
         return self.model_details.robovac_features
 
-    def getRoboVacSeries(self) -> str | None:
-        """Get the series of the device.
-
-        Returns:
-            A string representing the series of the device.
-        """
-        return self.model_code
-
     def getFanSpeeds(self) -> list[str]:
         """Get the supported fan speeds of the device.
 
