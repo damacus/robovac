@@ -88,7 +88,7 @@ class EufyLogon:
         Returns:
             Response object or None if connection error occurs.
         """
-        device_url = url + "/v1/device/list/devices-and-groups"
+        device_url = url + "/v1/device/v2"
         eufyheaders["token"] = token
         eufyheaders["id"] = userid
         try:

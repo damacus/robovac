@@ -48,18 +48,16 @@ def mock_eufy_response():
 
     device_info_response = MagicMock()
     device_info_response.json.return_value = {
-        "items": [
+        "devices": [
             {
-                "device": {
-                    "id": "test_device_id",
-                    "product": {
-                        "appliance": "Cleaning",
-                        "product_code": "T2118",
-                    },
-                    "alias_name": "Test RoboVac",
-                    "name": "RoboVac 15C",
-                    "wifi": {"mac": "AA:BB:CC:DD:EE:FF"},
-                }
+                "id": "test_device_id",
+                "product": {
+                    "appliance": "Cleaning",
+                    "product_code": "T2118",
+                },
+                "alias_name": "Test RoboVac",
+                "name": "RoboVac 15C",
+                "wifi": {"mac": "AA:BB:CC:DD:EE:FF"},
             }
         ]
     }

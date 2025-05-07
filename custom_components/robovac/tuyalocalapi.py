@@ -48,6 +48,7 @@ import time
 import traceback
 from typing import Any, Awaitable, Callable, Coroutine, Optional, Union
 from asyncio import Semaphore, StreamWriter
+from .vacuums.base import RobovacCommand
 
 from cryptography.hazmat.backends.openssl import backend as openssl_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
@@ -701,6 +702,7 @@ class TuyaDevice:
 
     def __init__(
         self,
+        model_details: Any,
         device_id: str,
         host: str,
         timeout: float,
@@ -713,6 +715,7 @@ class TuyaDevice:
     ) -> None:
         """Initialize the device."""
         self._LOGGER = _LOGGER.getChild(device_id)
+        self.model_details = model_details
         self.device_id = device_id
         self.host = host
         self.port = port
@@ -839,7 +842,7 @@ class TuyaDevice:
         try:
             sock.connect((self.host, self.port))
         except (socket.timeout, TimeoutError):
-            self._dps["106"] = "CONNECTION_FAILED"
+            self._dps[self.model_details.commands[RobovacCommand.ERROR]] = ("CONNECTION_FAILED")
             raise ConnectionTimeoutException("Connection timed out")
         loop = asyncio.get_running_loop()
         loop.create_connection
@@ -874,6 +877,7 @@ class TuyaDevice:
 
         if self.writer is not None:
             self.writer.close()
+            await self.writer.wait_closed()
 
         if self.reader is not None and not self.reader.at_eof():
             self.reader.feed_eof()
@@ -890,7 +894,7 @@ class TuyaDevice:
         self._queue.append(message)
         response = await self.async_receive(message)
         if response is not None:
-            asyncio.create_task(self.async_update_state(response))
+            await self.async_update_state(response)
 
     async def async_set(self, dps: dict[str, Any]) -> None:
         """Set the state of the device.
