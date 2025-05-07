@@ -8,6 +8,7 @@ pytest-homeassistant-custom-component>=0.13.233
 flake8>=7.0.0
 mypy>=1.7.1
 pre-commit>=3.5.0
+lefthook>=1.6.0 # Git hooks manager
 
 # Type checking
 types-requests>=2.31.0

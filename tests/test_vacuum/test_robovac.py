@@ -31,18 +31,16 @@ def test_init_unsupported_model():
 
 def test_get_home_assistant_features():
     """Test getHomeAssistantFeatures returns correct features for different models."""
-    # Test for a standard model (15C)
     with patch(
         "custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None
     ):
         robovac_15c = RoboVac(
-            model_code="T2118",  # 15C model
+            model_code="T2118",
             device_id="test_id",
             host="192.168.1.100",
             local_key="test_key",
         )
 
-        # Basic features all models should have
         expected_features = (
             VacuumEntityFeature.BATTERY
             | VacuumEntityFeature.CLEAN_SPOT
@@ -58,7 +56,6 @@ def test_get_home_assistant_features():
 
         assert robovac_15c.getHomeAssistantFeatures() == expected_features
 
-        # Test for a model with map feature
         robovac_l70 = RoboVac(
             model_code="T2190",  # L70 model (has map)
             device_id="test_id",
@@ -76,7 +73,6 @@ def test_get_robovac_features():
     with patch(
         "custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None
     ):
-        # Test C series
         robovac_15c = RoboVac(
             model_code="T2118",  # 15C model
             device_id="test_id",
@@ -90,7 +86,6 @@ def test_get_robovac_features():
 
         assert robovac_15c.getRoboVacFeatures() == expected_c_features
 
-        # Test G series
         robovac_g30 = RoboVac(
             model_code="T2250",  # G30 model
             device_id="test_id",
@@ -107,7 +102,6 @@ def test_get_robovac_features():
 
         assert robovac_g30.getRoboVacFeatures() == expected_g_features
 
-        # Test L series with consumables and map
         robovac_l70 = RoboVac(
             model_code="T2190",  # L70 model
             device_id="test_id",
