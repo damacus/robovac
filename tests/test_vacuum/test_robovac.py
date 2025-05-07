@@ -135,12 +135,11 @@ def test_get_fan_speeds():
     with patch(
         "custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None
     ):
-        # Test each series
         test_cases = [
-            ("T2118", ["No_suction", "Standard", "Boost_IQ", "Max"]),  
-            ("T2250", ["Standard", "Turbo", "Max", "Boost_IQ"]),      
-            ("T2190", ["Quiet", "Standard", "Turbo", "Max"]),          
-            ("T2261", ["Pure", "Standard", "Turbo", "Max"]),            
+            ("T2118", ["No_suction", "Standard", "Boost_IQ", "Max"]),
+            ("T2250", ["Standard", "Turbo", "Max", "Boost_IQ"]),
+            ("T2190", ["Quiet", "Standard", "Turbo", "Max"]),
+            ("T2261", ["Pure", "Standard", "Turbo", "Max"]),
         ]
 
         for model_code, expected_speeds in test_cases:
