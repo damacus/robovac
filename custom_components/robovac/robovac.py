@@ -14,14 +14,17 @@ class RoboVac(TuyaDevice):
     model_details: Type[RobovacModelDetails]
 
     def __init__(self, model_code: str, *args: Any, **kwargs: Any):
-        super().__init__(*args, **kwargs)
-        self.model_code = model_code
-
-        if self.model_code not in ROBOVAC_MODELS:
+        # Determine model_details first
+        if model_code not in ROBOVAC_MODELS:
             raise ModelNotSupportedException(
-                f"Model {self.model_code} is not supported"
+                f"Model {model_code} is not supported"
             )
-        self.model_details = ROBOVAC_MODELS[self.model_code]
+        current_model_details = ROBOVAC_MODELS[model_code]
+
+        super().__init__(current_model_details, *args, **kwargs)
+
+        self.model_code = model_code
+        self.model_details = current_model_details
 
     def getHomeAssistantFeatures(self) -> int:
         """Get the supported features of the device.
