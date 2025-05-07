@@ -35,7 +35,6 @@ jobs:
         uses: googleapis/release-please-action@a02a34c4d625f9be7cb89156071d8567266a2445 # v4
         with:
           token: ${{ steps.generate_token.outputs.token }}
-          release-type: python
 
   publish-hacs:
     name: Publish to HACS (Optional)
