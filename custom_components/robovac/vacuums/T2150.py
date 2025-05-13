@@ -1,3 +1,4 @@
+"""RoboVac G10 Hybrid (T2150)"""
 from homeassistant.components.vacuum import VacuumEntityFeature
 from .base import RoboVacEntityFeature, RobovacCommand, RobovacModelDetails
 

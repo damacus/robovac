@@ -1,3 +1,4 @@
+"""eufy Clean L60 Hybrid SES (T2278)"""
 from homeassistant.components.vacuum import VacuumEntityFeature
 from .base import RoboVacEntityFeature, RobovacCommand, RobovacModelDetails
 

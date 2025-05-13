@@ -1,3 +1,4 @@
+"""RoboVac 15C (T2120)"""
 
 from homeassistant.components.vacuum import VacuumEntityFeature
 from .base import RoboVacEntityFeature, RobovacCommand, RobovacModelDetails

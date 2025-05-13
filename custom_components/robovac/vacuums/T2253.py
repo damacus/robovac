@@ -1,3 +1,4 @@
+"""G30 Hybrid (T2253)"""
 from homeassistant.components.vacuum import VacuumEntityFeature
 from .base import RoboVacEntityFeature, RobovacCommand, RobovacModelDetails
 

@@ -1,3 +1,4 @@
+"""Eufy Robot Vacuum and Mop X9 Pro with Auto-Clean Station (T2320)"""
 from homeassistant.components.vacuum import VacuumEntityFeature
 from .base import RoboVacEntityFeature, RobovacCommand, RobovacModelDetails
 

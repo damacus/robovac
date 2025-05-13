@@ -1,3 +1,4 @@
+"""G30 Verge (T2252)"""
 from homeassistant.components.vacuum import VacuumEntityFeature
 from .base import RoboVacEntityFeature, RobovacCommand, RobovacModelDetails
 

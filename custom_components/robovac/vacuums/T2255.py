@@ -1,3 +1,4 @@
+"""eufy Clean G40 (T2255)"""
 from homeassistant.components.vacuum import VacuumEntityFeature
 from .base import RoboVacEntityFeature, RobovacCommand, RobovacModelDetails
 

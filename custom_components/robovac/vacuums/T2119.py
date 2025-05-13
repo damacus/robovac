@@ -1,3 +1,4 @@
+"""RoboVac 11S Plus (T2119)"""
 
 from homeassistant.components.vacuum import VacuumEntityFeature
 from .base import RoboVacEntityFeature, RobovacCommand, RobovacModelDetails
