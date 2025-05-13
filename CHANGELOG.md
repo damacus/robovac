@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.3](https://github.com/damacus/robovac/compare/v1.2.2...v1.2.3) (2025-05-13)
+
+
+### Bug Fixes
+
+* Add friendly heredocs to files so that we can all find models easier ([#86](https://github.com/damacus/robovac/issues/86)) ([604c403](https://github.com/damacus/robovac/commit/604c40394f2fab5920398ddca51caa61aa6c8537))
+* Add T2267 and T2268 (L60 and L60 Hybrid) ([#81](https://github.com/damacus/robovac/issues/81)) ([aad9330](https://github.com/damacus/robovac/commit/aad93304934fba988117a8bab0f6d87b19aecc9d))
+
 ## [1.2.2](https://github.com/damacus/robovac/compare/v1.2.1...v1.2.2) (2025-05-07)
 
 
