@@ -41,7 +41,7 @@ class T2181(RobovacModelDetails):
         RobovacCommand.RETURN_HOME: 101,
         RobovacCommand.FAN_SPEED: {
             "code": 102,
-            "values": ["Quiet", "Standard", "Turbo", "Max"],
+            "values": ["Quiet", "Turbo", "Max"],
         },
         RobovacCommand.LOCATE: 103,
         RobovacCommand.BATTERY: 104,
