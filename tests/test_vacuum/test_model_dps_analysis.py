@@ -8,14 +8,14 @@ from custom_components.robovac.vacuum import TUYA_CODES
 from custom_components.robovac.vacuums import ROBOVAC_MODELS
 
 
-def test_analyze_model_dps_codes():
+def test_analyze_model_dps_codes() -> None:
     """Analyze DPS codes for all models to determine which ones differ from defaults."""
     # Dictionary to store results
     model_dps_analysis = {}
 
     # Default codes from TUYA_CODES
     default_codes = {
-        "STATE": TUYA_CODES.STATE,
+        "STATUS": TUYA_CODES.STATUS,
         "BATTERY_LEVEL": TUYA_CODES.BATTERY_LEVEL,
         "ERROR_CODE": TUYA_CODES.ERROR_CODE,
         "MODE": TUYA_CODES.MODE,

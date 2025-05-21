@@ -146,7 +146,7 @@ async def test_update_entity_values(mock_robovac, mock_vacuum_data):
     # Arrange
     mock_robovac._dps = {
         TUYA_CODES.BATTERY_LEVEL: 75,
-        TUYA_CODES.STATE: "Cleaning",
+        TUYA_CODES.STATUS: "Cleaning",
         TUYA_CODES.ERROR_CODE: 0,
         TUYA_CODES.MODE: "auto",
         TUYA_CODES.FAN_SPEED: "Standard",

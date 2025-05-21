@@ -17,7 +17,7 @@ from homeassistant.const import (
 )
 
 
-def test_dps_codes_match_expected_values():
+def test_dps_codes_match_expected_values() -> None:
     """Test that DPS codes match the expected values for default models."""
     # Setup test model codes
     test_models = ["T2128", "T1250"]
@@ -36,7 +36,7 @@ def test_dps_codes_match_expected_values():
             dps_codes = vacuum.getDpsCodes()
 
             # Verify common DPS values match their respective expected codes
-            assert dps_codes.get("STATE") == TUYA_CODES.STATE
+            assert dps_codes.get("STATUS") == TUYA_CODES.STATUS
             assert dps_codes.get("BATTERY_LEVEL") == TUYA_CODES.BATTERY_LEVEL
             assert dps_codes.get("ERROR_CODE") == TUYA_CODES.ERROR_CODE
 
@@ -49,7 +49,7 @@ def test_dps_codes_match_expected_values():
                 assert dps_codes.get("FAN_SPEED") == TUYA_CODES.FAN_SPEED
 
 
-def test_nonstandard_model_dps_codes():
+def test_nonstandard_model_dps_codes() -> None:
     """Test that non-standard models have DPS codes that differ from defaults."""
     # Setup test for a model with non-standard codes (T2267)
     with patch("custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None):
@@ -64,45 +64,78 @@ def test_nonstandard_model_dps_codes():
         dps_codes = vacuum.getDpsCodes()
 
         # Verify T2267 has different codes than the defaults
-        assert dps_codes.get("STATE") != TUYA_CODES.STATE
+        assert dps_codes.get("STATUS") != TUYA_CODES.STATUS
         assert dps_codes.get("BATTERY_LEVEL") != TUYA_CODES.BATTERY_LEVEL
         assert dps_codes.get("ERROR_CODE") != TUYA_CODES.ERROR_CODE
         assert dps_codes.get("FAN_SPEED") != TUYA_CODES.FAN_SPEED
 
 
-def test_getDpsCodes_extraction_method():
+def test_getDpsCodes_extraction_method() -> None:
     """Test that getDpsCodes extracts codes correctly from different command formats."""
-    # Setup test model with various command format types
     with patch("custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None):
-        # Test with T2128 which has both direct values and dict with code
-        vacuum = RoboVac(
-            model_code="T2128",
+        # Test T1250 (model using default codes with dictionary structure)
+        vacuum_t1250 = RoboVac(
+            model_code="T1250",
             device_id="test_id",
             host="192.168.1.1",
             local_key="test_key",
         )
 
-        dps_codes = vacuum.getDpsCodes()
+        t1250_dps_codes = vacuum_t1250.getDpsCodes()
 
-        # Test mapping from command to DPS code name
-        # STATUS -> STATE
-        assert "STATE" in dps_codes
-        assert dps_codes["STATE"] == "15"  # From STATUS: 15
+        # Verify T1250 has default codes but uses dictionary structure
+        assert "STATUS" in t1250_dps_codes
+        assert t1250_dps_codes["STATUS"] == "15"  # Default code in dict format
+        assert "BATTERY_LEVEL" in t1250_dps_codes
+        assert t1250_dps_codes["BATTERY_LEVEL"] == "104"  # Default code in dict format
+        assert "ERROR_CODE" in t1250_dps_codes
+        assert t1250_dps_codes["ERROR_CODE"] == "106"  # Default code in dict format
 
-        # BATTERY -> BATTERY_LEVEL
-        assert "BATTERY_LEVEL" in dps_codes
-        assert dps_codes["BATTERY_LEVEL"] == "104"  # From BATTERY: 104
+        # Test T2267 (model with non-default codes)
+        vacuum_t2267 = RoboVac(
+            model_code="T2267",
+            device_id="test_id",
+            host="192.168.1.1",
+            local_key="test_key",
+        )
 
-        # Test direct value and dict with code extraction
-        assert "START_PAUSE" in dps_codes
-        assert dps_codes["START_PAUSE"] == "2"  # Direct value
+        t2267_dps_codes = vacuum_t2267.getDpsCodes()
 
-        assert "FAN_SPEED" in dps_codes
-        assert dps_codes["FAN_SPEED"] == "102"  # From dict with code
+        # Verify T2267 has different codes than the defaults
+        assert "STATUS" in t2267_dps_codes
+        assert t2267_dps_codes["STATUS"] == "153"  # Non-default code
+        assert t2267_dps_codes["STATUS"] != TUYA_CODES.STATUS
+        assert "BATTERY_LEVEL" in t2267_dps_codes
+        assert t2267_dps_codes["BATTERY_LEVEL"] == "163"  # Non-default code
+        assert t2267_dps_codes["BATTERY_LEVEL"] != TUYA_CODES.BATTERY_LEVEL
+        assert "ERROR_CODE" in t2267_dps_codes
+        assert t2267_dps_codes["ERROR_CODE"] == "177"  # Non-default code
+        assert t2267_dps_codes["ERROR_CODE"] != TUYA_CODES.ERROR_CODE
+
+        # Test T2320 (another model with non-default codes)
+        vacuum_t2320 = RoboVac(
+            model_code="T2320",
+            device_id="test_id",
+            host="192.168.1.1",
+            local_key="test_key",
+        )
+
+        t2320_dps_codes = vacuum_t2320.getDpsCodes()
+
+        # Verify T2320 has different codes too
+        assert "STATUS" in t2320_dps_codes
+        assert t2320_dps_codes["STATUS"] == "173"  # Non-default code
+        assert t2320_dps_codes["STATUS"] != TUYA_CODES.STATUS
+        assert "BATTERY_LEVEL" in t2320_dps_codes
+        assert t2320_dps_codes["BATTERY_LEVEL"] == "172"  # Non-default code
+        assert t2320_dps_codes["BATTERY_LEVEL"] != TUYA_CODES.BATTERY_LEVEL
+        assert "ERROR_CODE" in t2320_dps_codes
+        assert t2320_dps_codes["ERROR_CODE"] == "169"  # Non-default code
+        assert t2320_dps_codes["ERROR_CODE"] != TUYA_CODES.ERROR_CODE
 
 
 @pytest.mark.asyncio
-async def test_vacuum_update_uses_correct_dps_codes():
+async def test_vacuum_update_uses_correct_dps_codes() -> None:
     """Test that vacuum update uses the right DPS codes for the model."""
     # Mock vacuum data
     mock_vacuum_data = {

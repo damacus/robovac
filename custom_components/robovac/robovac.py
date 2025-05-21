@@ -69,16 +69,9 @@ class RoboVac(TuyaDevice):
         """
         # Map command names to DPS code names
         command_to_dps = {
-            "STATUS": "STATE",
             "BATTERY": "BATTERY_LEVEL",
             "ERROR": "ERROR_CODE",
-            "DO_NOT_DISTURB": "DO_NOT_DISTURB",
-            "CLEANING_AREA": "CLEANING_AREA",
-            "CLEANING_TIME": "CLEANING_TIME",
-            "AUTO_RETURN": "AUTO_RETURN",
-            "BOOST_IQ": "BOOST_IQ",
-            "CONSUMABLES": "CONSUMABLES"
-            # FAN_SPEED and MODE typically use the same code names
+            # All others use the same code names
         }
 
         codes = {}

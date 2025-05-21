@@ -73,16 +73,20 @@ UPDATE_RETRIES = 3
 
 
 class TUYA_CODES(StrEnum):
-    BATTERY_LEVEL = "104"
-    STATE = "15"
-    ERROR_CODE = "106"
+    START_PAUSE = "2"
+    DIRECTION = "3"
     MODE = "5"
+    STATUS = "15"
+    RETURN_HOME = "101"
     FAN_SPEED = "102"
-    CLEANING_AREA = "110"
-    CLEANING_TIME = "109"
-    AUTO_RETURN = "135"
+    LOCATE = "103"
+    BATTERY_LEVEL = "104"
+    ERROR_CODE = "106"
     DO_NOT_DISTURB = "107"
+    CLEANING_TIME = "109"
+    CLEANING_AREA = "110"
     BOOST_IQ = "118"
+    AUTO_RETURN = "135"
 
 
 TUYA_CONSUMABLES_CODES = ["142", "116"]
@@ -569,7 +573,7 @@ class RoboVacEntity(StateVacuumEntity):
             return
 
         # Get state and error code from data points using model-specific DPS codes
-        tuya_state = self.tuyastatus.get(self._get_dps_code("STATE"))
+        tuya_state = self.tuyastatus.get(self._get_dps_code("STATUS"))
         error_code = self.tuyastatus.get(self._get_dps_code("ERROR_CODE"))
 
         # Update state attribute
