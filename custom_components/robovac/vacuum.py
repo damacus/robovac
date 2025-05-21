@@ -494,13 +494,62 @@ class RoboVacEntity(StateVacuumEntity):
         # Update model-specific attributes
         self._update_cleaning_stats()
 
+    def _get_dps_code(self, code_name: str) -> str:
+        """Get the DPS code for a specific function.
+
+        First checks for model-specific DPS codes, then falls back to defaults.
+
+        Args:
+            code_name: The name of the code to retrieve, e.g., "BATTERY_LEVEL"
+
+        Returns:
+            The DPS code as a string
+        """
+        if self.vacuum is None:
+            return getattr(TUYA_CODES, code_name, "")
+
+        # Get model-specific DPS codes
+        model_dps_codes = self.vacuum.getDpsCodes()
+
+        # Return model-specific code if available, otherwise use default
+        if code_name in model_dps_codes:
+            return model_dps_codes[code_name]
+
+        # Fall back to default codes
+        return getattr(TUYA_CODES, code_name, "")
+
+    def _get_consumables_codes(self) -> list[str]:
+        """Get the consumables DPS codes.
+
+        First checks for model-specific codes, then falls back to defaults.
+
+        Returns:
+            A list of DPS codes for consumables
+        """
+        if self.vacuum is None:
+            return TUYA_CONSUMABLES_CODES
+
+        # Get model-specific DPS codes
+        model_dps_codes = self.vacuum.getDpsCodes()
+
+        # Return model-specific code if available, otherwise use default
+        if "CONSUMABLES" in model_dps_codes:
+            # Model-specific consumables can be a list or comma-separated string
+            consumables = model_dps_codes["CONSUMABLES"]
+            if isinstance(consumables, str):
+                return [code.strip() for code in consumables.split(",")]
+            return consumables
+
+        # Fall back to default codes
+        return TUYA_CONSUMABLES_CODES
+
     def _update_battery_level(self) -> None:
         """Update the battery level attribute."""
         if self.tuyastatus is None:
             return
 
-        # Get battery level from data points
-        battery_level = self.tuyastatus.get(TUYA_CODES.BATTERY_LEVEL)
+        # Get battery level from data points using model-specific DPS code
+        battery_level = self.tuyastatus.get(self._get_dps_code("BATTERY_LEVEL"))
 
         # Ensure battery level is an integer between 0 and 100
         if battery_level is not None:
@@ -519,9 +568,9 @@ class RoboVacEntity(StateVacuumEntity):
         if self.tuyastatus is None:
             return
 
-        # Get state and error code from data points
-        tuya_state = self.tuyastatus.get(TUYA_CODES.STATE)
-        error_code = self.tuyastatus.get(TUYA_CODES.ERROR_CODE)
+        # Get state and error code from data points using model-specific DPS codes
+        tuya_state = self.tuyastatus.get(self._get_dps_code("STATE"))
+        error_code = self.tuyastatus.get(self._get_dps_code("ERROR_CODE"))
 
         # Update state attribute
         self._attr_tuya_state = tuya_state if tuya_state is not None else 0
@@ -534,9 +583,9 @@ class RoboVacEntity(StateVacuumEntity):
         if self.tuyastatus is None:
             return
 
-        # Get mode and fan speed from data points
-        mode = self.tuyastatus.get(TUYA_CODES.MODE)
-        fan_speed = self.tuyastatus.get(TUYA_CODES.FAN_SPEED)
+        # Get mode and fan speed from data points using model-specific DPS codes
+        mode = self.tuyastatus.get(self._get_dps_code("MODE"))
+        fan_speed = self.tuyastatus.get(self._get_dps_code("FAN_SPEED"))
 
         # Update mode attribute
         self._attr_mode = mode if mode is not None else ""
@@ -558,46 +607,51 @@ class RoboVacEntity(StateVacuumEntity):
         if self.tuyastatus is None:
             return
 
-        # Update cleaning area (for G30 and similar models)
-        cleaning_area = self.tuyastatus.get(TUYA_CODES.CLEANING_AREA)
+        # Update cleaning area using model-specific DPS code
+        cleaning_area = self.tuyastatus.get(self._get_dps_code("CLEANING_AREA"))
         if cleaning_area is not None:
             self._attr_cleaning_area = str(cleaning_area)
 
-        # Update cleaning time (for G30 and similar models)
-        cleaning_time = self.tuyastatus.get(TUYA_CODES.CLEANING_TIME)
+        # Update cleaning time using model-specific DPS code
+        cleaning_time = self.tuyastatus.get(self._get_dps_code("CLEANING_TIME"))
         if cleaning_time is not None:
             self._attr_cleaning_time = str(cleaning_time)
 
-            auto_return = self.tuyastatus.get(TUYA_CODES.AUTO_RETURN)
+            # Update other attributes using model-specific DPS codes
+            auto_return = self.tuyastatus.get(self._get_dps_code("AUTO_RETURN"))
             self._attr_auto_return = str(auto_return) if auto_return is not None else None
 
-            do_not_disturb = self.tuyastatus.get(TUYA_CODES.DO_NOT_DISTURB)
+            do_not_disturb = self.tuyastatus.get(self._get_dps_code("DO_NOT_DISTURB"))
             self._attr_do_not_disturb = str(do_not_disturb) if do_not_disturb is not None else None
 
-            boost_iq = self.tuyastatus.get(TUYA_CODES.BOOST_IQ)
+            boost_iq = self.tuyastatus.get(self._get_dps_code("BOOST_IQ"))
             self._attr_boost_iq = str(boost_iq) if boost_iq is not None else None
-        # self.map_data = self.tuyastatus.get("121")
-        # self.erro_msg? = self.tuyastatus.get("124")
+
+        # Handle consumables
         if (
             isinstance(self.robovac_supported, int)
             and self.robovac_supported & RoboVacEntityFeature.CONSUMABLES
             and self.tuyastatus is not None
         ):
-            for CONSUMABLE_CODE in TUYA_CONSUMABLES_CODES:
+            # Use model-specific consumables codes
+            for CONSUMABLE_CODE in self._get_consumables_codes():
                 if (
                     CONSUMABLE_CODE in self.tuyastatus
                     and self.tuyastatus.get(CONSUMABLE_CODE) is not None
                 ):
                     consumable_data = self.tuyastatus.get(CONSUMABLE_CODE)
                     if isinstance(consumable_data, str):
-                        consumables = ast.literal_eval(
-                            base64.b64decode(consumable_data).decode("ascii")
-                        )
-                    if (
-                        "consumable" in consumables
-                        and "duration" in consumables["consumable"]
-                    ):
-                        self._attr_consumables = consumables["consumable"]["duration"]
+                        try:
+                            consumables = ast.literal_eval(
+                                base64.b64decode(consumable_data).decode("ascii")
+                            )
+                            if (
+                                "consumable" in consumables
+                                and "duration" in consumables["consumable"]
+                            ):
+                                self._attr_consumables = consumables["consumable"]["duration"]
+                        except Exception as e:
+                            _LOGGER.warning("Failed to decode consumable data: %s", str(e))
 
     async def async_locate(self, **kwargs: Any) -> None:
         """Locate the vacuum cleaner.

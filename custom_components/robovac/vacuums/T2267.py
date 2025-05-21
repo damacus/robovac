@@ -48,16 +48,32 @@ class T2267(RobovacModelDetails):
             "code": 155,
             "values": ["Brake", "Forward", "Back", "Left", "Right"],
         },
-        RobovacCommand.START_PAUSE: 156,
-        RobovacCommand.DO_NOT_DISTURB: 157,
+        RobovacCommand.START_PAUSE: {
+            "code": 156,
+        },
+        RobovacCommand.DO_NOT_DISTURB: {
+            "code": 157,
+        },
         RobovacCommand.FAN_SPEED: {
             "code": 158,
             "values": ["Quiet", "Standard", "Turbo", "Max"],
         },
-        RobovacCommand.BOOST_IQ: 159,
-        RobovacCommand.LOCATE: 160,
-        RobovacCommand.BATTERY: 163,
-        RobovacCommand.CONSUMABLES: 168,
-        RobovacCommand.RETURN_HOME: 173,
-        RobovacCommand.ERROR: 177
+        RobovacCommand.BOOST_IQ: {
+            "code": 159,
+        },
+        RobovacCommand.LOCATE: {
+            "code": 160,
+        },
+        RobovacCommand.BATTERY: {
+            "code": 163,
+        },
+        RobovacCommand.CONSUMABLES: {
+            "code": 168,
+        },
+        RobovacCommand.RETURN_HOME: {
+            "code": 173,
+        },
+        RobovacCommand.ERROR: {
+            "code": 177,
+        }
     }

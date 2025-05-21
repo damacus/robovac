@@ -26,7 +26,9 @@ class T2253(RobovacModelDetails):
         | RoboVacEntityFeature.CONSUMABLES
     )
     commands = {
-        RobovacCommand.START_PAUSE: 2,
+        RobovacCommand.START_PAUSE: {
+            "code": 2,
+        },
         RobovacCommand.DIRECTION: {
             "code": 3,
             "values": ["forward", "back", "left", "right"],
@@ -35,13 +37,23 @@ class T2253(RobovacModelDetails):
             "code": 5,
             "values": ["auto", "SmallRoom", "Spot", "Edge", "Nosweep"],
         },
-        RobovacCommand.STATUS: 15,
-        RobovacCommand.RETURN_HOME: 101,
+        RobovacCommand.STATUS: {
+            "code": 15,
+        },
+        RobovacCommand.RETURN_HOME: {
+            "code": 101,
+        },
         RobovacCommand.FAN_SPEED: {
             "code": 102,
             "values": ["Standard", "Turbo", "Max", "Boost_IQ"],
         },
-        RobovacCommand.LOCATE: 103,
-        RobovacCommand.BATTERY: 104,
-        RobovacCommand.ERROR: 106,
+        RobovacCommand.LOCATE: {
+            "code": 103,
+        },
+        RobovacCommand.BATTERY: {
+            "code": 104,
+        },
+        RobovacCommand.ERROR: {
+            "code": 106,
+        },
     }

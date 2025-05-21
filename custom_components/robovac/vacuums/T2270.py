@@ -37,7 +37,13 @@ class T2270(RobovacModelDetails):
             "code": 102,
             "values": ["Standard", "Turbo", "Max", "Boost_IQ"],
         },
-        RobovacCommand.LOCATE: 103,
-        RobovacCommand.BATTERY: 104,
-        RobovacCommand.ERROR: 106,
+        RobovacCommand.LOCATE: {
+            "code": 103,
+        },
+        RobovacCommand.BATTERY: {
+            "code": 104,
+        },
+        RobovacCommand.ERROR: {
+            "code": 106,
+        },
     }

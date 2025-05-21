@@ -1,4 +1,4 @@
-from typing import Any, List, Type, cast
+from typing import Any, List, Type, cast, Dict
 
 from .tuyalocalapi import TuyaDevice
 from .vacuums import ROBOVAC_MODELS
@@ -58,12 +58,44 @@ class RoboVac(TuyaDevice):
     def getSupportedCommands(self) -> list[str]:
         return list(self.model_details.commands.keys())
 
-    def getCommandCodes(self) -> dict[str, str]:
-        command_codes = {}
-        for key, value in self.model_details.commands.items():
-            if isinstance(value, dict):
-                command_codes[key.name] = str(value["code"])
-            else:
-                command_codes[key.name] = str(value)
+    def getDpsCodes(self) -> dict[str, str]:
+        """Get the DPS codes for this model based on command codes.
 
-        return command_codes
+        Maps command names to their corresponding DPS code names and returns
+        a dictionary of DPS codes for status updates.
+
+        Returns:
+            A dictionary mapping DPS code names to their values.
+        """
+        # Map command names to DPS code names
+        command_to_dps = {
+            "STATUS": "STATE",
+            "BATTERY": "BATTERY_LEVEL",
+            "ERROR": "ERROR_CODE",
+            "DO_NOT_DISTURB": "DO_NOT_DISTURB",
+            "CLEANING_AREA": "CLEANING_AREA",
+            "CLEANING_TIME": "CLEANING_TIME",
+            "AUTO_RETURN": "AUTO_RETURN",
+            "BOOST_IQ": "BOOST_IQ",
+            "CONSUMABLES": "CONSUMABLES"
+            # FAN_SPEED and MODE typically use the same code names
+        }
+
+        codes = {}
+        # Extract codes from commands dictionary
+        for key, value in self.model_details.commands.items():
+            # Get the DPS name from the mapping, or use the command name if not in mapping
+            dps_name = command_to_dps.get(key.name, key.name)
+
+            # Extract code value based on whether it's a direct value or in a dictionary
+            if isinstance(value, dict) and "code" in value:
+                # If it has a code property, use that
+                codes[dps_name] = str(value["code"])
+            elif isinstance(value, dict):
+                # Skip dictionaries without code property (like when only 'values' is present)
+                continue
+            else:
+                # For direct values, use the value itself
+                codes[dps_name] = str(value)
+
+        return codes
