@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.4](https://github.com/damacus/robovac/compare/v1.2.3...v1.2.4) (2025-05-21)
+
+
+### Bug Fixes
+
+* fan speed list for T2181 ([#87](https://github.com/damacus/robovac/issues/87)) ([0f64f72](https://github.com/damacus/robovac/commit/0f64f7234f03a81593e928e55f15c49a56d7b206))
+
 ## [1.2.3](https://github.com/damacus/robovac/compare/v1.2.2...v1.2.3) (2025-05-13)
 
 
