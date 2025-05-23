@@ -24,7 +24,9 @@ class T2320(RobovacModelDetails):
             "code": 152,
             "values": ["AggN", "AA==", "AggG", "BBoCCAE=", "AggO"],
         },
-        RobovacCommand.STATUS: 173,
+        RobovacCommand.STATUS: {
+            "code": 173,
+        },
         RobovacCommand.RETURN_HOME: {
             "code": 153,
             "values": ["AggB"]
@@ -37,14 +39,10 @@ class T2320(RobovacModelDetails):
             "code": 153,
             "values": ["AggC"]
         },
-        RobovacCommand.BATTERY: 172,
-        RobovacCommand.ERROR: 169,
-        # RoboVacEntityFeature.DO_NOT_DISTURB: {
-        #     "code": 163,
-        #     "values": ["AQ==", "AA=="],
-        # },
-        # RoboVacEntityFeature.BOOST_IQ: {
-        #     "code": 161,
-        #     "values": ["AQ==", "AA=="],
-        # },
+        RobovacCommand.BATTERY: {
+            "code": 172,
+        },
+        RobovacCommand.ERROR: {
+            "code": 169,
+        },
     }

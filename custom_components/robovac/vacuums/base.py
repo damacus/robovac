@@ -1,5 +1,5 @@
 from enum import IntEnum, StrEnum
-from typing import Protocol, Dict, List, Any, Type
+from typing import Protocol, Dict, List, Any, Type, Optional
 
 
 class RoboVacEntityFeature(IntEnum):
