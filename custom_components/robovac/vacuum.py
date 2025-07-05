@@ -697,7 +697,9 @@ class RoboVacEntity(StateVacuumEntity):
             _LOGGER.error("Cannot start vacuum: vacuum not initialized")
             return
 
-        await self.vacuum.async_set({"5": self.mode})
+        # Use _get_dps_code to get the correct model-specific code for MODE
+        mode_code = self._get_dps_code("MODE")
+        await self.vacuum.async_set({mode_code: self.mode})
 
     async def async_pause(self, **kwargs: Any) -> None:
         """Pause the vacuum cleaner.

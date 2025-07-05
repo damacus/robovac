@@ -67,6 +67,27 @@ async def test_async_start(mock_robovac, mock_vacuum_data):
 
 
 @pytest.mark.asyncio
+async def test_async_start_model_specific(mock_robovac, mock_vacuum_data, mock_l60, mock_l60_data):
+    """Test that async_start uses the correct code for different models."""
+    # Test with standard model (should use code "5")
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
+        entity = RoboVacEntity(mock_vacuum_data)
+        await entity.async_start()
+        mock_robovac.async_set.assert_called_once_with({"5": "auto"})
+        mock_robovac.async_set.reset_mock()
+    
+    # Test with L60 model (should use code "152")
+    # Mock should return "152" for the MODE code
+    mock_l60.getDpsCodes.return_value = {"MODE": "152"}
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_l60):
+        entity = RoboVacEntity(mock_l60_data)
+        await entity.async_start()
+        # This will fail with the current implementation because it always uses code "5"
+        # The fix will make it use "152" for L60 models
+        mock_l60.async_set.assert_called_once_with({"152": "auto"})
+
+
+@pytest.mark.asyncio
 async def test_async_pause(mock_robovac, mock_vacuum_data):
     """Test the async_pause method."""
     # Arrange
