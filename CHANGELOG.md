@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.1](https://github.com/damacus/robovac/compare/v1.3.0...v1.3.1) (2025-07-05)
+
+
+### Bug Fixes
+
+* (refactor) replace TUYA_CODES references with TuyaCodes class ([#141](https://github.com/damacus/robovac/issues/141)) ([5eabac6](https://github.com/damacus/robovac/commit/5eabac65ddf1a0d35ce5eb018c12e861e077b1b8))
+* use model-specific code for start commands ([#139](https://github.com/damacus/robovac/issues/139)) ([f83f29e](https://github.com/damacus/robovac/commit/f83f29eb194158a478b421abbeb217420037c1cb))
+
 ## [1.3.0](https://github.com/damacus/robovac/compare/v1.2.5...v1.3.0) (2025-07-02)
 
 
