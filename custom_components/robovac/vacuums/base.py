@@ -54,6 +54,7 @@ class TuyaCodes(StrEnum):
     CLEANING_TIME = "109"
     CLEANING_AREA = "110"
     BOOST_IQ = "118"
+    ROOM_CLEAN = "124"
     AUTO_RETURN = "135"
 
 
