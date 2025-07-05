@@ -75,7 +75,7 @@ async def test_async_start_model_specific(mock_robovac, mock_vacuum_data, mock_l
         await entity.async_start()
         mock_robovac.async_set.assert_called_once_with({"5": "auto"})
         mock_robovac.async_set.reset_mock()
-    
+
     # Test with L60 model (should use code "152")
     # Mock should return "152" for the MODE code
     mock_l60.getDpsCodes.return_value = {"MODE": "152"}
