@@ -4,8 +4,8 @@ import pytest
 from unittest.mock import patch, MagicMock
 
 from custom_components.robovac.robovac import RoboVac
-from custom_components.robovac.vacuum import TUYA_CODES, RoboVacEntity
-from custom_components.robovac.vacuums.base import RobovacCommand
+from custom_components.robovac.vacuum import RoboVacEntity
+from custom_components.robovac.vacuums.base import RobovacCommand, TuyaCodes
 from homeassistant.const import (
     CONF_NAME,
     CONF_ID,
@@ -36,17 +36,17 @@ def test_dps_codes_match_expected_values() -> None:
             dps_codes = vacuum.getDpsCodes()
 
             # Verify common DPS values match their respective expected codes
-            assert dps_codes.get("STATUS") == TUYA_CODES.STATUS
-            assert dps_codes.get("BATTERY_LEVEL") == TUYA_CODES.BATTERY_LEVEL
-            assert dps_codes.get("ERROR_CODE") == TUYA_CODES.ERROR_CODE
+            assert dps_codes.get("STATUS") == TuyaCodes.STATUS
+            assert dps_codes.get("BATTERY_LEVEL") == TuyaCodes.BATTERY_LEVEL
+            assert dps_codes.get("ERROR_CODE") == TuyaCodes.ERROR_CODE
 
             # If MODE is in the codes, verify it matches
             if "MODE" in dps_codes:
-                assert dps_codes.get("MODE") == TUYA_CODES.MODE
+                assert dps_codes.get("MODE") == TuyaCodes.MODE
 
             # If FAN_SPEED is in the codes, verify it matches
             if "FAN_SPEED" in dps_codes:
-                assert dps_codes.get("FAN_SPEED") == TUYA_CODES.FAN_SPEED
+                assert dps_codes.get("FAN_SPEED") == TuyaCodes.FAN_SPEED
 
 
 def test_nonstandard_model_dps_codes() -> None:
@@ -64,10 +64,10 @@ def test_nonstandard_model_dps_codes() -> None:
         dps_codes = vacuum.getDpsCodes()
 
         # Verify T2267 has different codes than the defaults
-        assert dps_codes.get("STATUS") != TUYA_CODES.STATUS
-        assert dps_codes.get("BATTERY_LEVEL") != TUYA_CODES.BATTERY_LEVEL
-        assert dps_codes.get("ERROR_CODE") != TUYA_CODES.ERROR_CODE
-        assert dps_codes.get("FAN_SPEED") != TUYA_CODES.FAN_SPEED
+        assert dps_codes.get("STATUS") != TuyaCodes.STATUS
+        assert dps_codes.get("BATTERY_LEVEL") != TuyaCodes.BATTERY_LEVEL
+        assert dps_codes.get("ERROR_CODE") != TuyaCodes.ERROR_CODE
+        assert dps_codes.get("FAN_SPEED") != TuyaCodes.FAN_SPEED
 
 
 def test_getDpsCodes_extraction_method() -> None:
@@ -104,13 +104,13 @@ def test_getDpsCodes_extraction_method() -> None:
         # Verify T2267 has different codes than the defaults
         assert "STATUS" in t2267_dps_codes
         assert t2267_dps_codes["STATUS"] == "153"  # Non-default code
-        assert t2267_dps_codes["STATUS"] != TUYA_CODES.STATUS
+        assert t2267_dps_codes["STATUS"] != TuyaCodes.STATUS
         assert "BATTERY_LEVEL" in t2267_dps_codes
         assert t2267_dps_codes["BATTERY_LEVEL"] == "163"  # Non-default code
-        assert t2267_dps_codes["BATTERY_LEVEL"] != TUYA_CODES.BATTERY_LEVEL
+        assert t2267_dps_codes["BATTERY_LEVEL"] != TuyaCodes.BATTERY_LEVEL
         assert "ERROR_CODE" in t2267_dps_codes
         assert t2267_dps_codes["ERROR_CODE"] == "177"  # Non-default code
-        assert t2267_dps_codes["ERROR_CODE"] != TUYA_CODES.ERROR_CODE
+        assert t2267_dps_codes["ERROR_CODE"] != TuyaCodes.ERROR_CODE
 
         # Test T2320 (another model with non-default codes)
         vacuum_t2320 = RoboVac(
@@ -125,13 +125,13 @@ def test_getDpsCodes_extraction_method() -> None:
         # Verify T2320 has different codes too
         assert "STATUS" in t2320_dps_codes
         assert t2320_dps_codes["STATUS"] == "173"  # Non-default code
-        assert t2320_dps_codes["STATUS"] != TUYA_CODES.STATUS
+        assert t2320_dps_codes["STATUS"] != TuyaCodes.STATUS
         assert "BATTERY_LEVEL" in t2320_dps_codes
         assert t2320_dps_codes["BATTERY_LEVEL"] == "172"  # Non-default code
-        assert t2320_dps_codes["BATTERY_LEVEL"] != TUYA_CODES.BATTERY_LEVEL
+        assert t2320_dps_codes["BATTERY_LEVEL"] != TuyaCodes.BATTERY_LEVEL
         assert "ERROR_CODE" in t2320_dps_codes
         assert t2320_dps_codes["ERROR_CODE"] == "169"  # Non-default code
-        assert t2320_dps_codes["ERROR_CODE"] != TUYA_CODES.ERROR_CODE
+        assert t2320_dps_codes["ERROR_CODE"] != TuyaCodes.ERROR_CODE
 
 
 @pytest.mark.asyncio

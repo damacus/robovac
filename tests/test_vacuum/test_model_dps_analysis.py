@@ -4,7 +4,7 @@ import pytest
 from unittest.mock import patch
 
 from custom_components.robovac.robovac import RoboVac
-from custom_components.robovac.vacuum import TUYA_CODES
+from custom_components.robovac.vacuums.base import TuyaCodes
 from custom_components.robovac.vacuums import ROBOVAC_MODELS
 
 
@@ -13,18 +13,18 @@ def test_analyze_model_dps_codes() -> None:
     # Dictionary to store results
     model_dps_analysis = {}
 
-    # Default codes from TUYA_CODES
+    # Default codes from TuyaCodes
     default_codes = {
-        "STATUS": TUYA_CODES.STATUS,
-        "BATTERY_LEVEL": TUYA_CODES.BATTERY_LEVEL,
-        "ERROR_CODE": TUYA_CODES.ERROR_CODE,
-        "MODE": TUYA_CODES.MODE,
-        "FAN_SPEED": TUYA_CODES.FAN_SPEED,
-        "CLEANING_AREA": TUYA_CODES.CLEANING_AREA,
-        "CLEANING_TIME": TUYA_CODES.CLEANING_TIME,
-        "AUTO_RETURN": TUYA_CODES.AUTO_RETURN,
-        "DO_NOT_DISTURB": TUYA_CODES.DO_NOT_DISTURB,
-        "BOOST_IQ": TUYA_CODES.BOOST_IQ,
+        "STATUS": TuyaCodes.STATUS,
+        "BATTERY_LEVEL": TuyaCodes.BATTERY_LEVEL,
+        "ERROR_CODE": TuyaCodes.ERROR_CODE,
+        "MODE": TuyaCodes.MODE,
+        "FAN_SPEED": TuyaCodes.FAN_SPEED,
+        "CLEANING_AREA": TuyaCodes.CLEANING_AREA,
+        "CLEANING_TIME": TuyaCodes.CLEANING_TIME,
+        "AUTO_RETURN": TuyaCodes.AUTO_RETURN,
+        "DO_NOT_DISTURB": TuyaCodes.DO_NOT_DISTURB,
+        "BOOST_IQ": TuyaCodes.BOOST_IQ,
     }
 
     # Check each model

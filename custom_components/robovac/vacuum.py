@@ -48,9 +48,9 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import CONF_VACS, DOMAIN, PING_RATE, REFRESH_RATE, TIMEOUT
 from .errors import getErrorMessage
+from .vacuums.base import RobovacCommand, RoboVacEntityFeature, TuyaCodes, TUYA_CONSUMABLES_CODES
 from .robovac import ModelNotSupportedException, RoboVac
 from .tuyalocalapi import TuyaException
-from .vacuums.base import RoboVacEntityFeature
 
 ATTR_BATTERY_ICON = "battery_icon"
 ATTR_ERROR = "error"
@@ -70,26 +70,6 @@ ATTR_MODE = "mode"
 _LOGGER = logging.getLogger(__name__)
 SCAN_INTERVAL = timedelta(seconds=REFRESH_RATE)
 UPDATE_RETRIES = 3
-
-
-class TUYA_CODES(StrEnum):
-    START_PAUSE = "2"
-    DIRECTION = "3"
-    MODE = "5"
-    STATUS = "15"
-    RETURN_HOME = "101"
-    FAN_SPEED = "102"
-    LOCATE = "103"
-    BATTERY_LEVEL = "104"
-    ERROR_CODE = "106"
-    DO_NOT_DISTURB = "107"
-    CLEANING_TIME = "109"
-    CLEANING_AREA = "110"
-    BOOST_IQ = "118"
-    AUTO_RETURN = "135"
-
-
-TUYA_CONSUMABLES_CODES = ["142", "116"]
 
 
 async def async_setup_entry(
@@ -510,17 +490,13 @@ class RoboVacEntity(StateVacuumEntity):
             The DPS code as a string
         """
         if self.vacuum is None:
-            return getattr(TUYA_CODES, code_name, "")
+            return getattr(TuyaCodes, code_name, "")
 
-        # Get model-specific DPS codes
         model_dps_codes = self.vacuum.getDpsCodes()
-
-        # Return model-specific code if available, otherwise use default
         if code_name in model_dps_codes:
             return model_dps_codes[code_name]
 
-        # Fall back to default codes
-        return getattr(TUYA_CODES, code_name, "")
+        return getattr(TuyaCodes, code_name, "")
 
     def _get_consumables_codes(self) -> list[str]:
         """Get the consumables DPS codes.
@@ -668,10 +644,11 @@ class RoboVacEntity(StateVacuumEntity):
             _LOGGER.error("Cannot locate vacuum: vacuum not initialized")
             return
 
-        if self.tuyastatus is not None and self.tuyastatus.get("103"):
-            await self.vacuum.async_set({"103": False})
+        locate_code = self._get_dps_code("LOCATE")
+        if self.tuyastatus is not None and self.tuyastatus.get(locate_code):
+            await self.vacuum.async_set({locate_code: False})
         else:
-            await self.vacuum.async_set({"103": True})
+            await self.vacuum.async_set({locate_code: True})
 
     async def async_return_to_base(self, **kwargs: Any) -> None:
         """Set the vacuum cleaner to return to the dock.
@@ -684,7 +661,8 @@ class RoboVacEntity(StateVacuumEntity):
             _LOGGER.error("Cannot return to base: vacuum not initialized")
             return
 
-        await self.vacuum.async_set({"101": True})
+        return_home_code = self._get_dps_code("RETURN_HOME")
+        await self.vacuum.async_set({return_home_code: True})
 
     async def async_start(self, **kwargs: Any) -> None:
         """Start the vacuum cleaner in auto mode.
@@ -711,7 +689,8 @@ class RoboVacEntity(StateVacuumEntity):
             _LOGGER.error("Cannot pause vacuum: vacuum not initialized")
             return
 
-        await self.vacuum.async_set({"2": False})
+        start_pause_code = self._get_dps_code("START_PAUSE")
+        await self.vacuum.async_set({start_pause_code: False})
 
     async def async_stop(self, **kwargs: Any) -> None:
         """Stop the vacuum cleaner.
@@ -732,7 +711,8 @@ class RoboVacEntity(StateVacuumEntity):
             _LOGGER.error("Cannot clean spot: vacuum not initialized")
             return
 
-        await self.vacuum.async_set({"5": "Spot"})
+        mode_code = self._get_dps_code("MODE")
+        await self.vacuum.async_set({mode_code: "Spot"})
 
     async def async_set_fan_speed(self, fan_speed: str, **kwargs: Any) -> None:
         """Set fan speed.
@@ -752,7 +732,8 @@ class RoboVacEntity(StateVacuumEntity):
             fan_speed = "Boost_IQ"
         elif fan_speed == "Pure":
             fan_speed = "Quiet"
-        await self.vacuum.async_set({"102": fan_speed})
+        fan_speed_code = self._get_dps_code("FAN_SPEED")
+        await self.vacuum.async_set({fan_speed_code: fan_speed})
 
     async def async_send_command(
         self, command: str, params: dict[str, Any] | list[Any] | None = None, **kwargs: Any
@@ -769,32 +750,36 @@ class RoboVacEntity(StateVacuumEntity):
             _LOGGER.error("Cannot send command: vacuum not initialized")
             return
 
+        mode_code = self._get_dps_code("MODE")
         if command == "edgeClean":
-            await self.vacuum.async_set({"5": "Edge"})
+            await self.vacuum.async_set({mode_code: "Edge"})
         elif command == "smallRoomClean":
-            await self.vacuum.async_set({"5": "SmallRoom"})
+            await self.vacuum.async_set({mode_code: "SmallRoom"})
         elif command == "autoClean":
-            await self.vacuum.async_set({"5": "auto"})
+            await self.vacuum.async_set({mode_code: "auto"})
         elif command == "autoReturn":
             # Handle both boolean and string values
+            auto_return_code = self._get_dps_code("AUTO_RETURN")
             if self._is_value_true(self.auto_return):
-                await self.vacuum.async_set({"135": False})
+                await self.vacuum.async_set({auto_return_code: False})
             else:
-                await self.vacuum.async_set({"135": True})
+                await self.vacuum.async_set({auto_return_code: True})
         elif command == "doNotDisturb":
             # Handle both boolean and string values
+            do_not_disturb_code = self._get_dps_code("DO_NOT_DISTURB")
             if self._is_value_true(self.do_not_disturb):
                 await self.vacuum.async_set({"139": "MEQ4MDAwMDAw"})
-                await self.vacuum.async_set({"107": False})
+                await self.vacuum.async_set({do_not_disturb_code: False})
             else:
                 await self.vacuum.async_set({"139": "MTAwMDAwMDAw"})
-                await self.vacuum.async_set({"107": True})
+                await self.vacuum.async_set({do_not_disturb_code: True})
         elif command == "boostIQ":
             # Handle both boolean and string values
+            boost_iq_code = self._get_dps_code("BOOST_IQ")
             if self._is_value_true(self.boost_iq):
-                await self.vacuum.async_set({"118": False})
+                await self.vacuum.async_set({boost_iq_code: False})
             else:
-                await self.vacuum.async_set({"118": True})
+                await self.vacuum.async_set({boost_iq_code: True})
         elif command == "roomClean" and params is not None and isinstance(params, dict):
             # Get room IDs and count from params, with defaults
             room_ids = params.get("roomIds", [1])
@@ -812,6 +797,8 @@ class RoboVacEntity(StateVacuumEntity):
             json_str = json.dumps(method_call, separators=(",", ":"))
             base64_str = base64.b64encode(json_str.encode("utf8")).decode("utf8")
             _LOGGER.info("roomClean call %s", json_str)
+            # Note: 124 is a special code for room clean that might need model-specific handling
+            # Currently no direct mapping in TuyaCodes
             await self.vacuum.async_set({"124": base64_str})
 
     async def async_will_remove_from_hass(self) -> None:

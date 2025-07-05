@@ -36,7 +36,33 @@ class RobovacCommand(StrEnum):
     CONSUMABLES = "consumables"
 
 
+class TuyaCodes(StrEnum):
+    """Default DPS codes for Tuya-based vacuums.
+
+    These codes can be overridden in model-specific implementations.
+    """
+    START_PAUSE = "2"
+    DIRECTION = "3"
+    MODE = "5"
+    STATUS = "15"
+    RETURN_HOME = "101"
+    FAN_SPEED = "102"
+    LOCATE = "103"
+    BATTERY_LEVEL = "104"
+    ERROR_CODE = "106"
+    DO_NOT_DISTURB = "107"
+    CLEANING_TIME = "109"
+    CLEANING_AREA = "110"
+    BOOST_IQ = "118"
+    AUTO_RETURN = "135"
+
+
+# Default consumables DPS codes
+TUYA_CONSUMABLES_CODES = ["142", "116"]
+
+
 class RobovacModelDetails(Protocol):
     homeassistant_features: int
     robovac_features: int
     commands: Dict[RobovacCommand, Any]
+    dps_codes: Dict[str, str] = {}  # Optional model-specific DPS codes

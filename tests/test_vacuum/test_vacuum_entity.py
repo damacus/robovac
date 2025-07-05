@@ -4,7 +4,8 @@ import pytest
 from unittest.mock import patch, MagicMock
 
 from homeassistant.components.vacuum import VacuumActivity
-from custom_components.robovac.vacuum import RoboVacEntity, TUYA_CODES
+from custom_components.robovac.vacuum import RoboVacEntity
+from custom_components.robovac.vacuums.base import TuyaCodes
 
 
 @pytest.mark.asyncio
@@ -145,11 +146,11 @@ async def test_update_entity_values(mock_robovac, mock_vacuum_data):
     """Test update_entity_values correctly sets entity attributes."""
     # Arrange
     mock_robovac._dps = {
-        TUYA_CODES.BATTERY_LEVEL: 75,
-        TUYA_CODES.STATUS: "Cleaning",
-        TUYA_CODES.ERROR_CODE: 0,
-        TUYA_CODES.MODE: "auto",
-        TUYA_CODES.FAN_SPEED: "Standard",
+        TuyaCodes.BATTERY_LEVEL: 75,
+        TuyaCodes.STATUS: "Cleaning",
+        TuyaCodes.ERROR_CODE: 0,
+        TuyaCodes.MODE: "auto",
+        TuyaCodes.FAN_SPEED: "Standard",
     }
 
     with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
@@ -182,7 +183,7 @@ async def test_fan_speed_formatting(mock_robovac, mock_vacuum_data):
 
         for input_speed, expected_output in test_cases:
             # Setup
-            mock_robovac._dps = {TUYA_CODES.FAN_SPEED: input_speed}
+            mock_robovac._dps = {TuyaCodes.FAN_SPEED: input_speed}
 
             # Act
             entity.update_entity_values()
