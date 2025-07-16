@@ -3,4 +3,6 @@ trigger: glob
 globs: *.md
 ---
 
-task markdownlint
+# Formatting
+
+run `task markdownlint`
