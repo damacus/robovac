@@ -29,20 +29,20 @@ class T2250(RobovacModelDetails):
         RobovacCommand.DIRECTION: {
             "code": 3,
             "values": {
-                "forward": "forward",
-                "back": "back",
-                "left": "left",
-                "right": "right",
+                "forward": "Forward",
+                "back": "Back",
+                "left": "Left",
+                "right": "Right",
             },
         },
         RobovacCommand.MODE: {
             "code": 5,
             "values": {
-                "auto": "auto",
-                "SmallRoom": "SmallRoom",
-                "Spot": "Spot",
-                "Edge": "Edge",
-                "Nosweep": "Nosweep",
+                "auto": "Auto",
+                "small_room": "SmallRoom",
+                "spot": "Spot",
+                "edge": "Edge",
+                "nosweep": "Nosweep",
             },
         },
         RobovacCommand.STATUS: {
@@ -54,10 +54,10 @@ class T2250(RobovacModelDetails):
         RobovacCommand.FAN_SPEED: {
             "code": 102,
             "values": {
-                "Standard": "Standard",
-                "Turbo": "Turbo",
-                "Max": "Max",
-                "Boost_IQ": "Boost_IQ",
+                "standard": "Standard",
+                "turbo": "Turbo",
+                "max": "Max",
+                "boost_iq": "Boost_IQ",
             },
         },
         RobovacCommand.LOCATE: {

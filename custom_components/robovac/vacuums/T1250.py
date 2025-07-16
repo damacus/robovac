@@ -28,10 +28,21 @@ class T1250(RobovacModelDetails):
         },
         RobovacCommand.DIRECTION: {
             "code": 3,
-            "values": ["forward", "back", "left", "right"],
+            "values": {
+                "forward": "Forward",
+                "back": "Back",
+                "left": "Left",
+                "right": "Right",
+            },
         },
         RobovacCommand.MODE: {
-            "values": ["auto", "SmallRoom", "Spot", "Edge", "Nosweep"],
+            "values": {
+                "auto": "Auto",
+                "small_room": "SmallRoom",
+                "spot": "Spot",
+                "edge": "Edge",
+                "nosweep": "Nosweep",
+            },
         },
         RobovacCommand.STATUS: {
             "code": 15,
@@ -40,7 +51,12 @@ class T1250(RobovacModelDetails):
             "code": 101,
         },
         RobovacCommand.FAN_SPEED: {
-            "values": ["Standard", "Turbo", "Max", "Boost_IQ"],
+            "values": {
+                "standard": "Standard",
+                "turbo": "Turbo",
+                "max": "Max",
+                "boost_iq": "Boost_IQ",
+            },
         },
         RobovacCommand.LOCATE: {
             "code": 103,
