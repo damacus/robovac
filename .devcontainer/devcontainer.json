@@ -1,13 +1,14 @@
 {
-  "name": "Example devcontainer for add-on repositories",
+  "name": "Robovac devcontainer",
   "image": "ghcr.io/home-assistant/devcontainer:2-addons",
   "appPort": ["7123:8123", "7357:4357"],
   "postStartCommand": "bash devcontainer_bootstrap",
   "runArgs": ["-e", "GIT_EDITOR=code --wait", "--privileged"],
-  "workspaceFolder": "/mnt/supervisor/addons/local/${localWorkspaceFolderBasename}",
-  "workspaceMount": "source=${localWorkspaceFolder},target=${containerWorkspaceFolder},type=bind,consistency=cached",
   "containerEnv": {
     "WORKSPACE_DIRECTORY": "${containerWorkspaceFolder}"
+  },
+  "features": {
+    "ghcr.io/eitsupi/devcontainer-features/go-task:1": {}
   },
   "customizations": {
     "vscode": {
@@ -28,6 +29,7 @@
   },
   "mounts": [
     "type=volume,target=/var/lib/docker",
-    "type=volume,target=/mnt/supervisor"
+    "type=volume,target=/mnt/supervisor",
+    "source=./custom_components/robovac,target=/mnt/supervisor/homeassistant/custom_components/robovac,type=bind"
   ]
 }

@@ -38,3 +38,13 @@ tasks:
     desc: Lint with markdownlint
     cmds:
       - markdownlint-cli2 "**/*.md" "!vendor" "!.venv" --fix
+
+  ha-start:
+    desc: Start Home assistant, run from dev container
+    cmds:
+      - supervisor_run
+
+  ha-restart:
+    desc: Restart Home assistant, run from dev container
+    cmds:
+      - ha core restart
