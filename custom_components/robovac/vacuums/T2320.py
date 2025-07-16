@@ -24,8 +24,8 @@ class T2320(RobovacModelDetails):
             "code": 152,
             "values": {
                 "auto": "BBoCCAE=",
-                "edge": "AggG",
-                "spot": "AggN",
+                "return": "AggG",
+                "pause": "AggN",
                 "small_room": "AA==",
                 "single_room": "AggO"
             },

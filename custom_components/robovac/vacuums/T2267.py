@@ -24,10 +24,10 @@ class T2267(RobovacModelDetails):
             "code": 152,
             "values": {
                 "auto": "BBoCCAE=",
-                "small_room": "AggN",
-                "spot": "AA==",
-                "edge": "AggG",
-                "nosweep": "AggO",
+                "pause": "AggN",
+                "Spot": "AA==",
+                "return": "AggG",
+                "Nosweep": "AggO",
             },
         },
         RobovacCommand.STATUS: {
