@@ -716,7 +716,9 @@ class RoboVacEntity(StateVacuumEntity):
             return
 
         mode_code = self._get_dps_code("MODE")
-        await self.vacuum.async_set({mode_code: "Spot"})
+        # Use the normalized lowercase value format
+        spot_value = self.vacuum.getRoboVacCommandValue(RobovacCommand.MODE, "spot")
+        await self.vacuum.async_set({mode_code: spot_value})
 
     async def async_set_fan_speed(self, fan_speed: str, **kwargs: Any) -> None:
         """Set fan speed.
@@ -730,17 +732,27 @@ class RoboVacEntity(StateVacuumEntity):
             _LOGGER.error("Cannot set fan speed: vacuum not initialized")
             return
 
+        # Convert display names to normalized lowercase keys
+        normalized_fan_speed = fan_speed.lower().replace(" ", "_")
         if fan_speed == "No Suction":
-            fan_speed = "No_suction"
+            normalized_fan_speed = "no_suction"
         elif fan_speed == "Boost IQ":
-            fan_speed = "Boost_IQ"
+            normalized_fan_speed = "boost_iq"
         elif fan_speed == "Pure":
-            fan_speed = "Quiet"
+            normalized_fan_speed = "pure"
+
+        # Get the model-specific value using the normalized key
         fan_speed_code = self._get_dps_code("FAN_SPEED")
-        await self.vacuum.async_set({fan_speed_code: fan_speed})
+        fan_speed_value = self.vacuum.getRoboVacCommandValue(
+            RobovacCommand.FAN_SPEED, normalized_fan_speed
+        )
+        await self.vacuum.async_set({fan_speed_code: fan_speed_value})
 
     async def async_send_command(
-        self, command: str, params: dict[str, Any] | list[Any] | None = None, **kwargs: Any
+        self,
+        command: str,
+        params: dict[str, Any] | list | None = None,
+        **kwargs: Any
     ) -> None:
         """Send a command to a vacuum cleaner.
 
@@ -756,11 +768,14 @@ class RoboVacEntity(StateVacuumEntity):
 
         mode_code = self._get_dps_code("MODE")
         if command == "edgeClean":
-            await self.vacuum.async_set({mode_code: "Edge"})
+            edge_value = self.vacuum.getRoboVacCommandValue(RobovacCommand.MODE, "edge")
+            await self.vacuum.async_set({mode_code: edge_value})
         elif command == "smallRoomClean":
-            await self.vacuum.async_set({mode_code: "SmallRoom"})
+            small_room_value = self.vacuum.getRoboVacCommandValue(RobovacCommand.MODE, "small_room")
+            await self.vacuum.async_set({mode_code: small_room_value})
         elif command == "autoClean":
-            await self.vacuum.async_set({mode_code: "auto"})
+            auto_value = self.vacuum.getRoboVacCommandValue(RobovacCommand.MODE, "auto")
+            await self.vacuum.async_set({mode_code: auto_value})
         elif command == "autoReturn":
             # Handle both boolean and string values
             auto_return_code = self._get_dps_code("AUTO_RETURN")

@@ -23,11 +23,11 @@ class T2267(RobovacModelDetails):
         RobovacCommand.MODE: {
             "code": 152,
             "values": {
-                "auto": "BBoCCAE=",  # Auto clean mode
-                "SmallRoom": "AggN",  # Small room mode
-                "Spot": "AA==",  # Spot clean mode
-                "Edge": "AggG",  # Edge clean mode
-                "Nosweep": "AggO",  # No sweep mode
+                "auto": "BBoCCAE=",
+                "small_room": "AggN",
+                "spot": "AA==",
+                "edge": "AggG",
+                "nosweep": "AggO",
             },
         },
         RobovacCommand.STATUS: {
@@ -52,7 +52,13 @@ class T2267(RobovacModelDetails):
         },
         RobovacCommand.DIRECTION: {
             "code": 155,
-            "values": ["Brake", "Forward", "Back", "Left", "Right"],
+            "values": {
+                "brake": "brake",
+                "forward": "forward",
+                "back": "back",
+                "left": "left",
+                "right": "right",
+            },
         },
         RobovacCommand.START_PAUSE: {
             "code": 156,
@@ -62,7 +68,13 @@ class T2267(RobovacModelDetails):
         },
         RobovacCommand.FAN_SPEED: {
             "code": 158,
-            "values": ["Quiet", "Standard", "Turbo", "Max"],
+            "values": {
+                "quiet": "Quiet",
+                "standard": "Standard",
+                "turbo": "Turbo",
+                "max": "Max",
+                "boost_iq": "Boost_IQ",
+            },
         },
         RobovacCommand.BOOST_IQ: {
             "code": 159,

@@ -42,11 +42,11 @@ class T2268(RobovacModelDetails):
         RobovacCommand.MODE: {
             "code": 5,
             "values": {
-                "auto": "auto",
-                "SmallRoom": "SmallRoom",
-                "Spot": "Spot",
-                "Edge": "Edge",
-                "Nosweep": "Nosweep",
+                "auto": "Auto",
+                "small_room": "SmallRoom",
+                "spot": "Spot",
+                "edge": "Edge",
+                "nosweep": "Nosweep",
             },
         },
         RobovacCommand.STATUS: {
@@ -58,10 +58,10 @@ class T2268(RobovacModelDetails):
         RobovacCommand.FAN_SPEED: {
             "code": 102,
             "values": {
-                "Pure": "Pure",
-                "Standard": "Standard",
-                "Turbo": "Turbo",
-                "Max": "Max",
+                "pure": "Pure",
+                "standard": "Standard",
+                "turbo": "Turbo",
+                "max": "Max",
             },
         },
         RobovacCommand.LOCATE: {

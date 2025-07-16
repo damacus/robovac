@@ -44,7 +44,7 @@ class RoboVac(TuyaDevice):
 
     def _get_command_values(
         self, command_name: RobovacCommand
-    ) -> Optional[Union[List[str], Dict[str, str]]]:
+    ) -> Optional[Dict[str, str]]:
         """Get the values for a specific command from the model details.
 
         This is a helper method to safely access command values.
@@ -53,7 +53,7 @@ class RoboVac(TuyaDevice):
             command_name: The RobovacCommand enum value
 
         Returns:
-            The command values as a list or dict, or None if not found/invalid
+            The command values as a dict, or None if not found/invalid
         """
         if command_name not in self.model_details.commands:
             return None
@@ -63,7 +63,7 @@ class RoboVac(TuyaDevice):
             return None
 
         values = command["values"]
-        if not isinstance(values, (list, dict)):
+        if not isinstance(values, dict):
             return None
 
         return values
@@ -78,10 +78,9 @@ class RoboVac(TuyaDevice):
         if values is None:
             return []
 
-        if isinstance(values, list):
-            return cast(List[str], values)
-        else:  # It's a dict
-            return list(values.keys())
+        # Return the values from the dictionary (the display names)
+        # This preserves existing behavior for tests
+        return list(values.values())
 
     def getSupportedCommands(self) -> list[str]:
         return list(self.model_details.commands.keys())
@@ -125,8 +124,9 @@ class RoboVac(TuyaDevice):
         """
         Get the model-specific value for a command.
 
-        For example, L60 (T2267) uses base64 encoded values for MODE commands,
-        but G30 (T2250) uses human-readable values directly.
+        All models now use dictionary mappings for command values, where keys are
+        normalized values (lower case, snake_case) and values are the actual values
+        to be sent to the device.
 
         Args:
             command_name: The command name (e.g., "MODE")
@@ -139,18 +139,10 @@ class RoboVac(TuyaDevice):
             robovac_command = RobovacCommand(command_name)
             values = self._get_command_values(robovac_command)
 
-            if values is not None:
-                # Handle dictionary values (explicit mapping)
-                if isinstance(values, dict) and value in values:
-                    return str(values[value])
-
-                # Handle list values (value must be in the list to be valid)
-                elif isinstance(values, list) and value in values:
-                    return str(value)
+            if values is not None and value in values:
+                return str(values[value])
 
         except (ValueError, KeyError):
-            # Handle invalid command names (ValueError) or missing dictionary keys (KeyError)
             pass
 
-        # If no valid mapping is found, return the original value
         return value
