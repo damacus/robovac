@@ -24,9 +24,9 @@ class T2267(RobovacModelDetails):
             "code": 152,
             "values": {
                 "auto": "BBoCCAE=",  # Auto clean mode
-                "SmallRoom": "AggN",  # Small room mode
+                "pause": "AggN",  # Small room mode
                 "Spot": "AA==",  # Spot clean mode
-                "Edge": "AggG",  # Edge clean mode
+                "return": "AggG",  # Edge clean mode
                 "Nosweep": "AggO",  # No sweep mode
             },
         },

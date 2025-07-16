@@ -661,8 +661,13 @@ class RoboVacEntity(StateVacuumEntity):
             _LOGGER.error("Cannot return to base: vacuum not initialized")
             return
 
-        return_home_code = self._get_dps_code("RETURN_HOME")
-        await self.vacuum.async_set({return_home_code: True})
+        # Use _get_dps_code to get the correct model-specific code for MODE
+        mode_code = self._get_dps_code("MODE")
+        # Get the model-specific value for the mode command
+        # Ensure we have a string value for the mode
+        mode_value = "return"
+        model_value = self.vacuum.getRoboVacCommandValue(RobovacCommand.MODE, mode_value)
+        await self.vacuum.async_set({mode_code: model_value})
 
     async def async_start(self, **kwargs: Any) -> None:
         """Start the vacuum cleaner in auto mode.
@@ -693,8 +698,13 @@ class RoboVacEntity(StateVacuumEntity):
             _LOGGER.error("Cannot pause vacuum: vacuum not initialized")
             return
 
-        start_pause_code = self._get_dps_code("START_PAUSE")
-        await self.vacuum.async_set({start_pause_code: False})
+        # Use _get_dps_code to get the correct model-specific code for MODE
+        mode_code = self._get_dps_code("MODE")
+        # Get the model-specific value for the mode command
+        # Ensure we have a string value for the mode
+        mode_value = "pause"
+        model_value = self.vacuum.getRoboVacCommandValue(RobovacCommand.MODE, mode_value)
+        await self.vacuum.async_set({mode_code: model_value})
 
     async def async_stop(self, **kwargs: Any) -> None:
         """Stop the vacuum cleaner.
