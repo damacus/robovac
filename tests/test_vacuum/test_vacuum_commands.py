@@ -82,9 +82,9 @@ async def test_async_start_model_specific(mock_robovac, mock_vacuum_data, mock_l
     with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_l60):
         entity = RoboVacEntity(mock_l60_data)
         await entity.async_start()
-        # This will fail with the current implementation because it always uses code "5"
-        # The fix will make it use "152" for L60 models
-        mock_l60.async_set.assert_called_once_with({"152": "auto"})
+        # Now that we've updated the implementation, L60 should send base64 value "BBoCCAE="
+        # instead of "auto" for the MODE command
+        mock_l60.async_set.assert_called_once_with({"152": "BBoCCAE="})
 
 
 @pytest.mark.asyncio

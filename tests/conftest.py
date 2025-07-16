@@ -49,6 +49,12 @@ def mock_robovac():
         | VacuumEntityFeature.STATE
         | VacuumEntityFeature.STOP
     )
+
+    # Set up getRoboVacCommandValue to return the same value (for non-L60 models)
+    def command_value_side_effect(command_name, value):
+        return value
+
+    mock.getRoboVacCommandValue.side_effect = command_value_side_effect
     mock.getRoboVacFeatures.return_value = (
         RoboVacEntityFeature.EDGE | RoboVacEntityFeature.SMALL_ROOM
     )
@@ -154,6 +160,15 @@ def mock_l60():
         "BATTERY_LEVEL": "172",
         "ERROR_CODE": "169"
     }
+
+    # Set up L60-specific command value mapping
+    def l60_command_value_side_effect(command_name, value):
+        from custom_components.robovac.robovac import RobovacCommand
+        if (command_name == RobovacCommand.MODE or command_name == "MODE") and value == "auto":
+            return "BBoCCAE="
+        return value
+
+    mock.getRoboVacCommandValue.side_effect = l60_command_value_side_effect
 
     # Set up async methods with AsyncMock
     mock.async_get = AsyncMock(return_value=mock._dps)

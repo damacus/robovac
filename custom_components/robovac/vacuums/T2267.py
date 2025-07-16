@@ -22,7 +22,13 @@ class T2267(RobovacModelDetails):
     commands = {
         RobovacCommand.MODE: {
             "code": 152,
-            "values": ["AggN", "AA==", "AggG", "BBoCCAE=", "AggO"],
+            "values": {
+                "auto": "BBoCCAE=",  # Auto clean mode
+                "SmallRoom": "AggN",  # Small room mode
+                "Spot": "AA==",  # Spot clean mode
+                "Edge": "AggG",  # Edge clean mode
+                "Nosweep": "AggO",  # No sweep mode
+            },
         },
         RobovacCommand.STATUS: {
             "code": 153,

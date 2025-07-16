@@ -677,7 +677,11 @@ class RoboVacEntity(StateVacuumEntity):
 
         # Use _get_dps_code to get the correct model-specific code for MODE
         mode_code = self._get_dps_code("MODE")
-        await self.vacuum.async_set({mode_code: self.mode})
+        # Get the model-specific value for the mode command
+        # Ensure we have a string value for the mode
+        mode_value = self.mode if self.mode is not None else "auto"
+        model_value = self.vacuum.getRoboVacCommandValue(RobovacCommand.MODE, mode_value)
+        await self.vacuum.async_set({mode_code: model_value})
 
     async def async_pause(self, **kwargs: Any) -> None:
         """Pause the vacuum cleaner.

@@ -21,22 +21,34 @@ class T2276(RobovacModelDetails):
     commands = {
         RobovacCommand.MODE: {
             "code": 152,
-            "values": ["AggN", "AA==", "AggG", "BBoCCAE=", "AggO"],
+            "values": {
+                "SmallRoom": "AggN",  # Small room mode
+                "Spot": "AA==",     # Spot clean mode
+                "Edge": "AggG",     # Edge clean mode
+                "auto": "BBoCCAE=",  # Auto clean mode
+                "Nosweep": "AggO",  # No sweep mode
+            },
         },
         RobovacCommand.STATUS: {
             "code": 173,
         },
         RobovacCommand.RETURN_HOME: {
             "code": 153,
-            "values": ["AggB"]
+            "values": {
+                "return_home": "AggB",  # Return home command
+            }
         },
         RobovacCommand.FAN_SPEED: {
             "code": 154,
-            "values": ["AgkBCgIKAQoDCgEKBAoB"]
+            "values": {
+                "fan_speed": "AgkBCgIKAQoDCgEKBAoB",  # Fan speed values
+            }
         },
         RobovacCommand.LOCATE: {
             "code": 153,
-            "values": ["AggC"]
+            "values": {
+                "locate": "AggC",  # Locate command
+            }
         },
         RobovacCommand.BATTERY: {
             "code": 172,
