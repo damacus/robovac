@@ -50,8 +50,40 @@ def mock_robovac():
         | VacuumEntityFeature.STOP
     )
 
-    # Set up getRoboVacCommandValue to return the same value (for non-L60 models)
+    # Set up getRoboVacCommandValue to simulate T2268 model lookup behavior
     def command_value_side_effect(command_name, value):
+        # Simulate T2268 model command value mappings
+        if command_name.name == "MODE":
+            mode_mappings = {
+                "auto": "Auto",
+                "small_room": "SmallRoom",
+                "spot": "Spot",
+                "edge": "Edge",
+                "nosweep": "Nosweep",
+            }
+            return mode_mappings.get(value, value)
+        elif command_name.name == "FAN_SPEED":
+            fan_speed_mappings = {
+                "no_suction": "No Suction",
+                "standard": "Standard",
+                "boost_iq": "Boost IQ",
+                "max": "Max",
+                "turbo": "Turbo",
+                "pure": "Pure",
+            }
+            return fan_speed_mappings.get(value, value)
+        elif command_name.name == "START_PAUSE":
+            start_pause_mappings = {
+                "pause": "pause",
+                "start": "start",
+            }
+            return start_pause_mappings.get(value, value)
+        elif command_name.name == "RETURN_HOME":
+            return_home_mappings = {
+                "return": "return",
+            }
+            return return_home_mappings.get(value, value)
+        # For other commands, return the value as-is
         return value
 
     mock.getRoboVacCommandValue.side_effect = command_value_side_effect

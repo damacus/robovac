@@ -136,8 +136,7 @@ class RoboVac(TuyaDevice):
             The model-specific value for the command (e.g., "BBoCCAE=" for L60 "auto" mode)
         """
         try:
-            robovac_command = RobovacCommand(command_name)
-            values = self._get_command_values(robovac_command)
+            values = self._get_command_values(RobovacCommand(command_name))
 
             if values is not None and value in values:
                 return str(values[value])
