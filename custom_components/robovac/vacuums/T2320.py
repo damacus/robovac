@@ -22,22 +22,34 @@ class T2320(RobovacModelDetails):
     commands = {
         RobovacCommand.MODE: {
             "code": 152,
-            "values": ["AggN", "AA==", "AggG", "BBoCCAE=", "AggO"],
+            "values": {
+                "auto": "BBoCCAE=",
+                "return": "AggG",
+                "pause": "AggN",
+                "small_room": "AA==",
+                "single_room": "AggO"
+            },
         },
         RobovacCommand.STATUS: {
             "code": 173,
         },
         RobovacCommand.RETURN_HOME: {
             "code": 153,
-            "values": ["AggB"]
+            "values": {
+                "return_home": "AggB"
+            }
         },
         RobovacCommand.FAN_SPEED: {
             "code": 154,
-            "values": ["AgkBCgIKAQoDCgEKBAoB"]
+            "values": {
+                "fan_speed": "AgkBCgIKAQoDCgEKBAoB"
+            }
         },
         RobovacCommand.LOCATE: {
             "code": 153,
-            "values": ["AggC"]
+            "values": {
+                "locate": "AggC"
+            }
         },
         RobovacCommand.BATTERY: {
             "code": 172,

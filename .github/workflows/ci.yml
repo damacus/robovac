@@ -55,7 +55,7 @@ jobs:
 
       - name: Lint with flake8
         run: task lint
-      
+
       - name: Type check with mypy
         run: task type-check
 
