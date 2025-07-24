@@ -32,11 +32,22 @@ class T2262(RobovacModelDetails):
         },
         RobovacCommand.DIRECTION: {
             "code": 3,
-            "values": ["forward", "back", "left", "right"],
+            "values": {
+                "forward": "forward",
+                "back": "back",
+                "left": "left",
+                "right": "right",
+            },
         },
         RobovacCommand.MODE: {
             "code": 5,
-            "values": ["auto", "SmallRoom", "Spot", "Edge", "Nosweep"],
+            "values": {
+                "auto": "Auto",
+                "small_room": "SmallRoom",
+                "spot": "Spot",
+                "edge": "Edge",
+                "nosweep": "Nosweep",
+            },
         },
         RobovacCommand.STATUS: {
             "code": 15,
@@ -46,7 +57,12 @@ class T2262(RobovacModelDetails):
         },
         RobovacCommand.FAN_SPEED: {
             "code": 102,
-            "values": ["Pure", "Standard", "Turbo", "Max"],
+            "values": {
+                "pure": "Pure",
+                "standard": "Standard",
+                "turbo": "Turbo",
+                "max": "Max",
+            },
         },
         RobovacCommand.LOCATE: {
             "code": 103,
