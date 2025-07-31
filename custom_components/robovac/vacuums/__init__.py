@@ -1,6 +1,7 @@
 from typing import Dict, Type
 
 from .T1250 import T1250
+from .T2080 import T2080
 from .T2103 import T2103
 from .T2117 import T2117
 from .T2118 import T2118
@@ -38,6 +39,8 @@ from .T2320 import T2320
 from .base import RobovacModelDetails
 
 ROBOVAC_MODELS: Dict[str, Type[RobovacModelDetails]] = {
+    "T1250": T1250,
+    "T2080": T2080,
     "T2103": T2103,
     "T2117": T2117,
     "T2118": T2118,
@@ -47,7 +50,6 @@ ROBOVAC_MODELS: Dict[str, Type[RobovacModelDetails]] = {
     "T2128": T2128,
     "T2130": T2130,
     "T2132": T2132,
-    "T1250": T1250,
     "T2250": T2250,
     "T2251": T2251,
     "T2252": T2252,
