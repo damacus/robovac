@@ -1,9 +1,13 @@
 from typing import Any, Dict, List, Optional, Type, Union, cast
+from homeassistant.components.vacuum import VacuumActivity
 
 from .tuyalocalapi import TuyaDevice
 from .vacuums import ROBOVAC_MODELS
 from .vacuums.base import RobovacCommand, RobovacModelDetails
 
+import logging
+
+_LOGGER = logging.getLogger(__name__)
 
 class ModelNotSupportedException(Exception):
     """This model is not supported"""
@@ -41,6 +45,14 @@ class RoboVac(TuyaDevice):
             An integer representing the supported features of the device.
         """
         return self.model_details.robovac_features
+
+    def getRoboVacActivityMapping(self) -> Dict[str, VacuumActivity] | None:
+        """Get the mapping of device statuses to Home Assistant statuses.
+
+        Returns:
+            A dictionary mapping the vacuum statuses to Home Assistant VacuumActivity, if populated.
+        """
+        return self.model_details.activity_mapping
 
     def _get_command_values(
         self, command_name: RobovacCommand
@@ -144,4 +156,29 @@ class RoboVac(TuyaDevice):
         except (ValueError, KeyError):
             pass
 
+        return value
+
+    def getRoboVacHumanReadableValue(self, command_name: RobovacCommand, value: str) -> str:
+        """
+        Get the human readable value for a command, given the model-specific value.
+
+        Args:
+            command_name: The command name (e.g., "MODE")
+            value: The model-specific value for the command (e.g., "BBoCCAE=" for L60 "auto" mode)
+
+        Returns:
+            The human-readable value (e.g., "auto")
+        """
+        try:
+            values = self._get_command_values(RobovacCommand(command_name))
+
+            if values is not None and value in values:
+                return str(values[value])
+
+        except (ValueError, KeyError):
+            pass
+
+        _LOGGER.warning(
+            f"Command {command_name} with value {value} not found for model {self.model_code}. If you know the status the Eufy app was showing at this time, please report that to the component maintainers."
+        )
         return value
