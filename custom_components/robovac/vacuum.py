@@ -24,7 +24,7 @@ from enum import StrEnum
 import json
 import logging
 import time
-from typing import Any, Optional
+from typing import Any, Optional, Dict
 
 from homeassistant.components.vacuum import (
     StateVacuumEntity,
@@ -107,6 +107,7 @@ class RoboVacEntity(StateVacuumEntity):
     _attr_consumables: str | None = None
     _attr_mode: str | None = None
     _attr_robovac_supported: int | None = None
+    _attr_activity_mapping: Dict[str, VacuumActivity] | None = None
     _attr_error_code: int | str | None = None
     _attr_tuya_state: int | str | None = None
 
@@ -114,6 +115,11 @@ class RoboVacEntity(StateVacuumEntity):
     def robovac_supported(self) -> int | None:
         """Return the supported features of the vacuum cleaner."""
         return self._attr_robovac_supported
+
+    @property
+    def activity_mapping(self) -> Dict[str, VacuumActivity] | None:
+        """Return the mapping of statuses to Home Assistant VacuumActivity."""
+        return self._attr_activity_mapping
 
     @property
     def mode(self) -> str | None:
@@ -220,7 +226,8 @@ class RoboVacEntity(StateVacuumEntity):
         As of Home Assistant Core 2025.1, this property should be used instead of directly
         setting the state property.
         """
-        if self._attr_tuya_state is None:
+        if self._attr_tuya_state is None or self._attr_tuya_state == 0:
+            # 0 is a default set when we don't have a state
             return None
         elif (
             type(self.error_code) is not None
@@ -237,6 +244,16 @@ class RoboVacEntity(StateVacuumEntity):
                 )
             )
             return VacuumActivity.ERROR
+        elif self.activity_mapping is not None:
+            # Use the activity mapping from the model details
+            activity = self.activity_mapping.get(self._attr_tuya_state)
+
+            _LOGGER.debug(
+                    "Used activity mapping, changing status %s to activity %s",
+                    self._attr_tuya_state,
+                    activity
+                )
+            return activity
         elif self._attr_tuya_state == "Charging" or self._attr_tuya_state == "completed":
             return VacuumActivity.DOCKED
         elif self._attr_tuya_state == "Recharge":
@@ -246,6 +263,10 @@ class RoboVacEntity(StateVacuumEntity):
         elif self._attr_tuya_state == "Paused":
             return VacuumActivity.PAUSED
         else:
+            _LOGGER.debug(
+                "State changed to cleaning. Raw Tuya state: %s",
+                self._attr_tuya_state
+            )
             return VacuumActivity.CLEANING
 
     @property
@@ -353,6 +374,7 @@ class RoboVacEntity(StateVacuumEntity):
             features = int(self.vacuum.getHomeAssistantFeatures())
             self._attr_supported_features = VacuumEntityFeature(features)
             self._attr_robovac_supported = self.vacuum.getRoboVacFeatures()
+            self._attr_activity_mapping = self.vacuum.getRoboVacActivityMapping()
             self._attr_fan_speed_list = self.vacuum.getFanSpeeds()
 
             _LOGGER.debug(
@@ -464,7 +486,7 @@ class RoboVacEntity(StateVacuumEntity):
         # Get the current data points from the vacuum
         self.tuyastatus = self.vacuum._dps
 
-        if self.tuyastatus is None:
+        if self.tuyastatus is None or not self.tuyastatus:
             _LOGGER.warning("Cannot update entity values: no data points available")
             return
 
@@ -554,10 +576,26 @@ class RoboVacEntity(StateVacuumEntity):
         error_code = self.tuyastatus.get(self._get_dps_code("ERROR_CODE"))
 
         # Update state attribute
-        self._attr_tuya_state = tuya_state if tuya_state is not None else 0
+        if tuya_state is not None:
+            self._attr_tuya_state = self.vacuum.getRoboVacHumanReadableValue(RobovacCommand.STATUS, tuya_state)
+            _LOGGER.debug(
+                "in _update_state_and_error, tuya_state: %s, self._attr_tuya_state: %s.",
+                tuya_state,
+                self._attr_tuya_state
+            )
+        else:
+            self._attr_tuya_state = 0
 
         # Update error code attribute
-        self._attr_error_code = error_code if error_code is not None else 0
+        if error_code is not None:
+            self._attr_error_code = self.vacuum.getRoboVacHumanReadableValue(RobovacCommand.ERROR, error_code)
+            _LOGGER.debug(
+                "in _update_state_and_error, error_code: %s, self._attr_error_code: %s.",
+                error_code,
+                self._attr_error_code
+            )
+        else:
+            self._attr_error_code = 0
 
     def _update_mode_and_fan_speed(self) -> None:
         """Update the mode and fan speed attributes."""
@@ -569,7 +607,16 @@ class RoboVacEntity(StateVacuumEntity):
         fan_speed = self.tuyastatus.get(self._get_dps_code("FAN_SPEED"))
 
         # Update mode attribute
-        self._attr_mode = mode if mode is not None else ""
+        if mode is not None:
+            self._attr_mode = self.vacuum.getRoboVacHumanReadableValue(RobovacCommand.MODE, mode)
+            _LOGGER.debug(
+                "in _update_mode_and_fan_speed, mode: %s, self._attr_mode: %s.",
+                mode,
+                self._attr_mode
+            )
+        else:
+            self._attr_mode = ""
+        # self._attr_mode = mode if mode is not None else ""
 
         # Update fan speed attribute
         self._attr_fan_speed = fan_speed if fan_speed is not None else ""
