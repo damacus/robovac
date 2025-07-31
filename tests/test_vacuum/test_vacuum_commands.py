@@ -140,12 +140,12 @@ async def test_async_set_fan_speed(mock_robovac, mock_vacuum_data):
 
         # Test cases for fan speed conversion
         test_cases = [
-            ("Turbo", "Turbo"),      # Input normalized to "turbo" -> maps to "Turbo"
-            ("Max", "Max"),          # Input normalized to "max" -> maps to "Max"
-            ("Standard", "Standard"), # Input normalized to "standard" -> maps to "Standard"
-            ("Quiet", "quiet"),      # Input normalized to "quiet" -> not in mapping, returns input
-            ("Boost_IQ", "Boost IQ"), # Input normalized to "boost_iq" -> maps to "Boost IQ"
-            ("No_suction", "No Suction"), # Input normalized to "no_suction" -> maps to "No Suction"
+            ("Turbo", "Turbo"),                # Input normalized to "turbo" -> maps to "Turbo"
+            ("Max", "Max"),                    # Input normalized to "max" -> maps to "Max"
+            ("Standard", "Standard"),          # Input normalized to "standard" -> maps to "Standard"
+            ("Quiet", "quiet"),                # Input normalized to "quiet" -> not in mapping, returns input
+            ("Boost_IQ", "Boost IQ"),          # Input normalized to "boost_iq" -> maps to "Boost IQ"
+            ("No_suction", "No Suction"),  # Input normalized to "no_suction" -> maps to "No Suction"
         ]
 
         for input_speed, expected_output in test_cases:

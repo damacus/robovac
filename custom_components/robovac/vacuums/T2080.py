@@ -9,12 +9,12 @@ class T2080(RobovacModelDetails):
         | VacuumEntityFeature.CLEAN_SPOT
         | VacuumEntityFeature.FAN_SPEED
         | VacuumEntityFeature.LOCATE
-        | VacuumEntityFeature.PAUSE # Not yet confirmed working
-        | VacuumEntityFeature.RETURN_HOME # Not yet confirmed working
+        | VacuumEntityFeature.PAUSE  # Not yet confirmed working
+        | VacuumEntityFeature.RETURN_HOME  # Not yet confirmed working
         | VacuumEntityFeature.SEND_COMMAND
-        | VacuumEntityFeature.START # Verified
+        | VacuumEntityFeature.START  # Verified
         | VacuumEntityFeature.STATE
-        | VacuumEntityFeature.STOP # Not yet confirmed working
+        | VacuumEntityFeature.STOP  # Not yet confirmed working
         | VacuumEntityFeature.MAP
     )
     robovac_features = (
@@ -39,7 +39,7 @@ class T2080(RobovacModelDetails):
         },
         RobovacCommand.DIRECTION: {
             # Not working
-            "code": 176, # try 157 next??
+            "code": 176,  # try 157 next??
             "values": ["forward", "back", "left", "right"],
         },
         # The below is copied from T2267.py - need to test.
@@ -81,11 +81,10 @@ class T2080(RobovacModelDetails):
                 "EAoCCAEQCRoCCAEyADoCEAE=": "Washing Mop",
                 "BhAJOgIQAQ==": "Washing Mop",
                 "AhAJ": "Removing Dirty Water",
-                "BhAGGgIIAQ==": "Manual Control", # Double check this
-                ### One of these next two (maybe both?) is "Emptying Dust", but I'm not sure which
+                "BhAGGgIIAQ==": "Manual Control",  # Double check this
+                # One of these next two (maybe both?) is "Emptying Dust", but I'm not sure which
                 # "BxAJGgD6AQA=": "Emptying Dust",
                 # "BRAJ+gEA": "Emptying Dust",
-                ###
                 "CgoAEAkaAggBMgA=": "Auto Cleaning",
             }
         },
@@ -133,18 +132,17 @@ class T2080(RobovacModelDetails):
         "POSITION": VacuumActivity.CLEANING,
         "Paused": VacuumActivity.PAUSED,
         "Auto Cleaning": VacuumActivity.CLEANING,
-        "Room Cleaning": VacuumActivity.CLEANING, # I've seen this when doing a room clean - navigating to the room and while cleaning it. Maybe 153 is mode, not status???
+        "Room Cleaning": VacuumActivity.CLEANING,  # I've seen this when doing a room clean - navigating to the room and while cleaning it. Maybe 153 is mode, not status???
         "Room Positioning": VacuumActivity.CLEANING,
-        "Room Paused": VacuumActivity.PAUSED, # I've seen this when doing a room clean and hitting pause
+        "Room Paused": VacuumActivity.PAUSED,  # I've seen this when doing a room clean and hitting pause
         "SPOT": VacuumActivity.CLEANING,
         "SPOT_POSITION": VacuumActivity.CLEANING,
         "SPOT_PAUSE": VacuumActivity.PAUSED,
-        "START_MANUAL": "BAoAEAY=",
+        "START_MANUAL": VacuumActivity.CLEANING,
         "Standby": VacuumActivity.IDLE,
-        "Heading Home": VacuumActivity.RETURNING, # I've seen this when heading home
+        "Heading Home": VacuumActivity.RETURNING,  # I've seen this when heading home
         "Charging": VacuumActivity.DOCKED,
         "Completed": VacuumActivity.DOCKED,
-        "Standby": VacuumActivity.IDLE,
         "Sleeping": VacuumActivity.IDLE,
         "Drying Mop": VacuumActivity.DOCKED,
         "Washing Mop": VacuumActivity.DOCKED,

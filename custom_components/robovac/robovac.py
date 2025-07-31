@@ -9,6 +9,7 @@ import logging
 
 _LOGGER = logging.getLogger(__name__)
 
+
 class ModelNotSupportedException(Exception):
     """This model is not supported"""
 
@@ -179,6 +180,9 @@ class RoboVac(TuyaDevice):
             pass
 
         _LOGGER.warning(
-            f"Command {command_name} with value {value} not found for model {self.model_code}. If you know the status the Eufy app was showing at this time, please report that to the component maintainers."
+            "Command %s with value %s not found for model %s. If you know the status the Eufy app was showing at this time, please report that to the component maintainers.",
+            command_name,
+            value,
+            self.model_code,
         )
         return value

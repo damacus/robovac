@@ -246,13 +246,13 @@ class RoboVacEntity(StateVacuumEntity):
             return VacuumActivity.ERROR
         elif self.activity_mapping is not None:
             # Use the activity mapping from the model details
-            activity = self.activity_mapping.get(self._attr_tuya_state)
+            activity = self.activity_mapping.get(str(self._attr_tuya_state))
 
             _LOGGER.debug(
-                    "Used activity mapping, changing status %s to activity %s",
-                    self._attr_tuya_state,
-                    activity
-                )
+                "Used activity mapping, changing status %s to activity %s",
+                self._attr_tuya_state,
+                activity
+            )
             return activity
         elif self._attr_tuya_state == "Charging" or self._attr_tuya_state == "completed":
             return VacuumActivity.DOCKED
@@ -576,7 +576,7 @@ class RoboVacEntity(StateVacuumEntity):
         error_code = self.tuyastatus.get(self._get_dps_code("ERROR_CODE"))
 
         # Update state attribute
-        if tuya_state is not None:
+        if tuya_state is not None and self.vacuum is not None:
             self._attr_tuya_state = self.vacuum.getRoboVacHumanReadableValue(RobovacCommand.STATUS, tuya_state)
             _LOGGER.debug(
                 "in _update_state_and_error, tuya_state: %s, self._attr_tuya_state: %s.",
@@ -587,7 +587,7 @@ class RoboVacEntity(StateVacuumEntity):
             self._attr_tuya_state = 0
 
         # Update error code attribute
-        if error_code is not None:
+        if error_code is not None and self.vacuum is not None:
             self._attr_error_code = self.vacuum.getRoboVacHumanReadableValue(RobovacCommand.ERROR, error_code)
             _LOGGER.debug(
                 "in _update_state_and_error, error_code: %s, self._attr_error_code: %s.",
@@ -607,7 +607,7 @@ class RoboVacEntity(StateVacuumEntity):
         fan_speed = self.tuyastatus.get(self._get_dps_code("FAN_SPEED"))
 
         # Update mode attribute
-        if mode is not None:
+        if mode is not None and self.vacuum is not None:
             self._attr_mode = self.vacuum.getRoboVacHumanReadableValue(RobovacCommand.MODE, mode)
             _LOGGER.debug(
                 "in _update_mode_and_fan_speed, mode: %s, self._attr_mode: %s.",
