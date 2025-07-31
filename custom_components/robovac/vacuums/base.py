@@ -1,3 +1,4 @@
+from homeassistant.components.vacuum import VacuumActivity
 from enum import IntEnum, StrEnum
 from typing import Protocol, Dict, List, Any, Type, Optional
 
@@ -67,3 +68,4 @@ class RobovacModelDetails(Protocol):
     robovac_features: int
     commands: Dict[RobovacCommand, Any]
     dps_codes: Dict[str, str] = {}  # Optional model-specific DPS codes
+    activity_mapping: Dict[str, VacuumActivity] | None = None

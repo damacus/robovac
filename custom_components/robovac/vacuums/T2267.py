@@ -22,7 +22,13 @@ class T2267(RobovacModelDetails):
     commands = {
         RobovacCommand.MODE: {
             "code": 152,
-            "values": ["AggN", "AA==", "AggG", "BBoCCAE=", "AggO"],
+            "values": {
+                "auto": "BBoCCAE=",
+                "pause": "AggN",
+                "Spot": "AA==",
+                "return": "AggG",
+                "Nosweep": "AggO",
+            },
         },
         RobovacCommand.STATUS: {
             "code": 153,
@@ -46,7 +52,13 @@ class T2267(RobovacModelDetails):
         },
         RobovacCommand.DIRECTION: {
             "code": 155,
-            "values": ["Brake", "Forward", "Back", "Left", "Right"],
+            "values": {
+                "brake": "brake",
+                "forward": "forward",
+                "back": "back",
+                "left": "left",
+                "right": "right",
+            },
         },
         RobovacCommand.START_PAUSE: {
             "code": 156,
@@ -56,7 +68,13 @@ class T2267(RobovacModelDetails):
         },
         RobovacCommand.FAN_SPEED: {
             "code": 158,
-            "values": ["Quiet", "Standard", "Turbo", "Max"],
+            "values": {
+                "quiet": "Quiet",
+                "standard": "Standard",
+                "turbo": "Turbo",
+                "max": "Max",
+                "boost_iq": "Boost_IQ",
+            },
         },
         RobovacCommand.BOOST_IQ: {
             "code": 159,
