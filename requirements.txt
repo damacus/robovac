@@ -1,5 +1,5 @@
 cryptography==45.0.6
-homeassistant==2025.7.4
+homeassistant==2025.8.0
 requests==2.32.4
 setuptools==80.9.0
 voluptuous==0.15.2
