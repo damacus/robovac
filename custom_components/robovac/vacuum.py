@@ -308,10 +308,15 @@ class RoboVacEntity(StateVacuumEntity):
             data[ATTR_MODE] = self.mode
         return data
 
+    @property
+    def battery_level(self) -> int | None:
+        """Return the battery level of the vacuum cleaner."""
+        return self._battery_level
+
     def __init__(self, item) -> None:
         """Initialize Eufy Robovac"""
         super().__init__()
-        self._attr_battery_level = 0
+        self._battery_level = 0  # Battery level now handled by separate sensor
         self._attr_name = item[CONF_NAME]
         self._attr_unique_id = item[CONF_ID]
         self._attr_model_code = item[CONF_MODEL]
@@ -403,10 +408,10 @@ class RoboVacEntity(StateVacuumEntity):
         self.tuyastatus = self.vacuum._dps
         _LOGGER.debug("tuyastatus %s", self.tuyastatus)
         
-        self._attr_battery_level = self.tuyastatus.get(
+        self._battery_level = self.tuyastatus.get(
             self._tuya_command_codes[RobovacCommand.BATTERY]
         )
-        _LOGGER.debug("_attr_battery_level %s", self._attr_battery_level)
+        _LOGGER.debug("_battery_level %s", self._battery_level)
         
         self.tuya_state = STATUS_MAPPING.get(
             TUYA_STATUS_MAPPING.get(

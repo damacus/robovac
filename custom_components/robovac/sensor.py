@@ -37,7 +37,8 @@ class RobovacSensorEntity(SensorEntity):
     def __init__(self, item):
         self.robovac = item
         self.robovac_id = item[CONF_ID]
-        self._attr_unique_id = item[CONF_ID]
+        self._attr_unique_id = f"{item[CONF_ID]}_battery"
+        self._attr_name = "Battery"
         self._battery_level = None
 
         self._attr_device_info = DeviceInfo(

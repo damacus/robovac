@@ -4,9 +4,9 @@ from .base import RoboVacEntityFeature, RobovacCommand
 
 class T2275:
     homeassistant_features = (
-        VacuumEntityFeature.BATTERY
+        # VacuumEntityFeature.BATTERY removed - now handled by separate battery sensor
 #        | VacuumEntityFeature.CLEAN_SPOT
-        | VacuumEntityFeature.FAN_SPEED
+        VacuumEntityFeature.FAN_SPEED
         | VacuumEntityFeature.LOCATE
         | VacuumEntityFeature.PAUSE
         | VacuumEntityFeature.RETURN_HOME
