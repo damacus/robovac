@@ -308,7 +308,7 @@ class RoboVacEntity(StateVacuumEntity):
         super().__init__()
 
         # Initialize basic attributes
-        self._attr_battery_level = 0
+        # Note: Battery level now handled by separate battery sensor entity
         self._attr_name = item[CONF_NAME]
         self._attr_unique_id = item[CONF_ID]
         self._attr_model_code = item[CONF_MODEL]
@@ -531,17 +531,17 @@ class RoboVacEntity(StateVacuumEntity):
         # Get battery level from data points using model-specific DPS code
         battery_level = self.tuyastatus.get(self._get_dps_code("BATTERY_LEVEL"))
 
-        # Ensure battery level is an integer between 0 and 100
+        # Note: Battery level is now handled by the separate battery sensor entity
+        # This method no longer updates _attr_battery_level to avoid deprecation warnings
         if battery_level is not None:
             try:
-                self._attr_battery_level = int(battery_level)
-                # Ensure the value is within valid range
-                self._attr_battery_level = max(0, min(100, self._attr_battery_level))
+                battery_value = int(battery_level)
+                battery_value = max(0, min(100, battery_value))
+                _LOGGER.debug("Battery level: %s%%", battery_value)
             except (ValueError, TypeError):
                 _LOGGER.warning("Invalid battery level value: %s", battery_level)
-                self._attr_battery_level = 0
         else:
-            self._attr_battery_level = 0
+            _LOGGER.debug("No battery level data available")
 
     def _update_state_and_error(self) -> None:
         """Update the state and error code attributes."""
