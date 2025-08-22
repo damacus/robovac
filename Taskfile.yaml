@@ -7,6 +7,15 @@ tasks:
     cmds:
       - task -l
 
+  all:
+    desc: Run all tasks
+    cmds:
+      - task install-dev
+      - task test
+      - task type-check
+      - task lint
+      - task markdownlint
+
   test:
     desc: Run tests with pytest
     cmds:
@@ -33,6 +42,7 @@ tasks:
     desc: Lint with flake8
     cmds:
       - uv run flake8 custom_components tests
+      - task: markdownlint
 
   markdownlint:
     desc: Lint with markdownlint

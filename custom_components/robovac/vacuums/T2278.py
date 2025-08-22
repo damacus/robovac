@@ -22,22 +22,34 @@ class T2278(RobovacModelDetails):
     commands = {
         RobovacCommand.MODE: {
             "code": 152,
-            "values": ["AggN", "AA==", "AggG", "BBoCCAE=", "AggO"],
+            "values": {
+                "small_room": "AggN",
+                "spot": "AA==",
+                "edge": "AggG",
+                "auto": "BBoCCAE=",
+                "nosweep": "AggO",
+            },
         },
         RobovacCommand.STATUS: {
             "code": 173,
         },
         RobovacCommand.RETURN_HOME: {
             "code": 153,
-            "values": ["AggB"]
+            "values": {
+                "return_home": "AggB",
+            }
         },
         RobovacCommand.FAN_SPEED: {
             "code": 154,
-            "values": ["AgkBCgIKAQoDCgEKBAoB"]
+            "values": {
+                "fan_speed": "AgkBCgIKAQoDCgEKBAoB",
+            }
         },
         RobovacCommand.LOCATE: {
             "code": 153,
-            "values": ["AggC"]
+            "values": {
+                "locate": "AggC",
+            }
         },
         RobovacCommand.BATTERY: {
             "code": 172,

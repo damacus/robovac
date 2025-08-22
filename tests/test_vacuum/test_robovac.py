@@ -130,13 +130,60 @@ def test_get_fan_speeds():
         "custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None
     ):
         test_cases = [
-            ("T2118", ["No_suction", "Standard", "Boost_IQ", "Max"]),
-            ("T2250", ["Standard", "Turbo", "Max", "Boost_IQ"]),
-            ("T2190", ["Quiet", "Standard", "Turbo", "Max"]),
-            ("T2261", ["Pure", "Standard", "Turbo", "Max"]),
+            # Model code, expected fan speeds, and the dictionary to mock
+            (
+                "T2118",
+                ["No_suction", "Standard", "Boost_IQ", "Max"],
+                {
+                    "no_suction": "No_suction",
+                    "standard": "Standard",
+                    "boost_iq": "Boost_IQ",
+                    "max": "Max",
+                }
+            ),
+            (
+                "T2250",
+                ["Standard", "Turbo", "Max", "Boost_IQ"],
+                {
+                    "standard": "Standard",
+                    "turbo": "Turbo",
+                    "max": "Max",
+                    "boost_iq": "Boost_IQ",
+                }
+            ),
+            (
+                "T2190",
+                ["Quiet", "Standard", "Turbo", "Max"],
+                {
+                    "quiet": "Quiet",
+                    "standard": "Standard",
+                    "turbo": "Turbo",
+                    "max": "Max",
+                }
+            ),
+            (
+                "T2261",
+                ["Pure", "Standard", "Turbo", "Max"],
+                {
+                    "pure": "Pure",
+                    "standard": "Standard",
+                    "turbo": "Turbo",
+                    "max": "Max",
+                }
+            ),
+            (
+                "T2267",
+                ["Quiet", "Standard", "Turbo", "Max"],
+                {
+                    "quiet": "Quiet",
+                    "standard": "Standard",
+                    "turbo": "Turbo",
+                    "max": "Max",
+                }
+            ),
         ]
 
-        for model_code, expected_speeds in test_cases:
+        for model_code, expected_speeds, fan_speed_dict in test_cases:
             robovac = RoboVac(
                 model_code=model_code,
                 device_id="test_id",
@@ -144,4 +191,8 @@ def test_get_fan_speeds():
                 local_key="test_key",
             )
 
-            assert robovac.getFanSpeeds() == expected_speeds
+            # Mock the _get_command_values method to return our test dictionary
+            with patch.object(
+                robovac, "_get_command_values", return_value=fan_speed_dict
+            ):
+                assert robovac.getFanSpeeds() == expected_speeds
