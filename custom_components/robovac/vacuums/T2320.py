@@ -6,7 +6,7 @@ from .base import RoboVacEntityFeature, RobovacCommand, RobovacModelDetails
 
 class T2320(RobovacModelDetails):
     # This model exposes the full set of basic controls: start, pause, return home, stop, locate,
-    # fan speed and battery state.  In Home Assistant the "stop" (square) action is mapped to
+    # fan speed and battery state.  In Home Assistant the "stop" (square) action is mapped to
     # return-to-base, the "pause" (two bars) action pauses cleaning in place, and the "play"
     # (triangle) action starts an auto clean.
     homeassistant_features = (
@@ -31,19 +31,19 @@ class T2320(RobovacModelDetails):
     # DP 152 carries a small binary token that tells the robot what to do:
     #   - "AggG": start auto clean (play/triangle)
     #   - "AA==": pause and stop in place (pause/two bars)
-    #   - "AggB": return to dock (stop/square)
+    #   - "AggN": return to dock (stop/square)
     #   - "AggO": perform a spot clean
-    #   - other tokens ("AggN", "BBoCCAE=") are retained for completeness but unused here.
+    #   - other tokens ("AggB", "BBoCCAE=") are retained for completeness but unused here.
     commands = {
         RobovacCommand.MODE: {
             "code": 152,
             "values": [
                 "AggG",      # auto clean
                 "AA==",      # pause
-                "AggB",      # return home
+                "AggN",      # return home
                 "AggO",      # spot clean
-                "AggN",      # unused/reserved
-                "BBoCCAE=",  # unused/reserved
+                "AggB",      # reserved/unused
+                "BBoCCAE=",  # reserved/unused
             ],
         },
 
