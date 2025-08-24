@@ -29,35 +29,39 @@ class T2320(RobovacModelDetails):
             "values": ["AggN", "AA==", "AggG", "BBoCCAE=", "AggO"],
         },
 
-        # High-level running/cleaning state bit is on DPS 156 (was 173 before)
+        # High-level running/cleaning state bit is on DPS 156
         RobovacCommand.STATUS: {
             "code": 156,
         },
 
-        # Return-to-dock uses DPS 153 on this model.
-        # Most firmwares accept a boolean "press", so no values required.
+        # Start/Pause actions happen on DPS 153 on this model
+        RobovacCommand.START_PAUSE: {
+            "code": 153,
+        },
+
+        # Return-to-dock uses DPS 153 on this model
         RobovacCommand.RETURN_HOME: {
             "code": 153,
         },
 
-        # Fan speed is DPS 158 and reports strings like "Quiet/Standard/Turbo/Max".
+        # Fan speed is DPS 158 and reports strings like "Quiet/Standard/Turbo/Max"
         RobovacCommand.FAN_SPEED: {
             "code": 158,
             "values": ["Quiet", "Standard", "Turbo", "Max"],
         },
 
-        # Locate/beep also rides on DPS 153 for this model; keep the token for locate.
+        # Locate/beep also rides on DPS 153 for this model
         RobovacCommand.LOCATE: {
             "code": 153,
             "values": ["AggC"],
         },
 
-        # Battery percentage comes from DPS 161 (not 172 on this unit)
+        # Battery percentage comes from DPS 161
         RobovacCommand.BATTERY: {
             "code": 161,
         },
 
-        # Error/info blob (unchanged)
+        # Error/info blob
         RobovacCommand.ERROR: {
             "code": 169,
         },
