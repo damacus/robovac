@@ -580,7 +580,7 @@ class RoboVacEntity(StateVacuumEntity):
             elif self.fan_speed == "Boost_IQ":
                 self._attr_fan_speed = "Boost IQ"
             elif self.fan_speed == "Quiet":
-                self._attr_fan_speed = "Pure"
+                self._attr_fan_speed = "Quiet"
 
     def _update_cleaning_stats(self) -> None:
         """Update cleaning statistics (area and time)."""
@@ -677,7 +677,7 @@ class RoboVacEntity(StateVacuumEntity):
 
         # Use _get_dps_code to get the correct model-specific code for MODE
         mode_code = self._get_dps_code("MODE")
-        await self.vacuum.async_set({mode_code: self.mode})
+        await self.vacuum.async_set({self._get_dps_code("START_PAUSE"): True})
 
     async def async_pause(self, **kwargs: Any) -> None:
         """Pause the vacuum cleaner.
