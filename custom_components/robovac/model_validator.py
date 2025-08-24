@@ -231,14 +231,14 @@ def get_troubleshooting_info(model_code: str) -> Dict[str, str]:
         Dictionary with troubleshooting steps and common issues
     """
     series = get_model_series(model_code)
-    
+
     common_steps = [
         "1. Ensure your vacuum is connected to the same network as Home Assistant",
         "2. Check that the vacuum's IP address is correctly configured",
         "3. Verify the vacuum is powered on and not in sleep mode",
         "4. Try restarting both the vacuum and Home Assistant",
     ]
-    
+
     series_specific = {
         "C": [
             "5. C Series models may need manual IP configuration",
@@ -257,9 +257,9 @@ def get_troubleshooting_info(model_code: str) -> Dict[str, str]:
             "6. Check if self-emptying station is properly connected (if applicable)",
         ],
     }
-    
+
     all_steps = common_steps + series_specific.get(series, [])
-    
+
     return {
         "model_code": model_code,
         "series": series,
