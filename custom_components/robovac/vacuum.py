@@ -544,10 +544,11 @@ class RoboVacEntity(StateVacuumEntity):
             _LOGGER.error("Cannot return to base: vacuum not initialized")
             return
 
-        # T2320: use MODE (DP 152) base64 token for dock/home
+        # T2320: use MODE (DP 152) base64 token for dock/home.
+        # The correct token for returning home is "AggN".
         if (self.model_code or "").startswith("T2320"):
             mode_code = self._get_dps_code("MODE")
-            await self.vacuum.async_set({mode_code: "AggB"})
+            await self.vacuum.async_set({mode_code: "AggN"})
             return
 
         # Fallback for other models: legacy RETURN_HOME boolean
@@ -658,7 +659,8 @@ class RoboVacEntity(StateVacuumEntity):
                 await self.vacuum.async_set({mode_code: "auto"})
         elif command == "autoReturn":
             if is_t2320:
-                await self.vacuum.async_set({mode_code: "AggB"})
+                # Return to base uses "AggN" on the X9 Pro
+                await self.vacuum.async_set({mode_code: "AggN"})
             else:
                 auto_return_code = self._get_dps_code("AUTO_RETURN")
                 if self._is_value_true(self.auto_return):
