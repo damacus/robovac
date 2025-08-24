@@ -55,19 +55,44 @@ class RobovacBatterySensor(SensorEntity):
 
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, item[CONF_ID])},
-            name=item[CONF_NAME]
+            name=item[CONF_NAME],
         )
 
     async def async_update(self) -> None:
         """Update the sensor state."""
         try:
             vacuum_entity = self.hass.data[DOMAIN][CONF_VACS].get(self.robovac_id)
-            if vacuum_entity and vacuum_entity.tuyastatus:
-                self._attr_native_value = vacuum_entity.tuyastatus.get(TuyaCodes.BATTERY_LEVEL)
-                self._attr_available = True
-            else:
-                _LOGGER.debug("Vacuum entity or status not available for %s", self.robovac_id)
+
+            if not vacuum_entity:
+                _LOGGER.debug("Vacuum entity not found for %s", self.robovac_id)
                 self._attr_available = False
+                return
+
+            # Prefer the parsed value maintained by the vacuum entity if present
+            value = getattr(vacuum_entity, "battery_level", None)
+
+            # Fallback: read raw DPS using model-specific code if needed
+            if value is None and getattr(vacuum_entity, "tuyastatus", None) is not None:
+                dps_codes = {}
+                if getattr(vacuum_entity, "vacuum", None) is not None:
+                    dps_codes = vacuum_entity.vacuum.getDpsCodes() or {}
+                battery_code = dps_codes.get("BATTERY_LEVEL", TuyaCodes.BATTERY_LEVEL)
+                value = vacuum_entity.tuyastatus.get(battery_code)
+
+            if value is None:
+                self._attr_available = False
+                return
+
+            # Coerce and clamp to 0..100
+            try:
+                value_int = int(value)
+                value_int = max(0, min(100, value_int))
+                self._attr_native_value = value_int
+                self._attr_available = True
+            except (TypeError, ValueError):
+                _LOGGER.debug("Battery value not an int for %s: %s", self.robovac_id, value)
+                self._attr_available = False
+
         except Exception as ex:
             _LOGGER.error("Failed to update battery sensor for %s: %s", self.robovac_id, ex)
             self._attr_available = False
