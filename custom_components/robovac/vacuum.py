@@ -42,7 +42,7 @@ from homeassistant.const import (
     CONF_NAME,
 )
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC
+    from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -570,10 +570,11 @@ class RoboVacEntity(StateVacuumEntity):
             return
 
         if (self.model_code or "").startswith("T2320"):
-            # T2320: start/auto is DPS 152 with base64 token
+            # T2320: start/auto is DPS 152 with base64 token.
+            # The Eufy app sends "AggG" (0x02 0x08 0x06) for auto clean.
             mode_code = self._get_dps_code("MODE")
             self._attr_mode = "auto"
-            await self.vacuum.async_set({mode_code: "AggN"})
+            await self.vacuum.async_set({mode_code: "AggG"})
             return
 
         # Generic fallback: try MODE string (if supported) or START_PAUSE boolean
@@ -591,7 +592,7 @@ class RoboVacEntity(StateVacuumEntity):
             return
 
         if (self.model_code or "").startswith("T2320"):
-            # T2320: pause is DPS 152 with base64 token
+            # T2320: pause is DPS 152 with base64 token ("AA==").
             mode_code = self._get_dps_code("MODE")
             await self.vacuum.async_set({mode_code: "AA=="})
             return
@@ -601,8 +602,16 @@ class RoboVacEntity(StateVacuumEntity):
         await self.vacuum.async_set({start_pause_code: False})
 
     async def async_stop(self, **kwargs: Any) -> None:
-        """Stop cleaning (we map to return to base)."""
-        await self.async_return_to_base()
+        """Stop cleaning.
+
+        On the X9 Pro (T2320) stopping should pause the robot in place.
+        On other models it will return the robot to the dock, matching the legacy behaviour.
+        """
+        if (self.model_code or "").startswith("T2320"):
+            # For T2320 just pause; don't return home.
+            await self.async_pause()
+        else:
+            await self.async_return_to_base()
 
     async def async_clean_spot(self, **kwargs: Any) -> None:
         """Perform a spot clean-up."""
@@ -656,7 +665,8 @@ class RoboVacEntity(StateVacuumEntity):
             await self.vacuum.async_set({mode_code: "SmallRoom"})
         elif command == "autoClean":
             if is_t2320:
-                await self.vacuum.async_set({mode_code: "AggN"})
+                # Use "AggG" for auto clean on T2320 (matches the app)
+                await self.vacuum.async_set({mode_code: "AggG"})
             else:
                 await self.vacuum.async_set({mode_code: "auto"})
         elif command == "autoReturn":
