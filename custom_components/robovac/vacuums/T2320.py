@@ -15,33 +15,49 @@ class T2320(RobovacModelDetails):
         | VacuumEntityFeature.STATE
         | VacuumEntityFeature.STOP
     )
+
     robovac_features = (
         RoboVacEntityFeature.DO_NOT_DISTURB
         | RoboVacEntityFeature.BOOST_IQ
     )
+
+    # DPS mapping corrected to match on-device telemetry
     commands = {
+        # Cleaning mode blob seen on DPS 152 in logs (leave as-is for this model)
         RobovacCommand.MODE: {
             "code": 152,
             "values": ["AggN", "AA==", "AggG", "BBoCCAE=", "AggO"],
         },
+
+        # High-level running/cleaning state bit is on DPS 156 (was 173 before)
         RobovacCommand.STATUS: {
-            "code": 173,
+            "code": 156,
         },
+
+        # Return-to-dock uses DPS 153 on this model.
+        # Most firmwares accept a boolean "press", so no values required.
         RobovacCommand.RETURN_HOME: {
             "code": 153,
-            "values": ["AggB"]
         },
+
+        # Fan speed is DPS 158 and reports strings like "Quiet/Standard/Turbo/Max".
         RobovacCommand.FAN_SPEED: {
-            "code": 154,
-            "values": ["AgkBCgIKAQoDCgEKBAoB"]
+            "code": 158,
+            "values": ["Quiet", "Standard", "Turbo", "Max"],
         },
+
+        # Locate/beep also rides on DPS 153 for this model; keep the token for locate.
         RobovacCommand.LOCATE: {
             "code": 153,
-            "values": ["AggC"]
+            "values": ["AggC"],
         },
+
+        # Battery percentage comes from DPS 161 (not 172 on this unit)
         RobovacCommand.BATTERY: {
-            "code": 172,
+            "code": 161,
         },
+
+        # Error/info blob (unchanged)
         RobovacCommand.ERROR: {
             "code": 169,
         },
