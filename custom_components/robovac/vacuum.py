@@ -553,16 +553,16 @@ class RoboVacEntity(StateVacuumEntity):
             _LOGGER.error("Cannot return to base: vacuum not initialized")
             return
 
-        return_home_code = self._get_dps_code("RETURN_HOME")
-
-        # T2320 uses DPS 153 with base64 token for dock/home
+        # T2320: use MODE (DP 152) base64 token for dock/home
         if (self.model_code or "").startswith("T2320"):
-            await self.vacuum.async_set({return_home_code: "AggB"})
+            mode_code = self._get_dps_code("MODE")
+            await self.vacuum.async_set({mode_code: "AggB"})
             return
 
-        # Fallback for other models
+        # Fallback for other models: legacy RETURN_HOME boolean
+        return_home_code = self._get_dps_code("RETURN_HOME")
         await self.vacuum.async_set({return_home_code: True})
-
+        
     async def async_start(self, **kwargs: Any) -> None:
         """Start cleaning (auto)."""
         if self.vacuum is None:
@@ -593,7 +593,7 @@ class RoboVacEntity(StateVacuumEntity):
         if (self.model_code or "").startswith("T2320"):
             # T2320: pause is DPS 152 with base64 token
             mode_code = self._get_dps_code("MODE")
-            await self.vacuum.async_set({mode_code: "AggG"})
+            await self.vacuum.async_set({mode_code: "AA=="})
             return
 
         # Fallback: START_PAUSE False for other models
@@ -661,7 +661,7 @@ class RoboVacEntity(StateVacuumEntity):
                 await self.vacuum.async_set({mode_code: "auto"})
         elif command == "autoReturn":
             if is_t2320:
-                await self.vacuum.async_set({self._get_dps_code("RETURN_HOME"): "AggB"})
+                await self.vacuum.async_set({mode_code: "AggB"})
             else:
                 auto_return_code = self._get_dps_code("AUTO_RETURN")
                 if self._is_value_true(self.auto_return):
