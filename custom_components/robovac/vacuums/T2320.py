@@ -21,48 +21,34 @@ class T2320(RobovacModelDetails):
         | RoboVacEntityFeature.BOOST_IQ
     )
 
-    # DPS mapping corrected to match on-device telemetry
+    # DPS mapping aligned with on-device telemetry
     commands = {
-        # Cleaning mode blob seen on DPS 152 in logs (leave as-is for this model)
+        # Cleaning mode / command blob on DPS 152 (leave list as-is for this model)
         RobovacCommand.MODE: {
             "code": 152,
             "values": ["AggN", "AA==", "AggG", "BBoCCAE=", "AggO"],
         },
 
-        # High-level running/cleaning state bit is on DPS 156
-        RobovacCommand.STATUS: {
-            "code": 156,
-        },
+        # High-level running/cleaning state bit on DPS 156
+        RobovacCommand.STATUS: {"code": 156},
 
-        # Start/Pause actions happen on DPS 153 on this model
-        RobovacCommand.START_PAUSE: {
-            "code": 153,
-        },
+        # Start/Pause and Return-to-dock happen via DPS 153 on this model
+        RobovacCommand.START_PAUSE: {"code": 153},
+        RobovacCommand.RETURN_HOME: {"code": 153},
 
-        # Return-to-dock uses DPS 153 on this model
-        RobovacCommand.RETURN_HOME: {
-            "code": 153,
-        },
-
-        # Fan speed is DPS 158 and reports strings like "Quiet/Standard/Turbo/Max"
+        # Fan speed is DPS 158 with string values
         RobovacCommand.FAN_SPEED: {
             "code": 158,
             "values": ["Quiet", "Standard", "Turbo", "Max"],
         },
 
-        # Locate/beep also rides on DPS 153 for this model
-        RobovacCommand.LOCATE: {
-            "code": 153,
-            "values": ["AggC"],
-        },
+        # Locate/beep via DPS 153 (payload provided by base command table)
+        RobovacCommand.LOCATE: {"code": 153},
 
-        # Battery percentage comes from DPS 161
-        RobovacCommand.BATTERY: {
-            "code": 161,
-        },
+        # Battery percentage on DPS 161
+        RobovacCommand.BATTERY: {"code": 161},
 
-        # Error/info blob
-        RobovacCommand.ERROR: {
-            "code": 169,
-        },
+        # NOTE: We intentionally do NOT map RobovacCommand.ERROR for T2320.
+        # DPS 169 is a device-info blob, not an error; mapping it to ERROR caused false "error" states.
+        # If a real error DP is identified later for this model, add it here.
     }
