@@ -5,8 +5,8 @@ from .base import RoboVacEntityFeature, RobovacCommand, RobovacModelDetails
 
 class T2277(RobovacModelDetails):
     homeassistant_features = (
-        VacuumEntityFeature.BATTERY
-        | VacuumEntityFeature.CLEAN_SPOT
+        # VacuumEntityFeature.BATTERY removed - now handled by separate battery sensor
+        VacuumEntityFeature.CLEAN_SPOT
         | VacuumEntityFeature.FAN_SPEED
         | VacuumEntityFeature.LOCATE
         | VacuumEntityFeature.PAUSE
