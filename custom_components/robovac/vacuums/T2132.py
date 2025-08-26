@@ -27,11 +27,22 @@ class T2132(RobovacModelDetails):
         },
         RobovacCommand.DIRECTION: {
             "code": 3,
-            "values": ["forward", "back", "left", "right"],
+            "values": {
+                "forward": "Forward",
+                "back": "Back",
+                "left": "Left",
+                "right": "Right",
+            },
         },
         RobovacCommand.MODE: {
             "code": 5,
-            "values": ["auto", "SmallRoom", "Spot", "Edge", "Nosweep"],
+            "values": {
+                "auto": "Auto",
+                "small_room": "SmallRoom",
+                "spot": "Spot",
+                "edge": "Edge",
+                "nosweep": "Nosweep",
+            },
         },
         RobovacCommand.STATUS: {
             "code": 15,
@@ -41,7 +52,12 @@ class T2132(RobovacModelDetails):
         },
         RobovacCommand.FAN_SPEED: {
             "code": 102,
-            "values": ["No_suction", "Standard", "Boost_IQ", "Max"],
+            "values": {
+                "no_suction": "No_suction",
+                "standard": "Standard",
+                "max": "Max",
+                "boost_iq": "Boost_IQ",
+            },
         },
         RobovacCommand.LOCATE: {
             "code": 103,

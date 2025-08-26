@@ -7,6 +7,15 @@ tasks:
     cmds:
       - task -l
 
+  all:
+    desc: Run all tasks
+    cmds:
+      - task install-dev
+      - task test
+      - task type-check
+      - task lint
+      - task markdownlint
+
   test:
     desc: Run tests with pytest
     cmds:

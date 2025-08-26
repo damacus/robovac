@@ -35,11 +35,22 @@ class T2181(RobovacModelDetails):
         },
         RobovacCommand.DIRECTION: {
             "code": 3,
-            "values": ["forward", "back", "left", "right"],
+            "values": {
+                "forward": "Forward",
+                "back": "Back",
+                "left": "Left",
+                "right": "Right",
+            },
         },
         RobovacCommand.MODE: {
             "code": 5,
-            "values": ["auto", "SmallRoom", "Spot", "Edge", "Nosweep"],
+            "values": {
+                "auto": "Auto",
+                "small_room": "SmallRoom",
+                "spot": "Spot",
+                "edge": "Edge",
+                "nosweep": "Nosweep",
+            },
         },
         RobovacCommand.STATUS: {
             "code": 15,
@@ -49,7 +60,11 @@ class T2181(RobovacModelDetails):
         },
         RobovacCommand.FAN_SPEED: {
             "code": 102,
-            "values": ["Quiet", "Turbo", "Max"],
+            "values": {
+                "quiet": "Quiet",
+                "turbo": "Turbo",
+                "max": "Max",
+            },
         },
         RobovacCommand.LOCATE: {
             "code": 103,

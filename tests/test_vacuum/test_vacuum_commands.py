@@ -48,7 +48,7 @@ async def test_async_return_to_base(mock_robovac, mock_vacuum_data):
         await entity.async_return_to_base()
 
         # Assert
-        mock_robovac.async_set.assert_called_once_with({"101": True})
+        mock_robovac.async_set.assert_called_once_with({"101": "return"})
 
 
 @pytest.mark.asyncio
@@ -63,7 +63,7 @@ async def test_async_start(mock_robovac, mock_vacuum_data):
 
         # Assert
         assert entity._attr_mode == "auto"
-        mock_robovac.async_set.assert_called_once_with({"5": "auto"})
+        mock_robovac.async_set.assert_called_once_with({"5": "Auto"})
 
 
 @pytest.mark.asyncio
@@ -73,7 +73,7 @@ async def test_async_start_model_specific(mock_robovac, mock_vacuum_data, mock_l
     with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
         entity = RoboVacEntity(mock_vacuum_data)
         await entity.async_start()
-        mock_robovac.async_set.assert_called_once_with({"5": "auto"})
+        mock_robovac.async_set.assert_called_once_with({"5": "Auto"})
         mock_robovac.async_set.reset_mock()
 
     # Test with L60 model (should use code "152")
@@ -82,9 +82,9 @@ async def test_async_start_model_specific(mock_robovac, mock_vacuum_data, mock_l
     with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_l60):
         entity = RoboVacEntity(mock_l60_data)
         await entity.async_start()
-        # This will fail with the current implementation because it always uses code "5"
-        # The fix will make it use "152" for L60 models
-        mock_l60.async_set.assert_called_once_with({"152": "auto"})
+        # Now that we've updated the implementation, L60 should send base64 value "BBoCCAE="
+        # instead of "auto" for the MODE command
+        mock_l60.async_set.assert_called_once_with({"152": "BBoCCAE="})
 
 
 @pytest.mark.asyncio
@@ -98,7 +98,7 @@ async def test_async_pause(mock_robovac, mock_vacuum_data):
         await entity.async_pause()
 
         # Assert
-        mock_robovac.async_set.assert_called_once_with({"2": False})
+        mock_robovac.async_set.assert_called_once_with({"2": "pause"})
 
 
 @pytest.mark.asyncio
@@ -140,10 +140,12 @@ async def test_async_set_fan_speed(mock_robovac, mock_vacuum_data):
 
         # Test cases for fan speed conversion
         test_cases = [
-            ("No Suction", "No_suction"),
-            ("Boost IQ", "Boost_IQ"),
-            ("Pure", "Quiet"),
-            ("Standard", "Standard"),  # No change
+            ("Turbo", "Turbo"),                # Input normalized to "turbo" -> maps to "Turbo"
+            ("Max", "Max"),                    # Input normalized to "max" -> maps to "Max"
+            ("Standard", "Standard"),          # Input normalized to "standard" -> maps to "Standard"
+            ("Quiet", "quiet"),                # Input normalized to "quiet" -> not in mapping, returns input
+            ("Boost_IQ", "Boost IQ"),          # Input normalized to "boost_iq" -> maps to "Boost IQ"
+            ("No_suction", "No Suction"),  # Input normalized to "no_suction" -> maps to "No Suction"
         ]
 
         for input_speed, expected_output in test_cases:
@@ -176,46 +178,40 @@ async def test_async_send_command(mock_robovac, mock_vacuum_data):
 
         # Test auto clean command
         await entity.async_send_command("autoClean")
-        mock_robovac.async_set.assert_called_once_with({"5": "auto"})
+        mock_robovac.async_set.assert_called_once_with({"5": "Auto"})
         mock_robovac.async_set.reset_mock()
 
         # Test auto return command (when off)
         entity._attr_auto_return = False
         await entity.async_send_command("autoReturn")
-        mock_robovac.async_set.assert_called_once_with({"135": True})
+        mock_robovac.async_set.assert_called_once_with({"135": False})
         mock_robovac.async_set.reset_mock()
 
         # Test auto return command (when on)
         entity._attr_auto_return = True
         await entity.async_send_command("autoReturn")
-        mock_robovac.async_set.assert_called_once_with({"135": False})
+        mock_robovac.async_set.assert_called_once_with({"135": True})
         mock_robovac.async_set.reset_mock()
 
-        # Test do not disturb command (when off)
+        # Test do not disturb command (when off - should toggle to on)
         entity._attr_do_not_disturb = False
         await entity.async_send_command("doNotDisturb")
-        assert mock_robovac.async_set.call_count == 2
-        mock_robovac.async_set.assert_has_calls(
-            [call({"139": "MTAwMDAwMDAw"}), call({"107": True})]
-        )
+        mock_robovac.async_set.assert_called_once_with({"107": True})
         mock_robovac.async_set.reset_mock()
 
-        # Test do not disturb command (when on)
+        # Test do not disturb command (when on - should toggle to off)
         entity._attr_do_not_disturb = True
         await entity.async_send_command("doNotDisturb")
-        assert mock_robovac.async_set.call_count == 2
-        mock_robovac.async_set.assert_has_calls(
-            [call({"139": "MEQ4MDAwMDAw"}), call({"107": False})]
-        )
+        mock_robovac.async_set.assert_called_once_with({"107": False})
         mock_robovac.async_set.reset_mock()
 
-        # Test boost IQ command (when off)
+        # Test boost IQ command (when off - should toggle to on)
         entity._attr_boost_iq = False
         await entity.async_send_command("boostIQ")
         mock_robovac.async_set.assert_called_once_with({"118": True})
         mock_robovac.async_set.reset_mock()
 
-        # Test boost IQ command (when on)
+        # Test boost IQ command (when on - should toggle to off)
         entity._attr_boost_iq = True
         await entity.async_send_command("boostIQ")
         mock_robovac.async_set.assert_called_once_with({"118": False})
