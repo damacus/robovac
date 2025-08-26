@@ -23,8 +23,8 @@ class T2278(RobovacModelDetails):
         RobovacCommand.MODE: {
             "code": 152,
             "values": {
-                "small_room": "AggN",
-                "spot": "AA==",
+                "small_room": "AA==",
+                "pause": "AggN",
                 "edge": "AggG",
                 "auto": "BBoCCAE=",
                 "nosweep": "AggO",
