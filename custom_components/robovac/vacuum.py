@@ -24,7 +24,7 @@ from enum import StrEnum
 import json
 import logging
 import time
-from typing import Any, Optional, Dict
+from typing import Any
 
 from homeassistant.components.vacuum import (
     StateVacuumEntity,
@@ -87,11 +87,15 @@ async def async_setup_entry(
 
 
 class RoboVacEntity(StateVacuumEntity):
-    """Eufy Robovac vacuum entity.
+    """Home Assistant vacuum entity for Tuya-based robotic vacuum cleaners.
 
-    This class represents a Eufy Robovac vacuum cleaner in Home Assistant.
-    It handles the communication with the vacuum via the Tuya local API and
-    provides the necessary functionality to control and monitor the vacuum.
+    This class implements the Home Assistant VacuumEntity interface for controlling
+    and monitoring Tuya-based robotic vacuum cleaners. It provides support for
+    standard vacuum operations like start/stop/pause, cleaning modes, fan speeds,
+    and status reporting.
+
+    The entity automatically maps device-specific values to Home Assistant standards
+    and handles model-specific features and command mappings.
     """
 
     _attr_should_poll = True
@@ -107,7 +111,7 @@ class RoboVacEntity(StateVacuumEntity):
     _attr_consumables: str | None = None
     _attr_mode: str | None = None
     _attr_robovac_supported: int | None = None
-    _attr_activity_mapping: Dict[str, VacuumActivity] | None = None
+    _attr_activity_mapping: dict[str, VacuumActivity] | None = None
     _attr_error_code: int | str | None = None
     _attr_tuya_state: int | str | None = None
 
@@ -117,7 +121,7 @@ class RoboVacEntity(StateVacuumEntity):
         return self._attr_robovac_supported
 
     @property
-    def activity_mapping(self) -> Dict[str, VacuumActivity] | None:
+    def activity_mapping(self) -> dict[str, VacuumActivity] | None:
         """Return the mapping of statuses to Home Assistant VacuumActivity."""
         return self._attr_activity_mapping
 
@@ -217,6 +221,26 @@ class RoboVacEntity(StateVacuumEntity):
         if isinstance(value, str):
             return value == "True" or value.lower() == "true"
         return False
+
+    def _get_mode_command_data(self, mode: str) -> dict[str, str] | None:
+        """Helper method to get mode command data for the vacuum.
+
+        Converts a human-readable cleaning mode to the appropriate DPS command
+        data structure for sending to the vacuum device.
+
+        Args:
+            mode: The cleaning mode to set (e.g., "auto", "spot", "edge", "small_room")
+
+        Returns:
+            dict[str, str] | None: Dictionary with DPS code as key and model-specific
+                                  command value as value, or None if vacuum not initialized
+        """
+        if self.vacuum is None:
+            return None
+
+        return {
+            self._get_dps_code("MODE"): self.vacuum.getRoboVacCommandValue(RobovacCommand.MODE, mode)
+        }
 
     @property
     def activity(self) -> VacuumActivity | None:
@@ -324,14 +348,19 @@ class RoboVacEntity(StateVacuumEntity):
         return data
 
     def __init__(self, item: dict[str, Any]) -> None:
-        """Initialize Eufy Robovac entity.
+        """Initialize the RoboVac vacuum entity.
 
-        This method initializes the vacuum entity with the configuration provided
-        and establishes a connection to the physical device via the Tuya local API.
+        Establishes connection to the physical vacuum device via Tuya local API
+        and configures the Home Assistant entity with model-specific features.
 
         Args:
-            item: Dictionary containing vacuum configuration including name, ID,
-                  model, IP address, access token, and other required parameters.
+            item: Configuration dictionary containing vacuum connection details:
+                  - id: Unique identifier for the vacuum
+                  - name: Display name for the vacuum
+                  - model: Model code (e.g., "T2080", "L60")
+                  - ip_address: Local IP address of the vacuum
+                  - access_token: Tuya access token for authentication
+                  - device_id: Tuya device identifier
         """
         super().__init__()
 
@@ -342,7 +371,7 @@ class RoboVacEntity(StateVacuumEntity):
         self._attr_model_code = item[CONF_MODEL]
         self._attr_ip_address = item[CONF_IP_ADDRESS]
         self._attr_access_token = item[CONF_ACCESS_TOKEN]
-        self.vacuum: Optional[RoboVac] = None
+        self.vacuum: RoboVac | None = None
         self.update_failures = 0
         self.tuyastatus: dict[str, Any] | None = None
 
@@ -811,18 +840,17 @@ class RoboVacEntity(StateVacuumEntity):
             _LOGGER.error("Cannot send command: vacuum not initialized")
             return
 
-        if command == "edgeClean":
-            await self.vacuum.async_set({
-                self._get_dps_code("MODE"): self.vacuum.getRoboVacCommandValue(RobovacCommand.MODE, "edge")
-            })
-        elif command == "smallRoomClean":
-            await self.vacuum.async_set({
-                self._get_dps_code("MODE"): self.vacuum.getRoboVacCommandValue(RobovacCommand.MODE, "small_room")
-            })
-        elif command == "autoClean":
-            await self.vacuum.async_set({
-                self._get_dps_code("MODE"): self.vacuum.getRoboVacCommandValue(RobovacCommand.MODE, "auto")
-            })
+        # Mode commands
+        mode_commands = {
+            "edgeClean": "edge",
+            "smallRoomClean": "small_room",
+            "autoClean": "auto"
+        }
+
+        if command in mode_commands:
+            command_data = self._get_mode_command_data(mode_commands[command])
+            if command_data:
+                await self.vacuum.async_set(command_data)
         elif command == "autoReturn":
             await self.vacuum.async_set({
                 self._get_dps_code("AUTO_RETURN"): self._is_value_true(self.auto_return)
