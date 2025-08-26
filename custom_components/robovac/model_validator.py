@@ -15,7 +15,7 @@ MODEL_SERIES = {
         "features": ["Basic cleaning", "Remote control", "Auto-return"],
     },
     "G": {
-        "name": "G Series", 
+        "name": "G Series",
         "description": "Mid-range models with enhanced navigation",
         "examples": ["T2250", "T2251", "T2252", "T2253", "T2254", "T2255"],
         "features": ["BoostIQ", "Drop-sensing", "Boundary strips"],
@@ -37,7 +37,7 @@ MODEL_SERIES = {
 # Common model name mappings
 MODEL_NAME_MAPPINGS = {
     "T2103": "RoboVac 11S",
-    "T2117": "RoboVac 15C", 
+    "T2117": "RoboVac 15C",
     "T2118": "RoboVac 15C Max",
     "T2119": "RoboVac 12",
     "T2120": "RoboVac 25C",
@@ -49,7 +49,7 @@ MODEL_NAME_MAPPINGS = {
     "T2254": "RoboVac G30",
     "T2255": "RoboVac G30 Edge",
     "T2267": "RoboVac L60",
-    "T2268": "RoboVac L60 Hybrid", 
+    "T2268": "RoboVac L60 Hybrid",
     "T2275": "RoboVac L50 SES",
     "T2276": "RoboVac X8 Pro SES",
     "T2277": "RoboVac L60 SES",
@@ -60,7 +60,7 @@ MODEL_NAME_MAPPINGS = {
 
 def get_supported_models() -> List[str]:
     """Get list of all supported model codes.
-    
+
     Returns:
         List of supported model codes (e.g., ['T2103', 'T2117', ...])
     """
@@ -69,10 +69,10 @@ def get_supported_models() -> List[str]:
 
 def is_model_supported(model_code: str) -> bool:
     """Check if a model code is supported.
-    
+
     Args:
         model_code: The model code to check (e.g., 'T2277')
-        
+
     Returns:
         True if the model is supported, False otherwise
     """
@@ -81,19 +81,19 @@ def is_model_supported(model_code: str) -> bool:
 
 def get_model_info(model_code: str) -> Optional[Dict[str, str]]:
     """Get detailed information about a model.
-    
+
     Args:
         model_code: The model code to look up
-        
+
     Returns:
         Dictionary with model information or None if not found
     """
     if not is_model_supported(model_code):
         return None
-        
+
     series = get_model_series(model_code)
     series_info = MODEL_SERIES.get(series, {})
-    
+
     return {
         "model_code": model_code,
         "friendly_name": MODEL_NAME_MAPPINGS.get(model_code, f"RoboVac {model_code}"),
@@ -107,58 +107,58 @@ def get_model_info(model_code: str) -> Optional[Dict[str, str]]:
 
 def get_model_series(model_code: str) -> str:
     """Determine the series (C, G, L, X) for a given model code.
-    
+
     Args:
         model_code: The model code to analyze
-        
+
     Returns:
         The series letter or 'Unknown' if cannot be determined
     """
     # Extract numeric part for pattern matching
     if len(model_code) >= 5 and model_code.startswith('T'):
         numeric_part = model_code[1:]
-        
+
         # C Series: T2103-T2130 range
         if numeric_part.startswith('21'):
             return "C"
-        # G Series: T2250-T2259 range  
+        # G Series: T2250-T2259 range
         elif numeric_part.startswith('225'):
             return "G"
         # L Series: T2260-T2279 range (with some exceptions)
         elif numeric_part.startswith('226') or numeric_part.startswith('227'):
             return "L"
         # X Series: T2280+ and some specific models
-        elif (numeric_part.startswith('228') or 
-              numeric_part.startswith('229') or 
-              numeric_part.startswith('23') or
-              model_code in ['T2276', 'T2278']):  # Special cases
+        elif (numeric_part.startswith('228')
+              or numeric_part.startswith('229')
+              or numeric_part.startswith('23')
+              or model_code in ['T2276', 'T2278']):  # Special cases
             return "X"
-    
+
     return "Unknown"
 
 
 def find_similar_models(model_code: str) -> List[Tuple[str, str]]:
     """Find similar supported models for an unsupported model.
-    
+
     Args:
         model_code: The unsupported model code
-        
+
     Returns:
         List of tuples (model_code, reason) for similar models
     """
     similar_models = []
-    
+
     if not model_code.startswith('T') or len(model_code) < 5:
         return similar_models
-    
+
     # Find models in the same series
     target_series = get_model_series(model_code)
     if target_series != "Unknown":
-        series_models = [m for m in get_supported_models() 
-                        if get_model_series(m) == target_series]
+        series_models = [m for m in get_supported_models()
+                         if get_model_series(m) == target_series]
         for model in series_models[:3]:  # Limit to 3 suggestions
             similar_models.append((model, f"Same {target_series} series"))
-    
+
     # Find numerically close models
     try:
         target_num = int(model_code[1:])
@@ -171,16 +171,16 @@ def find_similar_models(model_code: str) -> List[Tuple[str, str]]:
                     break
     except ValueError:
         pass
-    
+
     return similar_models
 
 
 def validate_and_suggest(model_code: str) -> Dict[str, any]:
     """Validate a model and provide suggestions if unsupported.
-    
+
     Args:
         model_code: The model code to validate
-        
+
     Returns:
         Dictionary with validation results and suggestions
     """
@@ -191,14 +191,14 @@ def validate_and_suggest(model_code: str) -> Dict[str, any]:
         "suggestions": [],
         "message": "",
     }
-    
+
     if not model_code:
         result["message"] = "Please provide a model code (e.g., T2277)"
         return result
-    
+
     # Clean up the input
     model_code = model_code.strip().upper()
-    
+
     if is_model_supported(model_code):
         result["is_supported"] = True
         result["model_info"] = get_model_info(model_code)
@@ -206,7 +206,7 @@ def validate_and_suggest(model_code: str) -> Dict[str, any]:
     else:
         similar_models = find_similar_models(model_code)
         result["suggestions"] = similar_models
-        
+
         if similar_models:
             result["message"] = (
                 f"❌ Model {model_code} is not supported yet. "
@@ -217,16 +217,16 @@ def validate_and_suggest(model_code: str) -> Dict[str, any]:
                 f"❌ Model {model_code} is not supported yet. "
                 f"Please create an issue on GitHub to request support."
             )
-    
+
     return result
 
 
 def get_troubleshooting_info(model_code: str) -> Dict[str, str]:
     """Get troubleshooting information for a specific model.
-    
+
     Args:
         model_code: The model code to get troubleshooting info for
-        
+
     Returns:
         Dictionary with troubleshooting steps and common issues
     """
