@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "robovac"
-version = "1.3.1"
+version = "1.3.2"
 description = "Eufy RoboVac integration for Home Assistant"
 readme = "README.md"
 requires-python = ">=3.13.0"

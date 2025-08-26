@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.2](https://github.com/damacus/robovac/compare/v1.3.1...v1.3.2) (2025-08-26)
+
+
+### Bug Fixes
+
+* correct autoReturn toggle logic and mode mappings ([#180](https://github.com/damacus/robovac/issues/180)) ([6dfd10d](https://github.com/damacus/robovac/commit/6dfd10d65951a3f4285d899718cbe667001c7f25))
+* Update how codes are looked up ([#149](https://github.com/damacus/robovac/issues/149)) ([e06aed0](https://github.com/damacus/robovac/commit/e06aed02a02df3dd2075aaee393cf18593250d20))
+
 ## [1.3.1](https://github.com/damacus/robovac/compare/v1.3.0...v1.3.1) (2025-07-05)
 
 
