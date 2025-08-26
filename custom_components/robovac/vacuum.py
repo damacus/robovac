@@ -852,8 +852,10 @@ class RoboVacEntity(StateVacuumEntity):
             if command_data:
                 await self.vacuum.async_set(command_data)
         elif command == "autoReturn":
+            # Toggle the auto return setting
+            new_value = not self._is_value_true(self.auto_return)
             await self.vacuum.async_set({
-                self._get_dps_code("AUTO_RETURN"): self._is_value_true(self.auto_return)
+                self._get_dps_code("AUTO_RETURN"): new_value
             })
         elif command == "doNotDisturb":
             # Toggle the do not disturb setting

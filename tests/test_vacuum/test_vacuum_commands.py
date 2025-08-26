@@ -181,16 +181,16 @@ async def test_async_send_command(mock_robovac, mock_vacuum_data):
         mock_robovac.async_set.assert_called_once_with({"5": "Auto"})
         mock_robovac.async_set.reset_mock()
 
-        # Test auto return command (when off)
+        # Test auto return command (when off - should toggle to on)
         entity._attr_auto_return = False
         await entity.async_send_command("autoReturn")
-        mock_robovac.async_set.assert_called_once_with({"135": False})
+        mock_robovac.async_set.assert_called_once_with({"135": True})
         mock_robovac.async_set.reset_mock()
 
-        # Test auto return command (when on)
+        # Test auto return command (when on - should toggle to off)
         entity._attr_auto_return = True
         await entity.async_send_command("autoReturn")
-        mock_robovac.async_set.assert_called_once_with({"135": True})
+        mock_robovac.async_set.assert_called_once_with({"135": False})
         mock_robovac.async_set.reset_mock()
 
         # Test do not disturb command (when off - should toggle to on)
