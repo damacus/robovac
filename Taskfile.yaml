@@ -42,7 +42,6 @@ tasks:
     desc: Lint with flake8
     cmds:
       - uv run flake8 custom_components tests
-      - task: markdownlint
 
   markdownlint:
     desc: Lint with markdownlint
