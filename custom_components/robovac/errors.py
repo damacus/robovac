@@ -2,7 +2,7 @@ ERROR_MESSAGES = {
     "IP_ADDRESS": "IP Address not set - Please configure the vacuum's IP address in the integration settings",
     "CONNECTION_FAILED": "Connection to the vacuum failed - Check if the vacuum is online and the IP address is correct",
     "UNSUPPORTED_MODEL": "This model is not supported - Please check the documentation or create an issue on GitHub",
-    "INITIALIZATION_FAILED": "Failed to initialize vacuum connection - Check network connectivity and vacuum status", 
+    "INITIALIZATION_FAILED": "Failed to initialize vacuum connection - Check network connectivity and vacuum status",
     "no_error": "None",
     1: "Front bumper stuck",
     2: "Wheel stuck",
@@ -61,7 +61,7 @@ def getErrorMessageWithContext(code: str | int, model_code: str = "") -> str:
         Enhanced error message with troubleshooting context.
     """
     base_message = ERROR_MESSAGES.get(code, str(code))
-    
+
     # Add model-specific context for common issues
     if code in [1, 2, 3, 4, 5, 6]:  # Physical obstruction errors
         context = " - Please check and clear any obstructions, then restart the vacuum"
@@ -75,5 +75,5 @@ def getErrorMessageWithContext(code: str | int, model_code: str = "") -> str:
         context = f" - Model {model_code} needs to be added to the integration"
     else:
         context = ""
-    
+
     return base_message + context
