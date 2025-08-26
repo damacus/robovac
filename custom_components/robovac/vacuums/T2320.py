@@ -20,14 +20,21 @@ class T2320(RobovacModelDetails):
         | RoboVacEntityFeature.BOOST_IQ
     )
     commands = {
+        RobovacCommand.START_PAUSE: {
+            "code": 2,
+            "values": {
+                "start": True,
+                "pause": False
+            },
+        },
         RobovacCommand.MODE: {
             "code": 152,
             "values": {
-                "auto": "BBoCCAE=",
-                "return": "AggG",
-                "pause": "AggN",
-                "small_room": "AA==",
-                "single_room": "AggO"
+                "auto": "auto",
+                "return": "return",
+                "pause": "pause",
+                "small_room": "small_room",
+                "single_room": "single_room"
             },
         },
         RobovacCommand.STATUS: {
@@ -36,19 +43,22 @@ class T2320(RobovacModelDetails):
         RobovacCommand.RETURN_HOME: {
             "code": 153,
             "values": {
-                "return_home": "AggB"
+                "return_home": True
             }
         },
         RobovacCommand.FAN_SPEED: {
             "code": 154,
             "values": {
-                "fan_speed": "AgkBCgIKAQoDCgEKBAoB"
-            }
+                "Standard": "standard",
+                "Boost IQ": "boost_iq",
+                "Max": "max",
+                "Quiet": "Quiet",
+            },
         },
         RobovacCommand.LOCATE: {
             "code": 153,
             "values": {
-                "locate": "AggC"
+                "locate": True
             }
         },
         RobovacCommand.BATTERY: {
