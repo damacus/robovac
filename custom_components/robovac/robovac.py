@@ -149,7 +149,9 @@ class RoboVac(TuyaDevice):
             The model-specific value for the command (e.g., "BBoCCAE=" for L60 "auto" mode)
         """
         try:
-            values = self._get_command_values(RobovacCommand(command_name))
+            # Check if command_name is already a RobovacCommand enum
+            cmd = command_name if isinstance(command_name, RobovacCommand) else RobovacCommand(command_name)
+            values = self._get_command_values(cmd)
 
             if values is not None and value in values:
                 return str(values[value])
@@ -171,10 +173,14 @@ class RoboVac(TuyaDevice):
             The human-readable value (e.g., "auto")
         """
         try:
-            values = self._get_command_values(RobovacCommand(command_name))
+            # Check if command_name is already a RobovacCommand enum
+            cmd = command_name if isinstance(command_name, RobovacCommand) else RobovacCommand(command_name)
+            values = self._get_command_values(cmd)
 
-            if values is not None and value in values:
-                return str(values[value])
+            if values is not None:
+                # Direct lookup: the input value should be a key in the values dict
+                if str(value) in values:
+                    return str(values[value])
 
         except (ValueError, KeyError):
             pass

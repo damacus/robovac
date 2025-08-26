@@ -248,12 +248,19 @@ class RoboVacEntity(StateVacuumEntity):
             # Use the activity mapping from the model details
             activity = self.activity_mapping.get(str(self._attr_tuya_state))
 
-            _LOGGER.debug(
-                "Used activity mapping, changing status %s to activity %s",
-                self._attr_tuya_state,
-                activity
-            )
-            return activity
+            if activity is not None:
+                _LOGGER.debug(
+                    "Used activity mapping, changing status %s to activity %s",
+                    self._attr_tuya_state,
+                    activity
+                )
+                return activity
+            else:
+                _LOGGER.debug(
+                    "Activity mapping lookup failed for status %s - no mapping found",
+                    self._attr_tuya_state
+                )
+                return None
         elif self._attr_tuya_state == "Charging" or self._attr_tuya_state == "completed":
             return VacuumActivity.DOCKED
         elif self._attr_tuya_state == "Recharge":
@@ -616,7 +623,6 @@ class RoboVacEntity(StateVacuumEntity):
             )
         else:
             self._attr_mode = ""
-        # self._attr_mode = mode if mode is not None else ""
 
         # Update fan speed attribute
         self._attr_fan_speed = fan_speed if fan_speed is not None else ""
@@ -687,7 +693,7 @@ class RoboVacEntity(StateVacuumEntity):
         Args:
             **kwargs: Additional arguments passed from Home Assistant.
         """
-        _LOGGER.info("Locate Pressed")
+        _LOGGER.debug("Locate Pressed")
         if self.vacuum is None:
             _LOGGER.error("Cannot locate vacuum: vacuum not initialized")
             return
@@ -704,7 +710,7 @@ class RoboVacEntity(StateVacuumEntity):
         Args:
             **kwargs: Additional arguments passed from Home Assistant.
         """
-        _LOGGER.info("Return home Pressed")
+        _LOGGER.debug("Return home Pressed")
         if self.vacuum is None:
             _LOGGER.error("Cannot return to base: vacuum not initialized")
             return
@@ -756,7 +762,7 @@ class RoboVacEntity(StateVacuumEntity):
         Args:
             **kwargs: Additional arguments passed from Home Assistant.
         """
-        _LOGGER.info("Spot Clean Pressed")
+        _LOGGER.debug("Spot Clean Pressed")
         if self.vacuum is None:
             _LOGGER.error("Cannot clean spot: vacuum not initialized")
             return
@@ -772,17 +778,14 @@ class RoboVacEntity(StateVacuumEntity):
             fan_speed: The fan speed to set.
             **kwargs: Additional arguments passed from Home Assistant.
         """
-        _LOGGER.info("Fan Speed Selected")
-
-        _LOGGER.info("Fan Speed: %s", RobovacCommand.FAN_SPEED)
+        _LOGGER.debug("Fan Speed Selected: %s", fan_speed)
         if self.vacuum is None:
             _LOGGER.error("Cannot set fan speed: vacuum not initialized")
             return
 
         normalized_fan_speed = fan_speed.lower().replace(" ", "_")
 
-        _LOGGER.info("Normalized Fan Speed: %s", normalized_fan_speed)
-        _LOGGER.info("Fan Speed: %s", RobovacCommand.FAN_SPEED)
+        _LOGGER.debug("Normalized Fan Speed: %s", normalized_fan_speed)
 
         await self.vacuum.async_set({
             self._get_dps_code("FAN_SPEED"): self.vacuum.getRoboVacCommandValue(
@@ -803,7 +806,7 @@ class RoboVacEntity(StateVacuumEntity):
             params: Optional parameters for the command.
             **kwargs: Additional arguments passed from Home Assistant.
         """
-        _LOGGER.info("Send Command %s Pressed", command)
+        _LOGGER.debug("Send Command %s Pressed", command)
         if self.vacuum is None:
             _LOGGER.error("Cannot send command: vacuum not initialized")
             return
@@ -825,20 +828,16 @@ class RoboVacEntity(StateVacuumEntity):
                 self._get_dps_code("AUTO_RETURN"): self._is_value_true(self.auto_return)
             })
         elif command == "doNotDisturb":
+            # Toggle the do not disturb setting
+            new_value = not self._is_value_true(self.do_not_disturb)
             await self.vacuum.async_set({
-                self._get_dps_code("DO_NOT_DISTURB"): self._is_value_true(self.do_not_disturb)
+                self._get_dps_code("DO_NOT_DISTURB"): new_value
             })
-            if self._is_value_true(self.do_not_disturb):
-                await self.vacuum.async_set({
-                    self._get_dps_code("DO_NOT_DISTURB"): False
-                })
-            else:
-                await self.vacuum.async_set({
-                    self._get_dps_code("DO_NOT_DISTURB"): True
-                })
         elif command == "boostIQ":
+            # Toggle the boost IQ setting
+            new_value = not self._is_value_true(self.boost_iq)
             await self.vacuum.async_set({
-                self._get_dps_code("BOOST_IQ"): self._is_value_true(self.boost_iq)
+                self._get_dps_code("BOOST_IQ"): new_value
             })
         elif command == "roomClean" and params is not None and isinstance(params, dict):
             room_ids = params.get("roomIds", [1])
@@ -851,7 +850,7 @@ class RoboVacEntity(StateVacuumEntity):
             }
             json_str = json.dumps(method_call, separators=(",", ":"))
             base64_str = base64.b64encode(json_str.encode("utf8")).decode("utf8")
-            _LOGGER.info("roomClean call %s", json_str)
+            _LOGGER.debug("roomClean call %s", json_str)
             await self.vacuum.async_set({TuyaCodes.ROOM_CLEAN: base64_str})
 
     async def async_will_remove_from_hass(self) -> None:
