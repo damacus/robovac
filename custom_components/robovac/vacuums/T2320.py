@@ -1,14 +1,9 @@
 """Eufy Robot Vacuum and Mop X9 Pro with Auto-Clean Station (T2320)"""
-
 from homeassistant.components.vacuum import VacuumEntityFeature
 from .base import RoboVacEntityFeature, RobovacCommand, RobovacModelDetails
 
 
 class T2320(RobovacModelDetails):
-    # This model exposes the full set of basic controls: start, pause, return home, stop, locate,
-    # fan speed and battery state.  In Home Assistant the "stop" (square) action is mapped to
-    # return-to-base, the "pause" (two bars) action pauses cleaning in place, and the "play"
-    # (triangle) action starts an auto clean.
     homeassistant_features = (
         VacuumEntityFeature.BATTERY
         | VacuumEntityFeature.FAN_SPEED
@@ -20,55 +15,71 @@ class T2320(RobovacModelDetails):
         | VacuumEntityFeature.STATE
         | VacuumEntityFeature.STOP
     )
-
-    # Additional vacuum-specific features (Do Not Disturb, Boost IQ)
     robovac_features = (
         RoboVacEntityFeature.DO_NOT_DISTURB
         | RoboVacEntityFeature.BOOST_IQ
     )
-
-    # DPS mapping aligned with the X9 Pro’s on-device protocol.
-    # DP 152 carries a small binary token that tells the robot what to do:
-    #   - "AggG": start auto clean (play/triangle)
-    #   - "AA==": pause and stop in place (pause/two bars)
-    #   - "AggN": return to dock (stop/square)
-    #   - "AggO": perform a spot clean
-    #   - other tokens ("AggB", "BBoCCAE=") are retained for completeness but unused here.
+    # Align DP codes/values with field logs (similar to T2267/L60 layout)
     commands = {
+        # Pause is applied via MODE DP (152) on this model
+        RobovacCommand.START_PAUSE: {
+            "code": 152,
+            "values": {
+                "pause": "AggN",
+            },
+        },
+        # Mode selection is DP 152 using Tuya base64 tokens
         RobovacCommand.MODE: {
             "code": 152,
-            "values": [
-                "AggG",      # auto clean
-                "AA==",      # pause
-                "AggN",      # return home
-                "AggO",      # spot clean
-                "AggB",      # reserved/unused
-                "BBoCCAE=",  # reserved/unused
-            ],
+            "values": {
+                # Bidirectional mapping: human -> token and token -> human
+                # human -> token (for sending commands)
+                "auto": "BBoCCAE=",
+                "pause": "AggN",
+                "spot": "AA==",
+                "return": "AggG",
+                "nosweep": "AggO",
+                # token -> human (for decoding DPS -> readable mode)
+                "BBoCCAE=": "auto",
+                "AggN": "pause",
+                "AA==": "spot",
+                "AggG": "return",
+                "AggO": "nosweep",
+            },
         },
-
-        # High-level running/cleaning state bit (True/False) on DP 156.
-        RobovacCommand.STATUS: {"code": 156},
-
-        # Start/Pause and Return-to-dock both use DP 152 on this model.
-        # We provide these mappings so that any fallback logic in the integration doesn’t
-        # mistakenly try to use DP 153.
-        RobovacCommand.START_PAUSE: {"code": 152},
-        RobovacCommand.RETURN_HOME: {"code": 152},
-
-        # Fan speed is DP 158 with string values.
+        # Status reports via DP 153 (base64-encoded status payloads)
+        RobovacCommand.STATUS: {
+            "code": 153,
+        },
+        # Return home is triggered via MODE DP (152) on this model
+        RobovacCommand.RETURN_HOME: {
+            "code": 152,
+            "values": {
+                "return": "AggG",
+            },
+        },
+        # Fan speed is DP 158 with human-readable values
         RobovacCommand.FAN_SPEED: {
             "code": 158,
-            "values": ["Quiet", "Standard", "Turbo", "Max"],
+            "values": {
+                "quiet": "Quiet",
+                "standard": "Standard",
+                "turbo": "Turbo",
+                "max": "Max",
+            },
         },
-
-        # Locate/beep uses DP 153 with a base64 token.
-        RobovacCommand.LOCATE: {"code": 153},
-
-        # Battery percentage on DP 161.
-        RobovacCommand.BATTERY: {"code": 161},
-
-        # NOTE: We intentionally do NOT map RobovacCommand.ERROR for T2320.
-        # DP 169 is a device-info blob, not an error; mapping it to ERROR caused false "error"
-        # states.  If a real error DP is identified later for this model, add it here.
+        # Locate/beep is DP 160
+        RobovacCommand.LOCATE: {
+            "code": 160,
+        },
+        # Battery level is DP 163
+        RobovacCommand.BATTERY: {
+            "code": 163,
+        },
+        # Bind a dummy error DP to satisfy plumbing and avoid
+        # misclassifying informational payloads as errors.
+        # When a reliable error DP is known for this model, update it.
+        RobovacCommand.ERROR: {
+            "code": 0,
+        },
     }
