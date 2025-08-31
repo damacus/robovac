@@ -1,12 +1,14 @@
 """Tests for the RoboVac sensor component."""
 
 import pytest
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
-from homeassistant.const import PERCENTAGE, CONF_ID
-from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
+from homeassistant.const import CONF_ID, PERCENTAGE
+from homeassistant.components.sensor import SensorDeviceClass
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.robovac.sensor import RobovacBatterySensor
+from custom_components.robovac.const import CONF_VACS, DOMAIN
+from custom_components.robovac.sensor import RobovacBatterySensor, async_setup_entry
 
 
 @pytest.mark.asyncio
@@ -105,3 +107,41 @@ async def test_battery_sensor_update_exception():
 
     # Assert
     assert sensor._attr_available is False
+
+
+@pytest.mark.asyncio
+async def test_async_setup_entry_triggers_initial_update(hass, mock_vacuum_data):
+    """Test async_setup_entry triggers an initial update for the battery sensor."""
+    # Arrange
+    mock_vacuum_entity = MagicMock()
+    mock_vacuum_entity.battery_level = 90
+    hass.data = {DOMAIN: {CONF_VACS: {mock_vacuum_data[CONF_ID]: mock_vacuum_entity}}}
+
+    config_entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={CONF_VACS: {mock_vacuum_data[CONF_ID]: mock_vacuum_data}},
+    )
+
+    added_entities = []
+    update_flag = {}
+    mock_update_holder = {}
+
+    def _async_add_entities(entities, update_before_add=False):
+        update_flag["value"] = update_before_add
+        for entity in entities:
+            entity.hass = hass
+            if update_before_add:
+                entity.async_update = AsyncMock(wraps=entity.async_update)
+                mock_update_holder["mock"] = entity.async_update
+                hass.loop.create_task(entity.async_update())
+        added_entities.extend(entities)
+
+    await async_setup_entry(hass, config_entry, _async_add_entities)
+    await hass.async_block_till_done()
+
+    mock_update = mock_update_holder["mock"]
+    assert mock_update.await_count == 1
+
+    assert update_flag["value"] is True
+    sensor = added_entities[0]
+    assert sensor.native_value == 90
