@@ -1,13 +1,12 @@
 """Tests for the RoboVac sensor component."""
 
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock
 
 from homeassistant.const import PERCENTAGE, CONF_ID
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
 
 from custom_components.robovac.sensor import RobovacBatterySensor
-from custom_components.robovac.vacuums.base import TuyaCodes
 
 
 @pytest.mark.asyncio
@@ -39,7 +38,7 @@ async def test_battery_sensor_update_success():
 
     # Create mock vacuum entity
     mock_vacuum_entity = MagicMock()
-    mock_vacuum_entity.tuyastatus = {TuyaCodes.BATTERY_LEVEL: 85}
+    mock_vacuum_entity.battery_level = 85
 
     # Create mock hass data structure
     mock_hass = MagicMock()
