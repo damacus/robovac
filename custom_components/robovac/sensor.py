@@ -29,7 +29,7 @@ async def async_setup_entry(
         item = vacuums[item]
         entities.append(RobovacBatterySensor(item))
 
-    async_add_entities(entities)
+    async_add_entities(entities, True)
 
 
 class RobovacBatterySensor(SensorEntity):
