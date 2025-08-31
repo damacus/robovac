@@ -20,6 +20,7 @@ from __future__ import annotations
 import ast
 import asyncio
 import base64
+import binascii
 from datetime import timedelta
 from enum import StrEnum
 import json
@@ -229,7 +230,7 @@ class RoboVacEntity(StateVacuumEntity):
         return False
 
     def _get_mode_command_data(self, mode: str) -> dict[str, str] | None:
-        """Helper method to get mode command data for the vacuum.
+        """Get mode command data for the vacuum.
 
         Converts a human-readable cleaning mode to the appropriate DPS command
         data structure for sending to the vacuum device.
@@ -276,7 +277,7 @@ class RoboVacEntity(StateVacuumEntity):
                 )
             )
             return VacuumActivity.ERROR
-        elif self.activity_mapping is not None:
+        if self.activity_mapping is not None:
             # Use the activity mapping from the model details
             activity = self.activity_mapping.get(str(self._attr_tuya_state))
 
@@ -293,7 +294,8 @@ class RoboVacEntity(StateVacuumEntity):
                     self._attr_tuya_state,
                 )
                 # Fall through to heuristics and mode-based mapping
-        elif (
+
+        if (
             self._attr_tuya_state == "Charging" or self._attr_tuya_state == "completed"
         ):
             return VacuumActivity.DOCKED
@@ -344,7 +346,26 @@ class RoboVacEntity(StateVacuumEntity):
             _LOGGER.debug(
                 "State changed to cleaning. Raw Tuya state: %s", self._attr_tuya_state
             )
+            # If the state looks like an unmapped base64 payload, default to
+            # an idle activity instead of incorrectly reporting cleaning.
+            if isinstance(self._attr_tuya_state, str):
+                try:
+                    base64.b64decode(self._attr_tuya_state, validate=True)
+                    _LOGGER.debug(
+                        "Unmapped base64 state %s - assuming idle",
+                        self._attr_tuya_state,
+                    )
+                    return VacuumActivity.IDLE
+                except binascii.Error:
+                    pass
             return VacuumActivity.CLEANING
+
+    @property
+    def battery_charging(self) -> bool | None:
+        """Return whether the vacuum is currently charging."""
+        if self._attr_tuya_state is None:
+            return None
+        return str(self._attr_tuya_state).lower() in ("charging", "recharge")
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -519,9 +540,10 @@ class RoboVacEntity(StateVacuumEntity):
                     await asyncio.sleep(0.5)
                     await self.async_update()
 
-            # As a last resort for models that don't answer GET until a SET is sent,
-            # probe fan speed on X-series (T2320) to trigger a state push without changing cleaning state.
-            # This is limited to T2320 to avoid altering behavior on other models.
+        # As a last resort for models that don't answer GET until a SET is sent,
+        # probe fan speed on X-series (T2320) to trigger a state push without
+        # changing the cleaning state. This is limited to T2320 to avoid altering
+        # behavior on other models.
             if (
                 (
                     (self._attr_tuya_state is None or self._attr_tuya_state == 0)
