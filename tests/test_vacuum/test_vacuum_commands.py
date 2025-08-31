@@ -1,9 +1,12 @@
 """Tests for the RoboVac vacuum entity commands."""
 
 import pytest
-from unittest.mock import patch, MagicMock, call
+from unittest.mock import MagicMock, call, patch
+
+from homeassistant.components.vacuum import VacuumEntityFeature
 
 from custom_components.robovac.vacuum import RoboVacEntity
+from custom_components.robovac.vacuums.base import RobovacCommand
 
 
 @pytest.mark.asyncio
@@ -38,6 +41,27 @@ async def test_async_locate(mock_robovac, mock_vacuum_data):
 
 
 @pytest.mark.asyncio
+async def test_async_identify_triggers_locate(mock_robovac, mock_vacuum_data):
+    """Ensure async_identify calls async_locate."""
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
+        entity = RoboVacEntity(mock_vacuum_data)
+        with patch.object(entity, "async_locate") as mock_locate:
+            await entity.async_identify()
+            mock_locate.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_supported_features_include_locate(mock_robovac, mock_vacuum_data):
+    """Ensure LOCATE feature is set when command exists."""
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
+        mock_robovac.getHomeAssistantFeatures.return_value = VacuumEntityFeature.BATTERY
+        mock_robovac.model_details = MagicMock()
+        mock_robovac.model_details.commands = {RobovacCommand.LOCATE: {"code": "103"}}
+        entity = RoboVacEntity(mock_vacuum_data)
+        assert entity.supported_features & VacuumEntityFeature.LOCATE
+
+
+@pytest.mark.asyncio
 async def test_async_return_to_base(mock_robovac, mock_vacuum_data):
     """Test the async_return_to_base method."""
     # Arrange
@@ -67,7 +91,9 @@ async def test_async_start(mock_robovac, mock_vacuum_data):
 
 
 @pytest.mark.asyncio
-async def test_async_start_model_specific(mock_robovac, mock_vacuum_data, mock_l60, mock_l60_data):
+async def test_async_start_model_specific(
+    mock_robovac, mock_vacuum_data, mock_l60, mock_l60_data
+):
     """Test that async_start uses the correct code for different models."""
     # Test with standard model (should use code "5")
     with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
