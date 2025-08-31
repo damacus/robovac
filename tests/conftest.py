@@ -22,7 +22,31 @@ from homeassistant.const import (
     CONF_MAC,
 )
 
-from custom_components.robovac.vacuums.base import RoboVacEntityFeature
+from custom_components.robovac.vacuums.base import RobovacCommand, RoboVacEntityFeature
+
+
+def _command_value(command, value):
+    mapping = {
+        RobovacCommand.RETURN_HOME: True,
+        RobovacCommand.MODE: {
+            "auto": "auto",
+            "spot": "Spot",
+            "edge": "Edge",
+            "small_room": "SmallRoom",
+        },
+        RobovacCommand.FAN_SPEED: {
+            "no_suction": "No_suction",
+            "boost_iq": "Boost_IQ",
+            "pure": "Quiet",
+            "standard": "Standard",
+        },
+    }
+    result = mapping.get(command)
+    if isinstance(result, dict):
+        return result.get(value, value)
+    if result is not None:
+        return result
+    return value
 
 
 # This fixture is required for testing custom components
@@ -59,6 +83,7 @@ def mock_robovac():
     mock.async_get = AsyncMock(return_value=mock._dps)
     mock.async_set = AsyncMock(return_value=True)
     mock.async_disable = AsyncMock(return_value=True)
+    mock.getRoboVacCommandValue.side_effect = _command_value
 
     return mock
 
@@ -90,6 +115,7 @@ def mock_g30():
     mock.async_get = AsyncMock(return_value=mock._dps)
     mock.async_set = AsyncMock(return_value=True)
     mock.async_disable = AsyncMock(return_value=True)
+    mock.getRoboVacCommandValue.side_effect = _command_value
 
     return mock
 
@@ -152,13 +178,14 @@ def mock_l60():
         "FAN_SPEED": "154",
         "LOCATE": "153",
         "BATTERY_LEVEL": "172",
-        "ERROR_CODE": "169"
+        "ERROR_CODE": "169",
     }
 
     # Set up async methods with AsyncMock
     mock.async_get = AsyncMock(return_value=mock._dps)
     mock.async_set = AsyncMock(return_value=True)
     mock.async_disable = AsyncMock(return_value=True)
+    mock.getRoboVacCommandValue.side_effect = _command_value
 
     return mock
 
