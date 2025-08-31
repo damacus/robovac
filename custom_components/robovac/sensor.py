@@ -9,7 +9,6 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.device_registry import DeviceInfo
 
 from .const import CONF_VACS, DOMAIN, REFRESH_RATE
-from .vacuums.base import TuyaCodes
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -62,11 +61,15 @@ class RobovacBatterySensor(SensorEntity):
         """Update the sensor state."""
         try:
             vacuum_entity = self.hass.data[DOMAIN][CONF_VACS].get(self.robovac_id)
-            if vacuum_entity and vacuum_entity.tuyastatus:
-                self._attr_native_value = vacuum_entity.tuyastatus.get(TuyaCodes.BATTERY_LEVEL)
+            battery_level = getattr(vacuum_entity, "battery_level", None)
+            if vacuum_entity and battery_level is not None:
+                self._attr_native_value = battery_level
                 self._attr_available = True
             else:
-                _LOGGER.debug("Vacuum entity or status not available for %s", self.robovac_id)
+                _LOGGER.debug(
+                    "Vacuum entity or battery level not available for %s",
+                    self.robovac_id,
+                )
                 self._attr_available = False
         except Exception as ex:
             _LOGGER.error("Failed to update battery sensor for %s: %s", self.robovac_id, ex)
