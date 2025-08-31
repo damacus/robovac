@@ -50,6 +50,13 @@ class T2320(RobovacModelDetails):
         # Status reports via DP 153 (base64-encoded status payloads)
         RobovacCommand.STATUS: {
             "code": 153,
+            "values": {
+                # Observed when the vacuum is idle at the dock. Without this
+                # mapping Home Assistant would treat the state as cleaning.
+                # Mapping it to "standby" ensures the entity reports an idle
+                # activity instead.
+                "EhAFGgIIAToCEAJyBhoCCAEiAA==": "standby",
+            },
         },
         # Return home is triggered via MODE DP (152) on this model
         RobovacCommand.RETURN_HOME: {
