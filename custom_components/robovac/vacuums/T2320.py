@@ -1,5 +1,5 @@
 """Eufy Robot Vacuum and Mop X9 Pro with Auto-Clean Station (T2320)"""
-from homeassistant.components.vacuum import VacuumEntityFeature
+from homeassistant.components.vacuum import VacuumEntityFeature, VacuumActivity
 from .base import RoboVacEntityFeature, RobovacCommand, RobovacModelDetails
 
 
@@ -58,6 +58,8 @@ class T2320(RobovacModelDetails):
                 "EhAFGgIIAToCEAJyBhoCCAEiAA==": "standby",
                 # Observed when the vacuum automatically returns to the dock to charge
                 "EAoAEAMaADICCAFaAHICIgA=": "Auto-return charging",
+                # Observed when the mop is drying at the dock
+                "EBAFGgA6AhACcgYaAggBIgA=": "Drying Mop",
             },
         },
         # Return home is triggered via MODE DP (152) on this model
@@ -91,4 +93,10 @@ class T2320(RobovacModelDetails):
         RobovacCommand.ERROR: {
             "code": 0,
         },
+    }
+
+    activity_mapping = {
+        "Auto-return charging": VacuumActivity.DOCKED,
+        "Drying Mop": VacuumActivity.DOCKED,
+        "standby": VacuumActivity.IDLE,
     }
