@@ -56,6 +56,8 @@ class T2320(RobovacModelDetails):
                 # Mapping it to "standby" ensures the entity reports an idle
                 # activity instead.
                 "EhAFGgIIAToCEAJyBhoCCAEiAA==": "standby",
+                # Observed when the vacuum automatically returns to the dock to charge
+                "EAoAEAMaADICCAFaAHICIgA=": "Auto-return charging",
             },
         },
         # Return home is triggered via MODE DP (152) on this model
