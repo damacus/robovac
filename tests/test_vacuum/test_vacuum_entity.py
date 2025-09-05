@@ -67,6 +67,22 @@ async def test_activity_property_docked(mock_robovac, mock_vacuum_data):
 
 
 @pytest.mark.asyncio
+async def test_activity_property_drying_mop(mock_robovac, mock_vacuum_data):
+    """Test activity property returns DOCKED when state is Drying Mop."""
+    mock_robovac.getRoboVacActivityMapping.return_value = {
+        "Drying Mop": VacuumActivity.DOCKED
+    }
+
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
+        entity = RoboVacEntity(mock_vacuum_data)
+        entity.tuya_state = "Drying Mop"
+
+        result = entity.activity
+
+        assert result == VacuumActivity.DOCKED
+
+
+@pytest.mark.asyncio
 async def test_activity_property_returning(mock_robovac, mock_vacuum_data):
     """Test activity property returns RETURNING when state is Recharge."""
     # Arrange

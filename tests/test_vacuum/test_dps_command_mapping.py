@@ -134,6 +134,22 @@ def test_getDpsCodes_extraction_method() -> None:
         assert t2320_dps_codes["ERROR_CODE"] != TuyaCodes.ERROR_CODE
 
 
+def test_status_mapping_t2320() -> None:
+    """Test T2320 status codes map to human-readable values."""
+    with patch("custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None):
+        vacuum = RoboVac(
+            model_code="T2320",
+            device_id="test_id",
+            host="192.168.1.1",
+            local_key="test_key",
+        )
+
+        status = vacuum.getRoboVacHumanReadableValue(
+            RobovacCommand.STATUS, "EBAFGgA6AhACcgYaAggBIgA="
+        )
+        assert status == "Drying Mop"
+
+
 @pytest.mark.asyncio
 async def test_vacuum_update_uses_correct_dps_codes() -> None:
     """Test that vacuum update uses the right DPS codes for the model."""
