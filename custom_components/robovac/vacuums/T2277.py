@@ -68,6 +68,7 @@ class T2277(RobovacModelDetails):
                 "standby": "AA==",
                 "sleeping": "AhAB",
                 "BgoAEAUyAA===": "auto",
+                "BgoAEAUyAA==": "auto",
                 "BgoAEAVSAA===": "positioning",
                 "CAoAEAUyAggB": "pause",
                 "CAoCCAEQBTIA": "room",
