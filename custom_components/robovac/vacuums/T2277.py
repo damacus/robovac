@@ -24,38 +24,98 @@ class T2277(RobovacModelDetails):
         RobovacCommand.MODE: {
             "code": 152,
             "values": {
-                "small_room": "AA==",
+                "standby": "AA==",
                 "pause": "AggN",
-                "edge": "AggG",
+                "stop": "AggG",
+                "return": "AggG",
                 "auto": "BBoCCAE=",
                 "nosweep": "AggO",
+                "AA==": "standby",
+                "AggN": "pause",
+                "AggG": "stop",  
+                "BBoCCAE=": "auto",
+                "AggO": "nosweep"
             },
         },
-        RobovacCommand.STATUS: {
-            "code": 173,
-        },
-        RobovacCommand.RETURN_HOME: {
+        RobovacCommand.START_PAUSE: { #via mode command
+            "code": 152,
+            "values": {
+                "pause": "AggN",
+            },
+        },              
+        RobovacCommand.RETURN_HOME: { #via mode command
+            "code": 152,
+            "values": {
+                "return": "AggG",
+            },
+        },        
+        RobovacCommand.STATUS: {  #works  
             "code": 153,
             "values": {
-                "return_home": "AggB",
-            }
-        },
-        RobovacCommand.FAN_SPEED: {
-            "code": 154,
+                "auto": "BgoAEAUyAA===",
+                "positioning": "BgoAEAVSAA===",
+                "pause": "CAoAEAUyAggB",
+                "room": "CAoCCAEQBTIA",
+                "room_positioning": "CAoCCAEQBVIA",
+                "room_pause": "CgoCCAEQBTICCAE=",
+                "spot": "CAoCCAIQBTIA",
+                "spot_positioning": "CAoCCAIQBVIA",
+                "spot_pause": "CgoCCAIQBTICCAE=",
+                "start_manual": "BAoAEAY=",
+                "going_to_charge": "BBAHQgA=",
+                "charging": "BBADGgA=",
+                "completed": "BhADGgIIAQ==",
+                "standby": "AA==",
+                "sleeping": "AhAB",
+                "BgoAEAUyAA===": "auto",
+                "BgoAEAVSAA===": "positioning",
+                "CAoAEAUyAggB": "pause",
+                "CAoCCAEQBTIA": "room",
+                "CAoCCAEQBVIA": "room_positioning",
+                "CgoCCAEQBTICCAE=": "room_pause",
+                "CAoCCAIQBTIA": "spot",
+                "CAoCCAIQBVIA": "spot_positioning",
+                "CgoCCAIQBTICCAE=": "spot_pause",
+                "BAoAEAY=": "start_manual",
+                "BBAHQgA=": "going_to_charge",
+                "BBADGgA=": "charging",
+                "BhADGgIIAQ==": "completed",
+                "AA==": "standby",
+                "AhAB": "sleeping",
+            },
+        },  
+        
+        RobovacCommand.FAN_SPEED: {                              
+            "code": 158,
             "values": {
-                "fan_speed": "AgkBCgIKAQoDCgEKBAoB",
-            }
+                "quiet": "Quiet", 
+                "standard": "Standard", 
+                "turbo": "Turbo", 
+                "max": "Max",
+            },
         },
+        
         RobovacCommand.LOCATE: {
-            "code": 153,
+            "code": 160,
             "values": {
-                "locate": "AggC",
+                "locate": "true",
             }
         },
         RobovacCommand.BATTERY: {
-            "code": 172,
+            "code": 163,
         },
-        RobovacCommand.ERROR: {
-            "code": 169,
-        },
+        #RobovacCommand.ERROR: {  # doesnt work, includes encrypted last error timestamp
+        #    "code": 177,
+        #    "values": 
+        #    {
+        #        "DAiI6suO9dXszgFSAA==": "no_error",
+        #        "FAjwudWorOPszgEaAqURUgQSAqUR": "Sidebrush stuck",
+        #        "FAj+nMu7zuPszgEaAtg2UgQSAtg2": "Robot stuck",
+        #        "DAjtzbfps+XszgFSAA==": "no_error",
+        #        "DAiom9rd6eTszgFSAA==": "no_error",
+        #        "DAia8JTV5OPszgFSAA==": "no_error",
+        #        "DAj489bWsePszgFSAA==": "no_error",
+        #        "ByIDCgEAUgA=": "no_error",
+        #    }
+        #},
     }
