@@ -54,7 +54,7 @@ class T2277(RobovacModelDetails):
             "values": {
                 "auto": "BgoAEAUyAA===",
                 "positioning": "BgoAEAVSAA===",
-                "pause": "CAoAEAUyAggB",
+                "Paused": "CAoAEAUyAggB", #capitalized in vacuum.py
                 "room": "CAoCCAEQBTIA",
                 "room_positioning": "CAoCCAEQBVIA",
                 "room_pause": "CgoCCAEQBTICCAE=",
@@ -63,14 +63,14 @@ class T2277(RobovacModelDetails):
                 "spot_pause": "CgoCCAIQBTICCAE=",
                 "start_manual": "BAoAEAY=",
                 "going_to_charge": "BBAHQgA=",
-                "charging": "BBADGgA=",
+                "Charging": "BBADGgA=",  #capitalized in vacuum.py
                 "completed": "BhADGgIIAQ==",
-                "standby": "AA==",
-                "sleeping": "AhAB",
+                "Standby": "AA==",  #capitalized in vacuum.py
+                "Sleeping": "AhAB", #capitalized in vacuum.py
                 "BgoAEAUyAA===": "auto",
                 "BgoAEAUyAA==": "auto",
                 "BgoAEAVSAA===": "positioning",
-                "CAoAEAUyAggB": "pause",
+                "CAoAEAUyAggB": "Paused", #capitalized in vacuum.py
                 "CAoCCAEQBTIA": "room",
                 "CAoCCAEQBVIA": "room_positioning",
                 "CgoCCAEQBTICCAE=": "room_pause",
@@ -79,10 +79,10 @@ class T2277(RobovacModelDetails):
                 "CgoCCAIQBTICCAE=": "spot_pause",
                 "BAoAEAY=": "start_manual",
                 "BBAHQgA=": "going_to_charge",
-                "BBADGgA=": "charging",
+                "BBADGgA=": "Charging", #capitalized in vacuum.py
                 "BhADGgIIAQ==": "completed",
-                "AA==": "standby",
-                "AhAB": "sleeping",
+                "AA==": "Standby", #capitalized in vacuum.py
+                "AhAB": "Sleeping", #capitalized in vacuum.py
             },
         },  
         
