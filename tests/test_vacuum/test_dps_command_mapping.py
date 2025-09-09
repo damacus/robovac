@@ -6,6 +6,7 @@ from unittest.mock import patch, MagicMock
 from custom_components.robovac.robovac import RoboVac
 from custom_components.robovac.vacuum import RoboVacEntity
 from custom_components.robovac.vacuums.base import RobovacCommand, TuyaCodes
+from homeassistant.components.vacuum import VacuumActivity
 from homeassistant.const import (
     CONF_NAME,
     CONF_ID,
@@ -148,6 +149,25 @@ def test_status_mapping_t2320() -> None:
             RobovacCommand.STATUS, "EBAFGgA6AhACcgYaAggBIgA="
         )
         assert status == "Drying Mop"
+
+        status = vacuum.getRoboVacHumanReadableValue(
+            RobovacCommand.STATUS, "ChADGgIIAXICIgA="
+        )
+        assert status == "Fully Charged"
+
+
+def test_activity_mapping_fully_charged_t2320() -> None:
+    """Ensure Fully Charged status maps to DOCKED activity for T2320."""
+    with patch("custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None):
+        vacuum = RoboVac(
+            model_code="T2320",
+            device_id="test_id",
+            host="192.168.1.1",
+            local_key="test_key",
+        )
+
+    mapping = vacuum.getRoboVacActivityMapping()
+    assert mapping.get("Fully Charged") == VacuumActivity.DOCKED
 
 
 @pytest.mark.asyncio

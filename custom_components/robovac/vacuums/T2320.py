@@ -56,6 +56,8 @@ class T2320(RobovacModelDetails):
                 # Mapping it to "standby" ensures the entity reports an idle
                 # activity instead.
                 "EhAFGgIIAToCEAJyBhoCCAEiAA==": "standby",
+                # Observed when the vacuum is fully charged and docked
+                "ChADGgIIAXICIgA=": "Fully Charged",
                 # Observed when the vacuum automatically returns to the dock to charge
                 "EAoAEAMaADICCAFaAHICIgA=": "Auto-return charging",
                 # Observed when the mop is drying at the dock
@@ -98,5 +100,6 @@ class T2320(RobovacModelDetails):
     activity_mapping = {
         "Auto-return charging": VacuumActivity.DOCKED,
         "Drying Mop": VacuumActivity.DOCKED,
+        "Fully Charged": VacuumActivity.DOCKED,
         "standby": VacuumActivity.IDLE,
     }
