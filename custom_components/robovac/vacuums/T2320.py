@@ -62,6 +62,9 @@ class T2320(RobovacModelDetails):
                 "EAoAEAMaADICCAFaAHICIgA=": "Auto-return charging",
                 # Observed when the mop is drying at the dock
                 "EBAFGgA6AhACcgYaAggBIgA=": "Drying Mop",
+                # Observed when the vacuum is auto-cleaning off the dock
+                "CgoAEAUyAHICIgA=": "Auto Cleaning",
+                "DgoAEAUaAggBMgByAiIA": "Auto Cleaning",
             },
         },
         # Return home is triggered via MODE DP (152) on this model
@@ -101,5 +104,6 @@ class T2320(RobovacModelDetails):
         "Auto-return charging": VacuumActivity.DOCKED,
         "Drying Mop": VacuumActivity.DOCKED,
         "Fully Charged": VacuumActivity.DOCKED,
+        "Auto Cleaning": VacuumActivity.CLEANING,
         "standby": VacuumActivity.IDLE,
     }

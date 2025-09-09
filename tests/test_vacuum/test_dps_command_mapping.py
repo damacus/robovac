@@ -155,6 +155,11 @@ def test_status_mapping_t2320() -> None:
         )
         assert status == "Fully Charged"
 
+        status = vacuum.getRoboVacHumanReadableValue(
+            RobovacCommand.STATUS, "CgoAEAUyAHICIgA="
+        )
+        assert status == "Auto Cleaning"
+
 
 def test_activity_mapping_fully_charged_t2320() -> None:
     """Ensure Fully Charged status maps to DOCKED activity for T2320."""
@@ -168,6 +173,20 @@ def test_activity_mapping_fully_charged_t2320() -> None:
 
     mapping = vacuum.getRoboVacActivityMapping()
     assert mapping.get("Fully Charged") == VacuumActivity.DOCKED
+
+
+def test_activity_mapping_auto_cleaning_t2320() -> None:
+    """Ensure Auto Cleaning status maps to CLEANING activity for T2320."""
+    with patch("custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None):
+        vacuum = RoboVac(
+            model_code="T2320",
+            device_id="test_id",
+            host="192.168.1.1",
+            local_key="test_key",
+        )
+
+    mapping = vacuum.getRoboVacActivityMapping()
+    assert mapping.get("Auto Cleaning") == VacuumActivity.CLEANING
 
 
 @pytest.mark.asyncio
