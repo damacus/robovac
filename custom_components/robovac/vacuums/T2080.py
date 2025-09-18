@@ -52,7 +52,7 @@ class T2080(RobovacModelDetails):
                 "AA==": "Spot",
                 "AggG": "return",
                 "AggO": "Nosweep",
-                "AggB": "Vacuum and Mop", # Not 100% certain of this
+                "AggB": "Vacuum and Mop",  # Not 100% certain of this
                 # "BAgNGAE=": "BAgNGAE=",
             },
         },
@@ -77,11 +77,11 @@ class T2080(RobovacModelDetails):
                 "BhAJOgIQAg==": "Drying Mop",
                 "CBAJGgA6AhAC": "Drying Mop",
                 "ChAJGgIIAToCEAI=": "Drying Mop",
-                "DgoAEAUaAggBMgIQAVIA": "Washing Mop", # Maybe.. this occurred in amongst several "adding water"
+                "DgoAEAUaAggBMgIQAVIA": "Washing Mop",  # Maybe.. this occurred in amongst several "adding water"
                 "EAoCCAEQCRoCCAEyADoCEAE=": "Washing Mop",
                 "BhAJOgIQAQ==": "Washing Mop",
                 "AhAJ": "Removing Dirty Water",
-                "BhAGGgIIAQ==": "Manual Control", # Double check this
+                "BhAGGgIIAQ==": "Manual Control",  # Double check this
                 # "BxAJGgD6AQA=": "Emptying Dust", # Not certain of this
                 "BRAJ+gEA": "Emptying Dust",
                 "BgoAEAUyAA==": "Auto Cleaning",
@@ -89,8 +89,8 @@ class T2080(RobovacModelDetails):
                 "CgoAEAUyAhABUgA=": "Auto Cleaning",
                 # "DAoCCAEQBzICCAFCAA==": "", # This occurred in between 'Room Cleaning' and 'Charge Mid-Clean', but I didn't see it happening. Maybe some variant of 'returning'..?
                 "DAoCCAEQAxoAMgIIAQ==": "Charge Mid-Clean",
-                "CgoAEAcyAggBQgA=": "Temporary Return", # This was when mid-clean, it needed to return to base to get more water
-                "DAoCCAEQBzICCAFCAA==": "Temporary Return", # This was when mid-clean, it needed to return to base to empty dust
+                "CgoAEAcyAggBQgA=": "Temporary Return",  # This was when mid-clean, it needed to return to base to get more water
+                "DAoCCAEQBzICCAFCAA==": "Temporary Return",  # This was when mid-clean, it needed to return to base to empty dust
                 "DQoCCAEQCTICCAH6AQA=": "Remove Dust Mid-Clean",
                 "CAoAEAIyAggB": "Error",
             }
@@ -139,7 +139,7 @@ class T2080(RobovacModelDetails):
         "Auto Cleaning": VacuumActivity.CLEANING,
         "Room Cleaning": VacuumActivity.CLEANING,  # I've seen this when doing a room clean - navigating to the room and while cleaning it. Maybe 153 is mode, not status???
         "Room Positioning": VacuumActivity.CLEANING,
-        "Room Paused": VacuumActivity.PAUSED, # I've seen this when doing a room clean and hitting pause
+        "Room Paused": VacuumActivity.PAUSED,  # I've seen this when doing a room clean and hitting pause
         "Standby": VacuumActivity.IDLE,
         "Heading Home": VacuumActivity.RETURNING,
         "Temporary Return": VacuumActivity.RETURNING,
