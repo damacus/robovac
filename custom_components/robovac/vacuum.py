@@ -24,7 +24,7 @@ from enum import StrEnum
 import json
 import logging
 import time
-from typing import Any
+from typing import Any, cast
 
 from homeassistant.components.vacuum import (
     StateVacuumEntity,
@@ -271,7 +271,7 @@ class RoboVacEntity(StateVacuumEntity):
         elif self._attr_tuya_state in [activity.value for activity in VacuumActivity]:
             # Particularly at system startup, the state may be set to a
             # VacuumActivity value directly, so we can return it as is.
-            return self._attr_tuya_state
+            return cast(VacuumActivity, self._attr_tuya_state)
         elif self.activity_mapping is not None:
             # Use the activity mapping from the model details
             activity = self.activity_mapping.get(str(self._attr_tuya_state))
