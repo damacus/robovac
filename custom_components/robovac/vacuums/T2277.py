@@ -32,29 +32,29 @@ class T2277(RobovacModelDetails):
                 "nosweep": "AggO",
                 "AA==": "standby",
                 "AggN": "pause",
-                "AggG": "stop",  
+                "AggG": "stop",
                 "BBoCCAE=": "auto",
                 "AggO": "nosweep"
             },
         },
-        RobovacCommand.START_PAUSE: { #via mode command
+        RobovacCommand.START_PAUSE: {  # via mode command
             "code": 152,
             "values": {
                 "pause": "AggN",
             },
-        },              
-        RobovacCommand.RETURN_HOME: { #via mode command
+        },
+        RobovacCommand.RETURN_HOME: {  # via mode command
             "code": 152,
             "values": {
                 "return": "AggG",
             },
-        },        
-        RobovacCommand.STATUS: {  #works  
+        },
+        RobovacCommand.STATUS: {  # works
             "code": 153,
             "values": {
                 "auto": "BgoAEAUyAA===",
                 "positioning": "BgoAEAVSAA===",
-                "Paused": "CAoAEAUyAggB", #capitalized in vacuum.py
+                "Paused": "CAoAEAUyAggB",  # capitalized in vacuum.py
                 "room": "CAoCCAEQBTIA",
                 "room_positioning": "CAoCCAEQBVIA",
                 "room_pause": "CgoCCAEQBTICCAE=",
@@ -63,14 +63,14 @@ class T2277(RobovacModelDetails):
                 "spot_pause": "CgoCCAIQBTICCAE=",
                 "start_manual": "BAoAEAY=",
                 "going_to_charge": "BBAHQgA=",
-                "Charging": "BBADGgA=",  #capitalized in vacuum.py
+                "Charging": "BBADGgA=",  # capitalized in vacuum.py
                 "completed": "BhADGgIIAQ==",
-                "Standby": "AA==",  #capitalized in vacuum.py
-                "Sleeping": "AhAB", #capitalized in vacuum.py
+                "Standby": "AA==",  # capitalized in vacuum.py
+                "Sleeping": "AhAB",  # capitalized in vacuum.py
                 "BgoAEAUyAA===": "auto",
                 "BgoAEAUyAA==": "auto",
                 "BgoAEAVSAA===": "positioning",
-                "CAoAEAUyAggB": "Paused", #capitalized in vacuum.py
+                "CAoAEAUyAggB": "Paused",  # capitalized in vacuum.py
                 "CAoCCAEQBTIA": "room",
                 "CAoCCAEQBVIA": "room_positioning",
                 "CgoCCAEQBTICCAE=": "room_pause",
@@ -79,23 +79,23 @@ class T2277(RobovacModelDetails):
                 "CgoCCAIQBTICCAE=": "spot_pause",
                 "BAoAEAY=": "start_manual",
                 "BBAHQgA=": "going_to_charge",
-                "BBADGgA=": "Charging", #capitalized in vacuum.py
+                "BBADGgA=": "Charging",  # capitalized in vacuum.py
                 "BhADGgIIAQ==": "completed",
-                "AA==": "Standby", #capitalized in vacuum.py
-                "AhAB": "Sleeping", #capitalized in vacuum.py
+                "AA==": "Standby",  # capitalized in vacuum.py
+                "AhAB": "Sleeping",  # capitalized in vacuum.py
             },
-        },  
-        
-        RobovacCommand.FAN_SPEED: {                              
+        },
+
+        RobovacCommand.FAN_SPEED: {
             "code": 158,
             "values": {
-                "quiet": "Quiet", 
-                "standard": "Standard", 
-                "turbo": "Turbo", 
+                "quiet": "Quiet",
+                "standard": "Standard",
+                "turbo": "Turbo",
                 "max": "Max",
             },
         },
-        
+
         RobovacCommand.LOCATE: {
             "code": 160,
             "values": {
@@ -105,9 +105,9 @@ class T2277(RobovacModelDetails):
         RobovacCommand.BATTERY: {
             "code": 163,
         },
-        #RobovacCommand.ERROR: {  # doesnt work, includes encrypted last error timestamp
+        # RobovacCommand.ERROR: {  # doesnt work, includes encrypted last error timestamp
         #    "code": 177,
-        #    "values": 
+        #    "values":
         #    {
         #        "DAiI6suO9dXszgFSAA==": "no_error",
         #        "FAjwudWorOPszgEaAqURUgQSAqUR": "Sidebrush stuck",
@@ -118,5 +118,5 @@ class T2277(RobovacModelDetails):
         #        "DAj489bWsePszgFSAA==": "no_error",
         #        "ByIDCgEAUgA=": "no_error",
         #    }
-        #},
+        # },
     }
