@@ -222,9 +222,11 @@ class RoboVac(TuyaDevice):
             pass
 
         _LOGGER.warning(
-            "Command %s with value %s not found for model %s. If you know the status the Eufy app was showing at this time, please report that to the component maintainers.",
+            "Command %s with value %s not found for model %s. Available values: %s. "
+            "If you know the status the Eufy app was showing at this time, please report that to the component maintainers.",
             command_name,
             value,
             self.model_code,
+            list(values.keys()) if values else "None",
         )
         return value
