@@ -53,7 +53,7 @@ class T2277(RobovacModelDetails):
             "code": 153,
             "values": {
                 "auto": "BgoAEAUyAA===",
-                "positioning": "BgoAEAVSAA===",
+                "positioning": "BgoAEAVSAA==",
                 "Paused": "CAoAEAUyAggB",  # capitalized in vacuum.py
                 "room": "CAoCCAEQBTIA",
                 "room_positioning": "CAoCCAEQBVIA",
@@ -70,7 +70,9 @@ class T2277(RobovacModelDetails):
                 "BgoAEAUyAA===": "auto",
                 "BgoAEAUyAA==": "auto",
                 "BgoAEAVSAA===": "positioning",
+                "BgoAEAVSAA==": "positioning",
                 "CAoAEAUyAggB": "Paused",  # capitalized in vacuum.py
+                "AggB": "Paused",
                 "CAoCCAEQBTIA": "room",
                 "CAoCCAEQBVIA": "room_positioning",
                 "CgoCCAEQBTICCAE=": "room_pause",
