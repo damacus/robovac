@@ -50,3 +50,15 @@ logger:
     custom_components.robovac.vacuum: debug
     custom_components.robovac.tuyalocalapi: debug
 ```
+
+## Model Validation
+
+To check if your RoboVac model is supported, use the included validation tool:
+
+```bash
+python3 model_validator_cli.py T2277
+python3 model_validator_cli.py --list-all
+python3 model_validator_cli.py --series L
+```
+
+The tool provides model information, troubleshooting steps, and suggestions for similar models if yours isn't supported yet.
