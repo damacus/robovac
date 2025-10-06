@@ -52,12 +52,10 @@ class T2080(RobovacModelDetails):
                 "AA==": "Spot",
                 "AggG": "return",
                 "AggO": "Nosweep",
-                # "AggB": "AggB", # I keep seeing this value.. not really sure what it means! Room clean, maybe??
+                "AggB": "Vacuum and Mop",  # Not 100% certain of this
                 # "BAgNGAE=": "BAgNGAE=",
             },
         },
-        # The below is copied from vacuum.py, here: https://github.com/CodeFoodPixels/robovac/compare/main...maximoei:robovac:L60-support
-        # Needs some verification as to how it mixes with this repo.
         RobovacCommand.STATUS: {
             "code": 153,
             "values": {
@@ -67,7 +65,6 @@ class T2080(RobovacModelDetails):
                 "DAoCCAEQBTICEAFSAA==": "Room Positioning",
                 "CgoCCAEQBTICCAE=": "Room Paused",
                 "BhAHQgBSAA==": "Standby",
-                "BgoAEAUyAA==": "Standby",
                 "BBAHQgA=": "Heading Home",
                 "BBADGgA=": "Charging",
                 "BhADGgIIAQ==": "Completed",
@@ -75,17 +72,27 @@ class T2080(RobovacModelDetails):
                 "AgoA": "Heading Home",
                 "AhAB": "Sleeping",
                 "DAoCCAEQCRoCCAEyAA==": "Adding Water",
+                "DgoAEAkaAggBMgA6AhAB": "Adding Water",
+                "DAoAEAUaADICEAFSAA==": "Adding Water",
                 "BhAJOgIQAg==": "Drying Mop",
                 "CBAJGgA6AhAC": "Drying Mop",
                 "ChAJGgIIAToCEAI=": "Drying Mop",
+                "DgoAEAUaAggBMgIQAVIA": "Washing Mop",  # Maybe.. this occurred in amongst several "adding water"
                 "EAoCCAEQCRoCCAEyADoCEAE=": "Washing Mop",
                 "BhAJOgIQAQ==": "Washing Mop",
                 "AhAJ": "Removing Dirty Water",
                 "BhAGGgIIAQ==": "Manual Control",  # Double check this
-                # One of these next two (maybe both?) is "Emptying Dust", but I'm not sure which
-                # "BxAJGgD6AQA=": "Emptying Dust",
-                # "BRAJ+gEA": "Emptying Dust",
+                # "BxAJGgD6AQA=": "Emptying Dust", # Not certain of this
+                "BRAJ+gEA": "Emptying Dust",
+                "BgoAEAUyAA==": "Auto Cleaning",
                 "CgoAEAkaAggBMgA=": "Auto Cleaning",
+                "CgoAEAUyAhABUgA=": "Auto Cleaning",
+                # "DAoCCAEQBzICCAFCAA==": "", # This occurred in between 'Room Cleaning' and 'Charge Mid-Clean', but I didn't see it happening. Maybe some variant of 'returning'..?
+                "DAoCCAEQAxoAMgIIAQ==": "Charge Mid-Clean",
+                "CgoAEAcyAggBQgA=": "Temporary Return",  # This was when mid-clean, it needed to return to base to get more water
+                "DAoCCAEQBzICCAFCAA==": "Temporary Return",  # This was when mid-clean, it needed to return to base to empty dust
+                "DQoCCAEQCTICCAH6AQA=": "Remove Dust Mid-Clean",
+                "CAoAEAIyAggB": "Error",
             }
         },
         RobovacCommand.RETURN_HOME: {
@@ -128,25 +135,24 @@ class T2080(RobovacModelDetails):
         }
     }
     activity_mapping = {
-        "AUTO": VacuumActivity.CLEANING,
-        "POSITION": VacuumActivity.CLEANING,
         "Paused": VacuumActivity.PAUSED,
         "Auto Cleaning": VacuumActivity.CLEANING,
         "Room Cleaning": VacuumActivity.CLEANING,  # I've seen this when doing a room clean - navigating to the room and while cleaning it. Maybe 153 is mode, not status???
         "Room Positioning": VacuumActivity.CLEANING,
         "Room Paused": VacuumActivity.PAUSED,  # I've seen this when doing a room clean and hitting pause
-        "SPOT": VacuumActivity.CLEANING,
-        "SPOT_POSITION": VacuumActivity.CLEANING,
-        "SPOT_PAUSE": VacuumActivity.PAUSED,
-        "START_MANUAL": VacuumActivity.CLEANING,
         "Standby": VacuumActivity.IDLE,
-        "Heading Home": VacuumActivity.RETURNING,  # I've seen this when heading home
+        "Heading Home": VacuumActivity.RETURNING,
+        "Temporary Return": VacuumActivity.RETURNING,
         "Charging": VacuumActivity.DOCKED,
+        "Adding Water": VacuumActivity.DOCKED,
+        "Charge Mid-Clean": VacuumActivity.DOCKED,
         "Completed": VacuumActivity.DOCKED,
         "Sleeping": VacuumActivity.IDLE,
         "Drying Mop": VacuumActivity.DOCKED,
         "Washing Mop": VacuumActivity.DOCKED,
         "Removing Dirty Water": VacuumActivity.DOCKED,
+        "Remove Dust Mid-Clean": VacuumActivity.DOCKED,
         "Emptying Dust": VacuumActivity.DOCKED,
         "Manual Control": VacuumActivity.CLEANING,
+        "Error": VacuumActivity.ERROR,
     }
