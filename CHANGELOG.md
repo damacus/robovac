@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.3](https://github.com/damacus/robovac/compare/v1.3.2...v1.3.3) (2025-10-10)
+
+
+### Bug Fixes
+
+* **logs:** Limit logging ([#215](https://github.com/damacus/robovac/issues/215)) ([9936867](https://github.com/damacus/robovac/commit/9936867910097d06d5d5bc718e6835cc3c54672c))
+
 ## [1.3.2](https://github.com/damacus/robovac/compare/v1.3.1...v1.3.2) (2025-08-26)
 
 
