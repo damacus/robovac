@@ -374,6 +374,8 @@ class RoboVacEntity(StateVacuumEntity):
         self.vacuum: RoboVac | None = None
         self.update_failures = 0
         self.tuyastatus: dict[str, Any] | None = None
+        self._last_no_data_warning_time: float = 0
+        self._no_data_warning_logged: bool = False
 
         # Initialize the RoboVac connection
         try:
@@ -523,8 +525,18 @@ class RoboVacEntity(StateVacuumEntity):
         self.tuyastatus = self.vacuum._dps
 
         if self.tuyastatus is None or not self.tuyastatus:
-            _LOGGER.warning("Cannot update entity values: no data points available")
+            current_time = time.time()
+            # Only log warning when state changes or after 5 minutes
+            if not self._no_data_warning_logged or (current_time - self._last_no_data_warning_time) >= 300:
+                _LOGGER.warning("Cannot update entity values: no data points available")
+                self._last_no_data_warning_time = current_time
+                self._no_data_warning_logged = True
             return
+
+        # Reset warning state when data is available
+        if self._no_data_warning_logged:
+            _LOGGER.info("Data points now available, resuming normal updates")
+            self._no_data_warning_logged = False
 
         _LOGGER.debug("Updating entity values from data points: %s", self.tuyastatus)
 
