@@ -208,6 +208,7 @@ class RoboVac(TuyaDevice):
             str: The human-readable value (e.g., "Auto cleaning", "Returning home", "auto").
                  Returns the original value if no mapping exists.
         """
+        values = None
         try:
             # Check if command_name is already a RobovacCommand enum
             cmd = command_name if isinstance(command_name, RobovacCommand) else RobovacCommand(command_name)
@@ -222,9 +223,11 @@ class RoboVac(TuyaDevice):
             pass
 
         _LOGGER.warning(
-            "Command %s with value %s not found for model %s. If you know the status the Eufy app was showing at this time, please report that to the component maintainers.",
+            "Command %s with value %s not found for model %s. Available values: %s. "
+            "If you know the status the Eufy app was showing at this time, please report that to the component maintainers.",
             command_name,
             value,
             self.model_code,
+            list(values.keys()) if values else "None",
         )
         return value

@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.3](https://github.com/damacus/robovac/compare/v1.3.2...v1.3.3) (2025-10-13)
+
+
+### Bug Fixes
+
+* L60 commands ([#197](https://github.com/damacus/robovac/issues/197)) ([2fd0e9a](https://github.com/damacus/robovac/commit/2fd0e9a935100de0cba03ca6f62b0d412318e3a0))
+* **logs:** Limit logging ([#215](https://github.com/damacus/robovac/issues/215)) ([9936867](https://github.com/damacus/robovac/commit/9936867910097d06d5d5bc718e6835cc3c54672c))
+* **T2080:** Mapping more statuses for T2080 ([#208](https://github.com/damacus/robovac/issues/208)) ([67aaeb3](https://github.com/damacus/robovac/commit/67aaeb39068479bf32d0f3b2a3bece9ac1c8316a))
+* **test:** add missing BATTERY feature to T2118 test expectations ([#220](https://github.com/damacus/robovac/issues/220)) ([f3fa3ff](https://github.com/damacus/robovac/commit/f3fa3ff4e6141839dd4be6e1f7ba94648ac70ba2))
+
 ## [1.3.2](https://github.com/damacus/robovac/compare/v1.3.1...v1.3.2) (2025-08-26)
 
 
