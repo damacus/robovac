@@ -26,10 +26,10 @@ This is yet another Eufy fork, this time based on work from [CodeFoodPixels](htt
 4. Go to the Integrations Page and Click +Add Integration button
 5. Search for Eufy RoboVac and select it
 6. Enter your Eufy username and password (The ones you use to login to the add with) and submit
-7. If youve done it correctly you should get a success dialoge and option to enter an Area for each RoboVac you have
+7. If you've done it correctly you should get a success dialog and option to enter an Area for each RoboVac you have
 8. Click Finish
 9. On the Integrations Screen Locate your Eufy RoboVac card and click the configure button
-10. Select the Radio button beside the Vacuum name and type its IP addess in the box and press Submit
+10. Select the Radio button beside the Vacuum name and type its IP address in the box and press Submit
 (You need to repeat steps 9 and 10 for each RoboVac you have)
 11. Enjoy
 
