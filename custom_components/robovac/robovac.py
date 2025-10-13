@@ -208,6 +208,7 @@ class RoboVac(TuyaDevice):
             str: The human-readable value (e.g., "Auto cleaning", "Returning home", "auto").
                  Returns the original value if no mapping exists.
         """
+        values = None
         try:
             # Check if command_name is already a RobovacCommand enum
             cmd = command_name if isinstance(command_name, RobovacCommand) else RobovacCommand(command_name)

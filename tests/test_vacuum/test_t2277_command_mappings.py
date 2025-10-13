@@ -25,19 +25,20 @@ def test_t2277_dps_codes(mock_t2277_robovac):
     dps_codes = mock_t2277_robovac.getDpsCodes()
 
     assert dps_codes["MODE"] == "152"
-    assert dps_codes["STATUS"] == "173"
-    assert dps_codes["RETURN_HOME"] == "153"
-    assert dps_codes["FAN_SPEED"] == "154"
-    assert dps_codes["LOCATE"] == "153"
-    assert dps_codes["BATTERY_LEVEL"] == "172"
-    assert dps_codes["ERROR_CODE"] == "169"
+    assert dps_codes["STATUS"] == "153"
+    assert dps_codes["START_PAUSE"] == "152"
+    assert dps_codes["RETURN_HOME"] == "152"
+    assert dps_codes["FAN_SPEED"] == "158"
+    assert dps_codes["LOCATE"] == "160"
+    assert dps_codes["BATTERY_LEVEL"] == "163"
 
 
 def test_t2277_mode_command_values(mock_t2277_robovac):
     """Test T2277 MODE command value mappings."""
-    assert mock_t2277_robovac.getRoboVacCommandValue(RobovacCommand.MODE, "small_room") == "AA=="
+    assert mock_t2277_robovac.getRoboVacCommandValue(RobovacCommand.MODE, "standby") == "AA=="
     assert mock_t2277_robovac.getRoboVacCommandValue(RobovacCommand.MODE, "pause") == "AggN"
-    assert mock_t2277_robovac.getRoboVacCommandValue(RobovacCommand.MODE, "edge") == "AggG"
+    assert mock_t2277_robovac.getRoboVacCommandValue(RobovacCommand.MODE, "stop") == "AggG"
+    assert mock_t2277_robovac.getRoboVacCommandValue(RobovacCommand.MODE, "return") == "AggG"
     assert mock_t2277_robovac.getRoboVacCommandValue(RobovacCommand.MODE, "auto") == "BBoCCAE="
     assert mock_t2277_robovac.getRoboVacCommandValue(RobovacCommand.MODE, "nosweep") == "AggO"
 
@@ -48,8 +49,8 @@ def test_t2277_mode_command_values(mock_t2277_robovac):
 def test_t2277_return_home_command_values(mock_t2277_robovac):
     """Test T2277 RETURN_HOME value mapping."""
     assert (
-        mock_t2277_robovac.getRoboVacCommandValue(RobovacCommand.RETURN_HOME, "return_home")
-        == "AggB"
+        mock_t2277_robovac.getRoboVacCommandValue(RobovacCommand.RETURN_HOME, "return")
+        == "AggG"
     )
     assert (
         mock_t2277_robovac.getRoboVacCommandValue(RobovacCommand.RETURN_HOME, "unknown")
@@ -59,10 +60,10 @@ def test_t2277_return_home_command_values(mock_t2277_robovac):
 
 def test_t2277_fan_speed_command_values(mock_t2277_robovac):
     """Test T2277 FAN_SPEED value mapping."""
-    assert (
-        mock_t2277_robovac.getRoboVacCommandValue(RobovacCommand.FAN_SPEED, "fan_speed")
-        == "AgkBCgIKAQoDCgEKBAoB"
-    )
+    assert mock_t2277_robovac.getRoboVacCommandValue(RobovacCommand.FAN_SPEED, "quiet") == "Quiet"
+    assert mock_t2277_robovac.getRoboVacCommandValue(RobovacCommand.FAN_SPEED, "standard") == "Standard"
+    assert mock_t2277_robovac.getRoboVacCommandValue(RobovacCommand.FAN_SPEED, "turbo") == "Turbo"
+    assert mock_t2277_robovac.getRoboVacCommandValue(RobovacCommand.FAN_SPEED, "max") == "Max"
     assert (
         mock_t2277_robovac.getRoboVacCommandValue(RobovacCommand.FAN_SPEED, "unknown")
         == "unknown"
@@ -71,7 +72,7 @@ def test_t2277_fan_speed_command_values(mock_t2277_robovac):
 
 def test_t2277_locate_command_values(mock_t2277_robovac):
     """Test T2277 LOCATE value mapping."""
-    assert mock_t2277_robovac.getRoboVacCommandValue(RobovacCommand.LOCATE, "locate") == "AggC"
+    assert mock_t2277_robovac.getRoboVacCommandValue(RobovacCommand.LOCATE, "locate") == "true"
     assert mock_t2277_robovac.getRoboVacCommandValue(RobovacCommand.LOCATE, "unknown") == "unknown"
 
 
@@ -80,9 +81,9 @@ def test_t2277_command_codes(mock_t2277_robovac):
     commands = mock_t2277_robovac.model_details.commands
 
     assert commands[RobovacCommand.MODE]["code"] == 152
-    assert commands[RobovacCommand.STATUS]["code"] == 173
-    assert commands[RobovacCommand.RETURN_HOME]["code"] == 153
-    assert commands[RobovacCommand.FAN_SPEED]["code"] == 154
-    assert commands[RobovacCommand.LOCATE]["code"] == 153
-    assert commands[RobovacCommand.BATTERY]["code"] == 172
-    assert commands[RobovacCommand.ERROR]["code"] == 169
+    assert commands[RobovacCommand.START_PAUSE]["code"] == 152
+    assert commands[RobovacCommand.STATUS]["code"] == 153
+    assert commands[RobovacCommand.RETURN_HOME]["code"] == 152
+    assert commands[RobovacCommand.FAN_SPEED]["code"] == 158
+    assert commands[RobovacCommand.LOCATE]["code"] == 160
+    assert commands[RobovacCommand.BATTERY]["code"] == 163
