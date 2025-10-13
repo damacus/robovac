@@ -1,7 +1,7 @@
 """Tests for the RoboVac class."""
 
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 from homeassistant.components.vacuum import VacuumEntityFeature
 
@@ -12,7 +12,7 @@ from custom_components.robovac.robovac import (
 from custom_components.robovac.vacuums.base import RoboVacEntityFeature
 
 
-def test_init_unsupported_model():
+def test_init_unsupported_model() -> None:
     """Test initialization with unsupported model raises exception."""
     with patch(
         "custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None
@@ -29,7 +29,7 @@ def test_init_unsupported_model():
             )
 
 
-def test_get_home_assistant_features():
+def test_get_home_assistant_features() -> None:
     """Test getHomeAssistantFeatures returns correct features for different models."""
     with patch(
         "custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None
@@ -68,7 +68,7 @@ def test_get_home_assistant_features():
         assert robovac_l70.getHomeAssistantFeatures() == expected_features_with_map
 
 
-def test_get_robovac_features():
+def test_get_robovac_features() -> None:
     """Test getRoboVacFeatures returns correct features for different models."""
     with patch(
         "custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None
@@ -124,7 +124,7 @@ def test_get_robovac_features():
         assert robovac_l70.getRoboVacFeatures() == expected_l_features
 
 
-def test_get_fan_speeds():
+def test_get_fan_speeds() -> None:
     """Test getFanSpeeds returns correct fan speeds for different series."""
     with patch(
         "custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None
