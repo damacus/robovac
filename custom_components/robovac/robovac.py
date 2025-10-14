@@ -218,8 +218,15 @@ class RoboVac(TuyaDevice):
                 # Direct lookup: the input value should be a key in the values dict
                 str_value = str(value)
 
+                # Try exact match first
                 if str_value in values:
                     return str(values[str_value])
+
+                # Try case-insensitive match
+                str_value_lower = str_value.lower()
+                for key, val in values.items():
+                    if key.lower() == str_value_lower:
+                        return str(val)
 
                 # Only warn if values dict exists but value not found
                 # Debug: log the actual repr to see if there are hidden characters

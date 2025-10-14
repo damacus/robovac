@@ -171,3 +171,19 @@ def test_get_human_readable_value_command_no_values(mock_t2080_robovac):
 
         # Should NOT log a warning when no values dict exists
         mock_logger.warning.assert_not_called()
+
+
+def test_get_human_readable_value_case_insensitive(mock_t2080_robovac):
+    """Test getRoboVacHumanReadableValue handles case-insensitive matching."""
+    # Test that "Quiet" (capitalized) matches "quiet" (lowercase key)
+    assert mock_t2080_robovac.getRoboVacHumanReadableValue(
+        RobovacCommand.FAN_SPEED, "Quiet"
+    ) == "Quiet"
+
+    assert mock_t2080_robovac.getRoboVacHumanReadableValue(
+        RobovacCommand.FAN_SPEED, "STANDARD"
+    ) == "Standard"
+
+    assert mock_t2080_robovac.getRoboVacHumanReadableValue(
+        RobovacCommand.FAN_SPEED, "TuRbO"
+    ) == "Turbo"
