@@ -74,5 +74,8 @@ class T2250(RobovacModelDetails):
         },
         RobovacCommand.ERROR: {
             "code": 106,
+            "values": {
+                "0": "No error",
+            },
         },
     }

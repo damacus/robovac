@@ -216,8 +216,9 @@ class RoboVac(TuyaDevice):
 
             if values is not None:
                 # Direct lookup: the input value should be a key in the values dict
-                if str(value) in values:
-                    return str(values[value])
+                str_value = str(value)
+                if str_value in values:
+                    return str(values[str_value])
                 # Only warn if values dict exists but value not found
                 _LOGGER.warning(
                     "Command %s with value %s not found for model %s. Available values: %s. "
