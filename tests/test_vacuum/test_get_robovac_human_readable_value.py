@@ -148,8 +148,8 @@ def test_get_human_readable_value_invalid_command(mock_t2080_robovac):
         # Should return the original value
         assert result == "some_value"
 
-        # Should log a warning
-        mock_logger.warning.assert_called_once()
+        # Should NOT log a warning for invalid commands (no values dict)
+        mock_logger.warning.assert_not_called()
 
 
 def test_get_human_readable_value_command_no_values(mock_t2080_robovac):
@@ -167,5 +167,5 @@ def test_get_human_readable_value_command_no_values(mock_t2080_robovac):
         # Should return the original value
         assert result == "85"
 
-        # Should log a warning
-        mock_logger.warning.assert_called_once()
+        # Should NOT log a warning when no values dict exists
+        mock_logger.warning.assert_not_called()
