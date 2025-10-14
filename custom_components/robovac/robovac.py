@@ -217,16 +217,23 @@ class RoboVac(TuyaDevice):
             if values is not None:
                 # Direct lookup: the input value should be a key in the values dict
                 str_value = str(value)
+
                 if str_value in values:
                     return str(values[str_value])
+
                 # Only warn if values dict exists but value not found
+                # Debug: log the actual repr to see if there are hidden characters
                 _LOGGER.warning(
-                    "Command %s with value %s not found for model %s. Available values: %s. "
+                    "Command %s with value %r (type: %s, str=%r) not found for model %s. "
+                    "Available keys: %r (first key repr: %r). "
                     "If you know the status the Eufy app was showing at this time, please report that to the component maintainers.",
                     command_name,
                     value,
+                    type(value).__name__,
+                    str_value,
                     self.model_code,
                     list(values.keys()),
+                    list(values.keys())[0] if values.keys() else None,
                 )
 
         except (ValueError, KeyError):
