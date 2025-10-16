@@ -43,6 +43,12 @@ class T2252(RobovacModelDetails):
                 "Spot": "Spot",
                 "Edge": "Edge",
                 "Nosweep": "Nosweep",
+                # Bidirectional mappings for device-to-human conversion
+                "auto": "Auto",
+                "small_room": "SmallRoom",
+                "spot": "Spot",
+                "edge": "Edge",
+                "nosweep": "Nosweep",
             },
         },
         RobovacCommand.STATUS: {
@@ -68,5 +74,9 @@ class T2252(RobovacModelDetails):
         },
         RobovacCommand.ERROR: {
             "code": 106,
+            "values": {
+                # Error code mappings
+                "0": "No error",
+            },
         },
     }
