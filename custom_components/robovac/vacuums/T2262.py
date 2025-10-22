@@ -47,11 +47,6 @@ class T2262(RobovacModelDetails):
                 "spot": "Spot",
                 "edge": "Edge",
                 "nosweep": "Nosweep",
-                "Auto": "Auto",
-                "SmallRoom": "SmallRoom",
-                "Spot": "Spot",
-                "Edge": "Edge",
-                "Nosweep": "Nosweep",
             },
         },
         RobovacCommand.STATUS: {

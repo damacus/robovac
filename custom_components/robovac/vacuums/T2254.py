@@ -43,12 +43,6 @@ class T2254(RobovacModelDetails):
                 "spot": "Spot",
                 "edge": "Edge",
                 "nosweep": "Nosweep",
-                # Bidirectional mappings
-                "Auto": "Auto",
-                "SmallRoom": "SmallRoom",
-                "Spot": "Spot",
-                "Edge": "Edge",
-                "Nosweep": "Nosweep",
             },
         },
         RobovacCommand.STATUS: {

@@ -49,4 +49,55 @@ logger:
   logs:
     custom_components.robovac.vacuum: debug
     custom_components.robovac.tuyalocalapi: debug
+    custom_components.robovac.robovac: debug
+```
+
+## Development
+
+### Code Quality
+
+This integration follows best practices for code quality and maintainability:
+
+- **Case-Insensitive Matching**: Device responses are matched case-insensitively, handling variations in capitalization automatically.
+- **Logging Strategy**: Debug logs provide diagnostic information for troubleshooting, while warnings are reserved for actual issues.
+- **Type Hints**: Full type annotations throughout the codebase for improved IDE support and type checking.
+- **Test Coverage**: Dedicated tests for each vacuum model with full coverage.
+
+### Running Tests
+
+```bash
+# Run all tests
+task test
+
+# Run specific test file
+pytest tests/test_vacuum/test_t2251_command_mappings.py -v
+
+# Check code style
+task lint
+
+# Verify type hints
+task type-check
+```
+
+### Command Mapping Conventions
+
+All vacuum models follow consistent conventions for command mappings:
+
+- **Keys**: Lowercase snake_case (e.g., `"auto"`, `"small_room"`)
+- **Values**: PascalCase (e.g., `"Auto"`, `"SmallRoom"`)
+- **Matching**: Device responses are matched case-insensitively
+
+Example from `T2250.py`:
+
+```python
+RobovacCommand.MODE: {
+    "code": 5,
+    "values": {
+        "auto": "Auto",
+        "small_room": "SmallRoom",
+        "spot": "Spot",
+        "edge": "Edge",
+        "nosweep": "Nosweep",
+    },
+},
 ```

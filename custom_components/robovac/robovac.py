@@ -2,6 +2,7 @@ from typing import Any, cast
 from collections.abc import Mapping
 from homeassistant.components.vacuum import VacuumActivity
 
+from .case_insensitive_lookup import case_insensitive_lookup
 from .tuyalocalapi import TuyaDevice
 from .vacuums import ROBOVAC_MODELS
 from .vacuums.base import RobovacCommand, RobovacModelDetails
@@ -215,32 +216,20 @@ class RoboVac(TuyaDevice):
             values = self._get_command_values(cmd)
 
             if values is not None:
-                # Direct lookup: the input value should be a key in the values dict
-                str_value = str(value)
+                # Try case-insensitive lookup
+                result = case_insensitive_lookup(values, value)
+                if result is not None:
+                    return str(result)
 
-                # Try exact match first
-                if str_value in values:
-                    return str(values[str_value])
-
-                # Try case-insensitive match
-                str_value_lower = str_value.lower()
-                for key, val in values.items():
-                    if key.lower() == str_value_lower:
-                        return str(val)
-
-                # Only warn if values dict exists but value not found
-                # Debug: log the actual repr to see if there are hidden characters
-                _LOGGER.warning(
-                    "Command %s with value %r (type: %s, str=%r) not found for model %s. "
-                    "Available keys: %r (first key repr: %r). "
-                    "If you know the status the Eufy app was showing at this time, please report that to the component maintainers.",
+                # Only log if values dict exists but value not found
+                _LOGGER.debug(
+                    "Command %s with value %r (type: %s) not found for model %s. "
+                    "Available keys: %r",
                     command_name,
                     value,
                     type(value).__name__,
-                    str_value,
                     self.model_code,
                     list(values.keys()),
-                    list(values.keys())[0] if values.keys() else None,
                 )
 
         except (ValueError, KeyError):
