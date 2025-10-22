@@ -38,8 +38,7 @@ def mock_robovac():
     mock = MagicMock()
     # Set up common return values
     mock.getHomeAssistantFeatures.return_value = (
-        VacuumEntityFeature.BATTERY
-        | VacuumEntityFeature.CLEAN_SPOT
+        VacuumEntityFeature.CLEAN_SPOT
         | VacuumEntityFeature.FAN_SPEED
         | VacuumEntityFeature.LOCATE
         | VacuumEntityFeature.PAUSE

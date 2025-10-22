@@ -52,6 +52,26 @@ logger:
     custom_components.robovac.robovac: debug
 ```
 
+## Model Validation
+
+Before setting up the integration, you can validate if your RoboVac model is supported by using the included CLI tool:
+
+```bash
+python -m custom_components.robovac.model_validator_cli <YOUR_MODEL_CODE>
+```
+
+For example:
+
+```bash
+python -m custom_components.robovac.model_validator_cli T2278
+```
+
+To see a full list of all supported models, use the `--list` flag:
+
+```bash
+python -m custom_components.robovac.model_validator_cli --list
+```
+
 ## Development
 
 ### Code Quality
