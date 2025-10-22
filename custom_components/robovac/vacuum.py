@@ -364,7 +364,6 @@ class RoboVacEntity(StateVacuumEntity):
         super().__init__()
 
         # Initialize basic attributes
-        self._attr_battery_level = 0
         self._attr_name = item[CONF_NAME]
         self._attr_unique_id = item[CONF_ID]
         self._attr_model_code = item[CONF_MODEL]
@@ -540,7 +539,6 @@ class RoboVacEntity(StateVacuumEntity):
         _LOGGER.debug("Updating entity values from data points: %s", self.tuyastatus)
 
         # Update common attributes for all models
-        self._update_battery_level()
         self._update_state_and_error()
         self._update_mode_and_fan_speed()
 
@@ -593,25 +591,6 @@ class RoboVacEntity(StateVacuumEntity):
 
         # Fall back to default codes
         return TUYA_CONSUMABLES_CODES
-
-    def _update_battery_level(self) -> None:
-        """Update the battery level attribute."""
-        if self.tuyastatus is None:
-            return
-
-        battery_level = self.tuyastatus.get(self._get_dps_code("BATTERY_LEVEL"))
-
-        # Ensure battery level is an integer between 0 and 100
-        if battery_level is not None:
-            try:
-                self._attr_battery_level = int(battery_level)
-                # Ensure the value is within valid range
-                self._attr_battery_level = max(0, min(100, self._attr_battery_level))
-            except (ValueError, TypeError):
-                _LOGGER.warning("Invalid battery level value: %s", battery_level)
-                self._attr_battery_level = 0
-        else:
-            self._attr_battery_level = 0
 
     def _update_state_and_error(self) -> None:
         """Update the state and error code attributes."""
