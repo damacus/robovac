@@ -1,11 +1,12 @@
-from typing import Any, cast
+from typing import Any, cast, Union
 from collections.abc import Mapping
 from homeassistant.components.vacuum import VacuumActivity
 
 from .case_insensitive_lookup import case_insensitive_lookup
 from .tuyalocalapi import TuyaDevice
+from .pytuya_device import PyTuyaDevice
 from .vacuums import ROBOVAC_MODELS
-from .vacuums.base import RobovacCommand, RobovacModelDetails
+from .vacuums.base import RobovacModelDetails, RobovacCommand
 
 import logging
 
@@ -28,6 +29,34 @@ class RoboVac(TuyaDevice):
         model_code: The specific model identifier (e.g., "T2080", "L60")
     """
     model_details: type[RobovacModelDetails]
+
+    def __new__(cls, model_code: str, *args: Any, **kwargs: Any) -> "RoboVac":  # type: ignore[misc]
+        """Create appropriate RoboVac instance based on model configuration.
+
+        Args:
+            model_code: The model identifier for the vacuum
+            *args: Additional arguments
+            **kwargs: Additional keyword arguments
+
+        Returns:
+            RoboVac or PyTuyaRoboVac instance based on model's use_pytuya flag
+
+        Raises:
+            ModelNotSupportedException: If the model_code is not supported
+        """
+        if model_code not in ROBOVAC_MODELS:
+            raise ModelNotSupportedException(
+                f"Model {model_code} is not supported"
+            )
+
+        model_details = ROBOVAC_MODELS[model_code]()
+
+        # Check if model wants to use PyTuya implementation
+        if hasattr(model_details, 'use_pytuya') and model_details.use_pytuya:
+            _LOGGER.info("Using PyTuya implementation for model %s", model_code)
+            return object.__new__(PyTuyaRoboVac)
+        else:
+            return object.__new__(cls)
 
     def __init__(self, model_code: str, *args: Any, **kwargs: Any):
         """Initialize the RoboVac device.
@@ -236,3 +265,61 @@ class RoboVac(TuyaDevice):
             pass
 
         return value
+
+
+class PyTuyaRoboVac(PyTuyaDevice, RoboVac):
+    """RoboVac implementation using PyTuya protocol.
+
+    This class uses LocalTuya's PyTuya implementation for models that require
+    protocol version 3.5 or have issues with the legacy implementation.
+    It inherits from both PyTuyaDevice (for protocol) and RoboVac (for vacuum logic).
+    """
+
+    def __init__(self, model_code: str, device_id: str, host: str, local_key: str,
+                 timeout: float, ping_interval: float, update_entity_state: Any,
+                 port: int = 6668, **kwargs: Any):
+        """Initialize PyTuya-based RoboVac.
+
+        Args:
+            model_code: The model identifier for the vacuum
+            device_id: Tuya device ID
+            host: IP address of device
+            local_key: Encryption key
+            timeout: Connection timeout
+            ping_interval: Heartbeat interval (not used in PyTuya)
+            update_entity_state: Callback for status updates
+            port: Device port
+            **kwargs: Additional arguments
+        """
+        # Validate model
+        if model_code not in ROBOVAC_MODELS:
+            raise ModelNotSupportedException(
+                f"Model {model_code} is not supported"
+            )
+
+        current_model_details = ROBOVAC_MODELS[model_code]
+        self.model_code = model_code
+        self.model_details = current_model_details
+
+        # Get protocol version from model details
+        protocol_version = getattr(current_model_details, 'protocol_version', 3.1)
+
+        # Initialize PyTuyaDevice
+        PyTuyaDevice.__init__(
+            self,
+            device_id=device_id,
+            host=host,
+            local_key=local_key,
+            timeout=timeout,
+            ping_interval=ping_interval,
+            protocol_version=protocol_version,
+            update_entity_state=update_entity_state,
+            port=port,
+        )
+
+        _LOGGER.info(
+            "Initialized PyTuyaRoboVac for %s (model: %s, protocol: %s)",
+            device_id,
+            model_code,
+            protocol_version,
+        )
