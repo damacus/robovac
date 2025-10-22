@@ -254,13 +254,8 @@ class RoboVacEntity(StateVacuumEntity):
             # 0 is a default set when we don't have a state
             return None
         elif (
-            type(self.error_code) is not None
-            and self.error_code
-            and self.error_code
-            not in [
-                0,
-                "no_error",
-            ]
+            self.error_code is not None
+            and self.error_code not in [0, "no_error", "No error"]
         ):
             _LOGGER.debug(
                 "State changed to error. Error message: {}".format(
