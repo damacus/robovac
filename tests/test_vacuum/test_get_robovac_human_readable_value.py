@@ -128,14 +128,15 @@ def test_get_human_readable_value_unknown_value(mock_t2080_robovac):
         # Should return the original value
         assert result == "UNKNOWN_CODE"
 
-        # Should log a warning
-        mock_logger.warning.assert_called_once()
-        # Check that the warning was called with the expected parameters
-        call_args = mock_logger.warning.call_args
-        assert "Command %s with value %s not found for model %s" in call_args[0][0]
+        # Should log debug information for unknown values
+        mock_logger.debug.assert_called_once()
+        # Check that debug was called with the expected parameters
+        call_args = mock_logger.debug.call_args
+        assert "Command %s with value %r (type: %s) not found for model %s" in call_args[0][0]
         assert call_args[0][1] == "status"
         assert call_args[0][2] == "UNKNOWN_CODE"
-        assert call_args[0][3] == "T2080"
+        assert call_args[0][3] == "str"  # type name
+        assert call_args[0][4] == "T2080"
 
 
 def test_get_human_readable_value_invalid_command(mock_t2080_robovac):
@@ -148,8 +149,8 @@ def test_get_human_readable_value_invalid_command(mock_t2080_robovac):
         # Should return the original value
         assert result == "some_value"
 
-        # Should log a warning
-        mock_logger.warning.assert_called_once()
+        # Should NOT log a warning for invalid commands (no values dict)
+        mock_logger.warning.assert_not_called()
 
 
 def test_get_human_readable_value_command_no_values(mock_t2080_robovac):
@@ -167,5 +168,21 @@ def test_get_human_readable_value_command_no_values(mock_t2080_robovac):
         # Should return the original value
         assert result == "85"
 
-        # Should log a warning
-        mock_logger.warning.assert_called_once()
+        # Should NOT log a warning when no values dict exists
+        mock_logger.warning.assert_not_called()
+
+
+def test_get_human_readable_value_case_insensitive(mock_t2080_robovac):
+    """Test getRoboVacHumanReadableValue handles case-insensitive matching."""
+    # Test that "Quiet" (capitalized) matches "quiet" (lowercase key)
+    assert mock_t2080_robovac.getRoboVacHumanReadableValue(
+        RobovacCommand.FAN_SPEED, "Quiet"
+    ) == "Quiet"
+
+    assert mock_t2080_robovac.getRoboVacHumanReadableValue(
+        RobovacCommand.FAN_SPEED, "STANDARD"
+    ) == "Standard"
+
+    assert mock_t2080_robovac.getRoboVacHumanReadableValue(
+        RobovacCommand.FAN_SPEED, "TuRbO"
+    ) == "Turbo"
