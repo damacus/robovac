@@ -22,16 +22,22 @@ def mock_t2276_robovac() -> RoboVac:
 
 
 def test_t2276_dps_codes(mock_t2276_robovac) -> None:
-    """Test that T2276 has the correct DPS codes."""
+    """Test that T2276 has the correct DPS codes.
+    
+    getDpsCodes() extracts codes from the commands dictionary.
+    T2276 uses standard Tuya DPS codes for status (15, 104, 106)
+    and custom command codes for control (152, 153, 154).
+    """
     dps_codes = mock_t2276_robovac.getDpsCodes()
 
+    # Codes extracted from commands dictionary
     assert dps_codes["MODE"] == "152"
-    assert dps_codes["STATUS"] == "173"
+    assert dps_codes["STATUS"] == "15"  # Standard Tuya code
     assert dps_codes["RETURN_HOME"] == "153"
     assert dps_codes["FAN_SPEED"] == "154"
     assert dps_codes["LOCATE"] == "153"
-    assert dps_codes["BATTERY_LEVEL"] == "172"
-    assert dps_codes["ERROR_CODE"] == "169"
+    assert dps_codes["BATTERY_LEVEL"] == "104"  # Standard Tuya code
+    assert dps_codes["ERROR_CODE"] == "106"  # Standard Tuya code
 
 
 def test_t2276_mode_command_values(mock_t2276_robovac) -> None:
@@ -77,13 +83,20 @@ def test_t2276_locate_command_values(mock_t2276_robovac) -> None:
 
 
 def test_t2276_command_codes(mock_t2276_robovac) -> None:
-    """Test that T2276 command codes are correctly defined on model."""
+    """Test that T2276 command codes are correctly defined on model.
+    
+    T2276 uses custom command codes for sending control commands,
+    but standard DPS codes for reading status.
+    """
     commands = mock_t2276_robovac.model_details.commands
 
+    # Custom command codes for control
     assert commands[RobovacCommand.MODE]["code"] == 152
-    assert commands[RobovacCommand.STATUS]["code"] == 173
     assert commands[RobovacCommand.RETURN_HOME]["code"] == 153
     assert commands[RobovacCommand.FAN_SPEED]["code"] == 154
     assert commands[RobovacCommand.LOCATE]["code"] == 153
-    assert commands[RobovacCommand.BATTERY]["code"] == 172
-    assert commands[RobovacCommand.ERROR]["code"] == 169
+    
+    # Standard DPS codes for status reading
+    assert commands[RobovacCommand.STATUS]["code"] == 15
+    assert commands[RobovacCommand.BATTERY]["code"] == 104
+    assert commands[RobovacCommand.ERROR]["code"] == 106

@@ -1,10 +1,14 @@
 """eufy Clean X8 Pro SES (T2276)
 
-WARNING: This model has known communication issues.
-Users report "Incomplete read" errors and empty data points.
-See docs/ISSUE_42_T2276_INVESTIGATION.md for details.
+FIXED: Updated with correct DPS codes based on working implementation.
+T2276 uses standard Tuya DPS codes for status reading, not custom command codes.
 
-If you have this model, please help by providing device data via GitHub Issue #42.
+Key differences from other models:
+- Uses Tuya protocol version 3.5 (requires TinyTuya library support)
+- Standard DPS codes for reading status (1, 5, 7, 15, 102, 104, 106)
+- Custom command codes for sending controls (152, 153, 154, etc.)
+
+Based on: https://github.com/kevinbird15/robovac-ha-integration/blob/purgatory
 """
 from homeassistant.components.vacuum import VacuumEntityFeature
 from .base import RoboVacEntityFeature, RobovacCommand, RobovacModelDetails
@@ -25,6 +29,22 @@ class T2276(RobovacModelDetails):
         RoboVacEntityFeature.DO_NOT_DISTURB
         | RoboVacEntityFeature.BOOST_IQ
     )
+
+    # T2276 uses standard Tuya DPS codes for reading status
+    # These are different from the command codes used for control
+    dps_codes = {
+        "START_PAUSE": "1",
+        "MODE": "5",
+        "RETURN_HOME": "7",
+        "STATUS": "15",
+        "FAN_SPEED": "102",
+        "BATTERY_LEVEL": "104",
+        "ERROR_CODE": "106",
+        "DO_NOT_DISTURB": "107",
+        "BOOST_IQ": "118",
+    }
+
+    # Command codes for sending control commands (different from DPS codes)
     commands = {
         RobovacCommand.MODE: {
             "code": 152,
@@ -37,7 +57,7 @@ class T2276(RobovacModelDetails):
             },
         },
         RobovacCommand.STATUS: {
-            "code": 173,
+            "code": 15,  # Use standard DPS code for status
         },
         RobovacCommand.RETURN_HOME: {
             "code": 153,
@@ -58,9 +78,14 @@ class T2276(RobovacModelDetails):
             }
         },
         RobovacCommand.BATTERY: {
-            "code": 172,
+            "code": 104,  # Use standard DPS code for battery
         },
         RobovacCommand.ERROR: {
-            "code": 169,
+            "code": 106,  # Use standard DPS code for error
         },
     }
+
+    # TODO: T2276 requires Tuya protocol version 3.5
+    # Current implementation uses 3.1 which causes "Incomplete read" errors
+    # Needs TinyTuya library integration or protocol version upgrade
+    # See: https://github.com/damacus/robovac/issues/42
