@@ -1,6 +1,8 @@
 """Tests for T2080 command mappings and DPS codes."""
 
+import importlib
 import pytest
+import sys
 from typing import Any
 from unittest.mock import patch
 
@@ -11,6 +13,17 @@ from custom_components.robovac.vacuums.base import RobovacCommand
 @pytest.fixture
 def mock_t2080_robovac() -> RoboVac:
     """Create a mock T2080 RoboVac instance for testing."""
+    # Force reload of modules to avoid caching issues
+    modules_to_reload = [
+        "custom_components.robovac.vacuums.base",
+        "custom_components.robovac.vacuums.T2080",
+        "custom_components.robovac.vacuums",
+        "custom_components.robovac.robovac",
+    ]
+    for module_name in modules_to_reload:
+        if module_name in sys.modules:
+            importlib.reload(sys.modules[module_name])
+    
     with patch("custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None):
         robovac = RoboVac(
             model_code="T2080",
@@ -55,3 +68,27 @@ def test_t2080_status_human_readable(mock_t2080_robovac) -> None:
     assert mock_t2080_robovac.getRoboVacHumanReadableValue(RobovacCommand.STATUS, "CgoAEAkaAggBMgA=") == "Auto Cleaning"
     assert mock_t2080_robovac.getRoboVacHumanReadableValue(RobovacCommand.STATUS, "BhADGgIIAQ==") == "Completed"
     assert mock_t2080_robovac.getRoboVacHumanReadableValue(RobovacCommand.STATUS, "BBADGgA=") == "Charging"
+
+
+def test_t2080_mop_level_command_exists(mock_t2080_robovac) -> None:
+    """Test that T2080 model has MOP_LEVEL command defined."""
+    commands = mock_t2080_robovac.model_details.commands
+
+    # Verify MOP_LEVEL command exists
+    assert RobovacCommand.MOP_LEVEL in commands, "MOP_LEVEL command should be defined in T2080"
+    
+    # Verify DPS code from issue #105 debug logs
+    assert commands[RobovacCommand.MOP_LEVEL]["code"] == 10, "MOP_LEVEL should use DPS code 10"
+    
+    # Verify all mop level values are defined
+    mop_values = commands[RobovacCommand.MOP_LEVEL]["values"]
+    assert "low" in mop_values, "MOP_LEVEL should support 'low'"
+    assert "middle" in mop_values, "MOP_LEVEL should support 'middle'"
+    assert "normal" in mop_values, "MOP_LEVEL should support 'normal'"
+    assert "strong" in mop_values, "MOP_LEVEL should support 'strong'"
+    
+    # Verify symmetric string mappings
+    assert mop_values["low"] == "low"
+    assert mop_values["middle"] == "middle"
+    assert mop_values["normal"] == "normal"
+    assert mop_values["strong"] == "strong"
