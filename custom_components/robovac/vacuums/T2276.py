@@ -30,11 +30,6 @@ class T2276(RobovacModelDetails):
         | RoboVacEntityFeature.BOOST_IQ
     )
 
-    # PyTuya configuration - T2276 requires protocol 3.5
-    # TODO: Enable after fixing test mocking - ready for production
-    use_pytuya = False  # True - Set to True to enable PyTuya with protocol 3.5
-    protocol_version = 3.5
-
     # T2276 uses standard Tuya DPS codes for reading status
     # These are different from the command codes used for control
     dps_codes = {

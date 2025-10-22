@@ -11,8 +11,7 @@ from custom_components.robovac.vacuums.base import RobovacCommand
 @pytest.fixture
 def mock_t2276_robovac() -> RoboVac:
     """Create a mock T2276 RoboVac instance for testing."""
-    with patch("custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None), \
-         patch("custom_components.robovac.robovac.PyTuyaDevice.__init__", return_value=None):
+    with patch("custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None):
         robovac = RoboVac(
             model_code="T2276",
             device_id="test_id",

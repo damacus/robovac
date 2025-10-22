@@ -26,10 +26,6 @@ class T2251(RobovacModelDetails):
         | RoboVacEntityFeature.AUTO_RETURN
     )
 
-    # PyTuya configuration for testing
-    # TODO: Re-enable after fixing test mocking
-    use_pytuya = False  # True
-    protocol_version = 3.3
     commands = {
         RobovacCommand.START_PAUSE: {
             "code": 2,

@@ -1,10 +1,9 @@
-from typing import Any, cast, Union
+from typing import Any, cast
 from collections.abc import Mapping
 from homeassistant.components.vacuum import VacuumActivity
 
 from .case_insensitive_lookup import case_insensitive_lookup
 from .tuyalocalapi import TuyaDevice
-from .pytuya_device import PyTuyaDevice
 from .vacuums import ROBOVAC_MODELS
 from .vacuums.base import RobovacModelDetails, RobovacCommand
 
@@ -29,34 +28,6 @@ class RoboVac(TuyaDevice):
         model_code: The specific model identifier (e.g., "T2080", "L60")
     """
     model_details: type[RobovacModelDetails]
-
-    def __new__(cls, model_code: str, *args: Any, **kwargs: Any) -> "RoboVac":  # type: ignore[misc]
-        """Create appropriate RoboVac instance based on model configuration.
-
-        Args:
-            model_code: The model identifier for the vacuum
-            *args: Additional arguments
-            **kwargs: Additional keyword arguments
-
-        Returns:
-            RoboVac or PyTuyaRoboVac instance based on model's use_pytuya flag
-
-        Raises:
-            ModelNotSupportedException: If the model_code is not supported
-        """
-        if model_code not in ROBOVAC_MODELS:
-            raise ModelNotSupportedException(
-                f"Model {model_code} is not supported"
-            )
-
-        model_details = ROBOVAC_MODELS[model_code]()
-
-        # Check if model wants to use PyTuya implementation
-        if hasattr(model_details, 'use_pytuya') and model_details.use_pytuya:
-            _LOGGER.info("Using PyTuya implementation for model %s", model_code)
-            return object.__new__(PyTuyaRoboVac)  # type: ignore[return-value]
-        else:
-            return object.__new__(cls)
 
     def __init__(self, model_code: str, *args: Any, **kwargs: Any):
         """Initialize the RoboVac device.
@@ -265,156 +236,3 @@ class RoboVac(TuyaDevice):
             pass
 
         return value
-
-
-class PyTuyaRoboVac(PyTuyaDevice):
-    """RoboVac implementation using PyTuya protocol.
-
-    This class uses LocalTuya's PyTuya implementation for models that require
-    protocol version 3.5 or have issues with the legacy implementation.
-    It provides the same interface as RoboVac but uses PyTuyaDevice for protocol.
-    """
-
-    model_details: type[RobovacModelDetails]
-    model_code: str
-
-    def __init__(self, model_code: str, device_id: str, host: str, local_key: str,
-                 timeout: float, ping_interval: float, update_entity_state: Any,
-                 port: int = 6668, **kwargs: Any):
-        """Initialize PyTuya-based RoboVac.
-
-        Args:
-            model_code: The model identifier for the vacuum
-            device_id: Tuya device ID
-            host: IP address of device
-            local_key: Encryption key
-            timeout: Connection timeout
-            ping_interval: Heartbeat interval (not used in PyTuya)
-            update_entity_state: Callback for status updates
-            port: Device port
-            **kwargs: Additional arguments
-        """
-        # Validate model
-        if model_code not in ROBOVAC_MODELS:
-            raise ModelNotSupportedException(
-                f"Model {model_code} is not supported"
-            )
-
-        current_model_details = ROBOVAC_MODELS[model_code]
-        self.model_code = model_code
-        self.model_details = current_model_details
-
-        # Get protocol version from model details
-        protocol_version = getattr(current_model_details, 'protocol_version', 3.1)
-
-        # Initialize PyTuyaDevice
-        PyTuyaDevice.__init__(
-            self,
-            device_id=device_id,
-            host=host,
-            local_key=local_key,
-            timeout=timeout,
-            ping_interval=ping_interval,
-            protocol_version=protocol_version,
-            update_entity_state=update_entity_state,
-            port=port,
-        )
-
-        _LOGGER.info(
-            "Initialized PyTuyaRoboVac for %s (model: %s, protocol: %s)",
-            device_id,
-            model_code,
-            protocol_version,
-        )
-
-    # Copy all RoboVac methods that don't depend on TuyaDevice
-    def getHomeAssistantFeatures(self) -> int:
-        """Get the Home Assistant supported features for this vacuum model."""
-        return self.model_details.homeassistant_features
-
-    def getRoboVacFeatures(self) -> int:
-        """Get the RoboVac-specific features for this vacuum model."""
-        return self.model_details.robovac_features
-
-    def getAvailableCommands(self) -> list[str]:
-        """Get list of available commands for this vacuum model."""
-        return list(self.model_details.commands.keys())
-
-    def getDpsCodes(self) -> dict[str, str]:
-        """Get the DPS codes for this model based on command codes."""
-        command_to_dps = {
-            "BATTERY": "BATTERY_LEVEL",
-            "ERROR": "ERROR_CODE",
-        }
-
-        codes = {}
-        for key, value in self.model_details.commands.items():
-            dps_name = command_to_dps.get(key.name, key.name)
-
-            if isinstance(value, dict) and "code" in value:
-                codes[dps_name] = str(value["code"])
-            elif isinstance(value, dict):
-                continue
-            else:
-                codes[dps_name] = str(value)
-
-        return codes
-
-    def getRoboVacCommandValue(self, command_name: RobovacCommand, value: str) -> str:
-        """Convert human-readable command value to model-specific device value."""
-        values = None
-        try:
-            cmd = command_name if isinstance(command_name, RobovacCommand) else RobovacCommand(command_name)
-            values = self._get_command_values(cmd)
-
-            if values is not None:
-                result = case_insensitive_lookup(values, value)
-                if result is not None:
-                    return str(result)
-
-        except (ValueError, KeyError):
-            pass
-
-        return value
-
-    def getRoboVacHumanReadableValue(self, command_name: RobovacCommand | str, value: str) -> str:
-        """Convert model-specific value to human-readable value."""
-        values = None
-        try:
-            cmd = command_name if isinstance(command_name, RobovacCommand) else RobovacCommand(command_name)
-            values = self._get_command_values(cmd)
-
-            if values is not None:
-                result = case_insensitive_lookup(values, value)
-                if result is not None:
-                    return str(result)
-
-                _LOGGER.debug(
-                    "Command %s with value %r (type: %s) not found for model %s. "
-                    "Available keys: %r",
-                    command_name,
-                    value,
-                    type(value).__name__,
-                    self.model_code,
-                    list(values.keys()),
-                )
-
-        except (ValueError, KeyError):
-            pass
-
-        return value
-
-    def getRoboVacActivityMapping(self) -> Mapping[str, VacuumActivity] | None:
-        """Get the activity mapping for this vacuum model."""
-        return self.model_details.activity_mapping
-
-    def _get_command_values(self, command_name: RobovacCommand) -> dict[str, str] | None:
-        """Get the values dictionary for a specific command."""
-        if command_name not in self.model_details.commands:
-            return None
-
-        command_data = self.model_details.commands[command_name]
-        if isinstance(command_data, dict) and "values" in command_data:
-            return cast(dict[str, str], command_data["values"])
-
-        return None
