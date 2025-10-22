@@ -3,12 +3,13 @@
 import subprocess
 import sys
 import pytest
+from typing import Any
 
 
 class TestModelValidatorCLI:
     """Test suite for the model_validator_cli.py tool."""
 
-    def run_cli(self, *args):
+    def run_cli(self, *args: Any) -> subprocess.CompletedProcess[str]:
         """Helper function to run the CLI tool as a subprocess."""
         command = [sys.executable, "-m", "custom_components.robovac.model_validator_cli"] + list(args)
         result = subprocess.run(command, capture_output=True, text=True, check=False)

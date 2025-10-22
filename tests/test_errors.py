@@ -37,7 +37,7 @@ class TestErrorMessages:
 
     def test_get_error_message_with_none(self) -> None:
         """Test getErrorMessage handles None gracefully."""
-        result = getErrorMessage(None)
+        result = getErrorMessage(None)  # type: ignore[arg-type]
         assert result == "None"
 
 
