@@ -161,7 +161,7 @@ async def test_update_entity_values(mock_robovac, mock_vacuum_data) -> None:
         entity.update_entity_values()
 
         # Assert
-        assert entity._attr_battery_level == 75
+        # Battery level is now handled by separate sensor entity
         assert entity.tuya_state == "Cleaning"
         assert entity.error_code == 0
         assert entity._attr_mode == "auto"
