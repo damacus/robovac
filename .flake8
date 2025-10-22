@@ -1,6 +1,6 @@
 [flake8]
 max-line-length = 180
-exclude = .git,__pycache__,docs/source/conf.py,old,build,dist,.venv,custom_components/robovac/pytuya
+exclude = .git,__pycache__,docs/source/conf.py,old,build,dist,.venv
 ignore =
     # D100: Missing docstring in public module
     D100,
@@ -10,6 +10,8 @@ ignore =
     D107,
     # D400: First line should end with a period
     D400,
+    # E203: Whitespace before ':' (conflicts with Black formatting for slicing)
+    E203,
     # E402: Module level import not at top of file (sometimes needed in test fixtures)
     E402,
     # F401: Module imported but unused (sometimes needed for type hints or fixtures)
