@@ -52,7 +52,8 @@ from .vacuums.base import RobovacCommand
 
 from cryptography.hazmat.backends.openssl import backend as openssl_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from cryptography.hazmat.primitives.hashes import Hash, MD5
+from cryptography.hazmat.primitives.hashes import Hash, MD5, SHA256
+from cryptography.hazmat.primitives.hmac import HMAC
 from cryptography.hazmat.primitives.padding import PKCS7
 
 INITIAL_BACKOFF = 5
@@ -61,6 +62,7 @@ BACKOFF_MULTIPLIER = 1.70224
 _LOGGER = logging.getLogger(__name__)
 MESSAGE_PREFIX_FORMAT = ">IIII"
 MESSAGE_SUFFIX_FORMAT = ">II"
+MESSAGE_SUFFIX_FORMAT_HMAC = ">32sI"  # HMAC-SHA256 (32 bytes) + suffix
 MAGIC_PREFIX = 0x000055AA
 MAGIC_SUFFIX = 0x0000AA55
 MAGIC_SUFFIX_BYTES = struct.pack(">I", MAGIC_SUFFIX)
@@ -451,7 +453,15 @@ class TuyaCipher:
             payload = base64.b64encode(encrypted_data)
             hash_value = self.hash(payload)
             prefix += hash_value.encode("utf8")
+        elif self.version >= (3, 4):
+            # Protocol 3.4+ encrypts the version header too
+            payload = encrypted_data
+            if command in (Message.SET_COMMAND, Message.GRATUITOUS_UPDATE):
+                prefix += b"\x00" * 12
+            else:
+                prefix = b""
         else:
+            # Protocol 3.3
             payload = encrypted_data
             if command in (Message.SET_COMMAND, Message.GRATUITOUS_UPDATE):
                 prefix += b"\x00" * 12
@@ -568,7 +578,13 @@ class Message:
         if self.encrypt and self.device is not None:
             payload_data = self.device.cipher.encrypt(self.command, payload_data)
 
-        payload_size = len(payload_data) + struct.calcsize(MESSAGE_SUFFIX_FORMAT)
+        # Protocol 3.4+ uses HMAC-SHA256, earlier versions use CRC32
+        if self.device and self.device.version >= (3, 4):
+            suffix_format = MESSAGE_SUFFIX_FORMAT_HMAC
+        else:
+            suffix_format = MESSAGE_SUFFIX_FORMAT
+
+        payload_size = len(payload_data) + struct.calcsize(suffix_format)
 
         header = struct.pack(
             MESSAGE_PREFIX_FORMAT,
@@ -577,11 +593,23 @@ class Message:
             self.command,
             payload_size,
         )
-        if self.device and self.device.version >= (3, 3):
-            checksum = crc(header + payload_data)
+
+        # Calculate checksum based on protocol version
+        if self.device and self.device.version >= (3, 4):
+            # Protocol 3.4+ uses HMAC-SHA256
+            h = HMAC(self.device.cipher.key.encode("ascii"), SHA256(), backend=openssl_backend)
+            h.update(header + payload_data)
+            hmac_value = h.finalize()
+            footer = struct.pack(MESSAGE_SUFFIX_FORMAT_HMAC, hmac_value, MAGIC_SUFFIX)
+        elif self.device and self.device.version >= (3, 3):
+            # Protocol 3.3 uses CRC32 on header + payload
+            crc_value = crc(header + payload_data)
+            footer = struct.pack(MESSAGE_SUFFIX_FORMAT, crc_value, MAGIC_SUFFIX)
         else:
-            checksum = crc(payload_data)
-        footer = struct.pack(MESSAGE_SUFFIX_FORMAT, checksum, MAGIC_SUFFIX)
+            # Protocol < 3.3 uses CRC32 on payload only
+            crc_value = crc(payload_data)
+            footer = struct.pack(MESSAGE_SUFFIX_FORMAT, crc_value, MAGIC_SUFFIX)
+
         return header + payload_data + footer
 
     def __bytes__(self) -> bytes:
@@ -631,6 +659,12 @@ class Message:
         if prefix != MAGIC_PREFIX:
             raise InvalidMessage("Magic prefix missing from message.")
 
+        # Determine suffix format based on protocol version
+        if device.version >= (3, 4):
+            suffix_format = MESSAGE_SUFFIX_FORMAT_HMAC
+        else:
+            suffix_format = MESSAGE_SUFFIX_FORMAT
+
         # check for an optional return code
         header_size = struct.calcsize(MESSAGE_PREFIX_FORMAT)
         try:
@@ -641,7 +675,7 @@ class Message:
             payload_data = data[
                 header_size:header_size
                 + payload_size
-                - struct.calcsize(MESSAGE_SUFFIX_FORMAT)
+                - struct.calcsize(suffix_format)
             ]
             return_code = None
         else:
@@ -649,29 +683,56 @@ class Message:
                 header_size
                 + struct.calcsize(">I"):header_size
                 + payload_size
-                - struct.calcsize(MESSAGE_SUFFIX_FORMAT)
+                - struct.calcsize(suffix_format)
             ]
 
-        try:
-            expected_crc, suffix = struct.unpack_from(
-                MESSAGE_SUFFIX_FORMAT,
-                data,
-                header_size + payload_size - struct.calcsize(MESSAGE_SUFFIX_FORMAT),
+        # Validate checksum based on protocol version
+        if device.version >= (3, 4):
+            # Protocol 3.4+ uses HMAC-SHA256
+            try:
+                expected_hmac, suffix = struct.unpack_from(
+                    MESSAGE_SUFFIX_FORMAT_HMAC,
+                    data,
+                    header_size + payload_size - struct.calcsize(MESSAGE_SUFFIX_FORMAT_HMAC),
+                )
+            except struct.error as e:
+                raise InvalidMessage("Invalid message suffix format.") from e
+            if suffix != MAGIC_SUFFIX:
+                raise InvalidMessage("Magic suffix missing from message")
+
+            # Ensure data is not None before indexing
+            if data is None:
+                raise InvalidMessage("Data cannot be None")
+
+            # Verify HMAC
+            h = HMAC(device.cipher.key.encode("ascii"), SHA256(), backend=openssl_backend)
+            h.update(data[: header_size + payload_size - struct.calcsize(MESSAGE_SUFFIX_FORMAT_HMAC)])
+            try:
+                h.verify(expected_hmac)
+            except Exception as e:
+                raise InvalidMessage("HMAC verification failed") from e
+        else:
+            # Protocol < 3.4 uses CRC32
+            try:
+                expected_crc, suffix = struct.unpack_from(
+                    MESSAGE_SUFFIX_FORMAT,
+                    data,
+                    header_size + payload_size - struct.calcsize(MESSAGE_SUFFIX_FORMAT),
+                )
+            except struct.error as e:
+                raise InvalidMessage("Invalid message suffix format.") from e
+            if suffix != MAGIC_SUFFIX:
+                raise InvalidMessage("Magic suffix missing from message")
+
+            # Ensure data is not None before indexing
+            if data is None:
+                raise InvalidMessage("Data cannot be None")
+
+            actual_crc = crc(
+                data[: header_size + payload_size - struct.calcsize(MESSAGE_SUFFIX_FORMAT)]
             )
-        except struct.error as e:
-            raise InvalidMessage("Invalid message suffix format.") from e
-        if suffix != MAGIC_SUFFIX:
-            raise InvalidMessage("Magic suffix missing from message")
-
-        # Ensure data is not None before indexing
-        if data is None:
-            raise InvalidMessage("Data cannot be None")
-
-        actual_crc = crc(
-            data[: header_size + payload_size - struct.calcsize(MESSAGE_SUFFIX_FORMAT)]
-        )
-        if expected_crc != actual_crc:
-            raise InvalidMessage("CRC check failed")
+            if expected_crc != actual_crc:
+                raise InvalidMessage("CRC check failed")
 
         payload = None
         if payload_data:
