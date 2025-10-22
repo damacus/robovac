@@ -63,25 +63,51 @@ If you have a T2276 vacuum, please help us by providing:
 1. **Device Information**:
    - Exact model name from Eufy app
    - Firmware version
-   - Device ID and local key (can be redacted in public posts)
 
-2. **Raw Data Capture**:
-   - Use `tinytuya` to scan your device:
+2. **Get Local Key and Device ID**:
+   Since your vacuum is connected to the Eufy app (not Tuya directly), you need to extract credentials using one of these methods:
 
-     ```bash
-     python -m tinytuya scan
-     python -m tinytuya wizard
-     ```
+   **Method 1: Eufy Security Web API (Recommended)**
+   - Follow this guide: <https://github.com/matijse/eufy-ha-mqtt-bridge/wiki/Obtaining-your-Local-Key-and-Device-ID>
+   - This extracts credentials from Eufy's servers without needing Tuya cloud access
 
-   - Capture the DPS values when vacuum is in different states:
-     - Idle/Standby
-     - Cleaning
-     - Returning to dock
-     - Charging
+   **Method 2: Network Traffic Capture**
+   - Use Wireshark or similar to capture traffic between Eufy app and vacuum
+   - Look for the local key in the initial handshake
 
-3. **Alternative Integration**:
+3. **Raw Data Capture** (after getting credentials):
+   Once you have the local key and device ID:
+
+   ```bash
+   # Scan for your device on local network
+   python -m tinytuya scan
+   
+   # Create a snapshot file with your credentials
+   # Then capture DPS values in different states
+   ```
+
+   Capture the DPS values when vacuum is in different states:
+   - Idle/Standby
+   - Cleaning
+   - Returning to dock
+   - Charging
+
+4. **Alternative Integration**:
    - Try kevinbird15's fork: <https://github.com/kevinbird15/robovac-ha-integration>
    - Report if it works and what differences you notice
+
+5. **Enable Debug Logging**:
+   In Home Assistant, add to `configuration.yaml`:
+
+   ```yaml
+   logger:
+     default: info
+     logs:
+       custom_components.robovac: debug
+       custom_components.robovac.tuyalocalapi: debug
+   ```
+
+   Then provide the full debug logs showing the connection attempts
 
 ### For Developers
 
