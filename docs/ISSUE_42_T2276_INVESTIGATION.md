@@ -133,3 +133,10 @@ If you have a T2276 vacuum, please help us debug the communication issue:
 - Tests created and passing for T2276 command mappings
 - Model file exists with standard configuration
 - Issue appears to be at protocol/communication level, not configuration
+- **Root cause identified**: T2276 requires Tuya protocol version 3.5 (current implementation uses 3.1)
+- **Solution decided**: Migrate from custom Tuya implementation to LocalTuya's PyTuya
+  - Supports protocols 3.1, 3.2, 3.3, 3.4, 3.5
+  - Battle-tested by thousands of users
+  - Actively maintained
+  - Drop-in replacement for custom code
+  - See: <https://github.com/rospogrigio/localtuya>
