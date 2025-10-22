@@ -20,7 +20,7 @@ SERIES_PATTERNS = {
 }
 
 # Series-specific troubleshooting guides
-SERIES_GUIDES = {
+SERIES_GUIDES: dict[str, dict[str, str | list[str]]] = {
     "C": {
         "description": "RoboVac C Series",
         "features": "Budget-friendly models with basic cleaning capabilities",
@@ -164,9 +164,9 @@ def get_troubleshooting_guide(model_code: str) -> dict[str, str | list[str] | bo
     if series and series in SERIES_GUIDES:
         series_info = SERIES_GUIDES[series]
         guide["series"] = series
-        guide["description"] = series_info["description"]  # type: ignore[assignment]
-        guide["features"] = series_info["features"]  # type: ignore[assignment]
-        guide["common_issues"] = list(series_info["common_issues"])  # type: ignore[assignment]
+        guide["description"] = series_info["description"]
+        guide["features"] = series_info["features"]
+        guide["common_issues"] = series_info["common_issues"]
     else:
         # Generic guide for unknown models
         guide["series"] = "Unknown"
@@ -179,7 +179,7 @@ def get_troubleshooting_guide(model_code: str) -> dict[str, str | list[str] | bo
         ]
 
     # Add support status
-    guide["supported"] = is_supported_model(model_code)  # type: ignore[assignment]
+    guide["supported"] = is_supported_model(model_code)
 
     if not is_supported_model(model_code):
         suggestions = suggest_similar_models(model_code, max_suggestions=3)
