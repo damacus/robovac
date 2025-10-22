@@ -26,6 +26,7 @@ class RobovacCommand(StrEnum):
     STATUS = "status"
     RETURN_HOME = "return_home"
     FAN_SPEED = "fan_speed"
+    MOP_LEVEL = "mop_level"
     LOCATE = "locate"
     BATTERY = "battery"
     ERROR = "error"

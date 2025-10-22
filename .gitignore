@@ -2,6 +2,7 @@
 
 # Python cache files
 __pycache__/
+tests/test_vacuum/__pycache__
 *.py[cod]
 *$py.class
 

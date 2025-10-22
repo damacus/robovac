@@ -115,6 +115,17 @@ class T2080(RobovacModelDetails):
                 "max": "Max"
             },
         },
+        RobovacCommand.MOP_LEVEL: {
+            # Based on debug logs from issue #105
+            # Device uses these exact string values
+            "code": 10,
+            "values": {
+                "low": "low",
+                "middle": "middle",
+                "normal": "normal",
+                "strong": "strong"
+            },
+        },
         RobovacCommand.BATTERY: {
             # Verified
             # Seems that '8' is a duplicate of '163'
