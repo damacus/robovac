@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0](https://github.com/damacus/robovac/compare/v1.4.0...v1.5.0) (2025-10-22)
+
+
+### Features
+
+* **T2080:** add MOP_LEVEL command support for Eufy Clean S1 ([#236](https://github.com/damacus/robovac/issues/236)) ([a11198c](https://github.com/damacus/robovac/commit/a11198cfeb2424ee2bccb554360fea2689910629))
+
+
+### Bug Fixes
+
+* **2280:** Add stub for 2280 vacuum cleaner ([#234](https://github.com/damacus/robovac/issues/234)) ([a173e16](https://github.com/damacus/robovac/commit/a173e1671e995ecbcf6c276f315c797c6aa02e66))
+
 ## [1.4.0](https://github.com/damacus/robovac/compare/v1.3.4...v1.4.0) (2025-10-22)
 
 

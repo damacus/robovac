@@ -11,5 +11,5 @@
     "iot_class": "local_polling",
     "issue_tracker": "https://github.com/damacus/robovac/issues",
     "requirements": [],
-    "version": "1.4.0"
+    "version": "1.5.0"
 }
