@@ -11,7 +11,8 @@ from custom_components.robovac.vacuums.base import RobovacCommand
 @pytest.fixture
 def mock_t2276_robovac() -> RoboVac:
     """Create a mock T2276 RoboVac instance for testing."""
-    with patch("custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None):
+    with patch("custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None), \
+         patch("custom_components.robovac.robovac.PyTuyaDevice.__init__", return_value=None):
         robovac = RoboVac(
             model_code="T2276",
             device_id="test_id",
@@ -23,7 +24,7 @@ def mock_t2276_robovac() -> RoboVac:
 
 def test_t2276_dps_codes(mock_t2276_robovac) -> None:
     """Test that T2276 has the correct DPS codes.
-    
+
     getDpsCodes() extracts codes from the commands dictionary.
     T2276 uses standard Tuya DPS codes for status (15, 104, 106)
     and custom command codes for control (152, 153, 154).
@@ -84,7 +85,7 @@ def test_t2276_locate_command_values(mock_t2276_robovac) -> None:
 
 def test_t2276_command_codes(mock_t2276_robovac) -> None:
     """Test that T2276 command codes are correctly defined on model.
-    
+
     T2276 uses custom command codes for sending control commands,
     but standard DPS codes for reading status.
     """
@@ -95,7 +96,7 @@ def test_t2276_command_codes(mock_t2276_robovac) -> None:
     assert commands[RobovacCommand.RETURN_HOME]["code"] == 153
     assert commands[RobovacCommand.FAN_SPEED]["code"] == 154
     assert commands[RobovacCommand.LOCATE]["code"] == 153
-    
+
     # Standard DPS codes for status reading
     assert commands[RobovacCommand.STATUS]["code"] == 15
     assert commands[RobovacCommand.BATTERY]["code"] == 104

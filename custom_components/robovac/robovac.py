@@ -54,7 +54,7 @@ class RoboVac(TuyaDevice):
         # Check if model wants to use PyTuya implementation
         if hasattr(model_details, 'use_pytuya') and model_details.use_pytuya:
             _LOGGER.info("Using PyTuya implementation for model %s", model_code)
-            return object.__new__(PyTuyaRoboVac)
+            return object.__new__(PyTuyaRoboVac)  # type: ignore[return-value]
         else:
             return object.__new__(cls)
 
@@ -267,13 +267,16 @@ class RoboVac(TuyaDevice):
         return value
 
 
-class PyTuyaRoboVac(PyTuyaDevice, RoboVac):
+class PyTuyaRoboVac(PyTuyaDevice):
     """RoboVac implementation using PyTuya protocol.
 
     This class uses LocalTuya's PyTuya implementation for models that require
     protocol version 3.5 or have issues with the legacy implementation.
-    It inherits from both PyTuyaDevice (for protocol) and RoboVac (for vacuum logic).
+    It provides the same interface as RoboVac but uses PyTuyaDevice for protocol.
     """
+
+    model_details: type[RobovacModelDetails]
+    model_code: str
 
     def __init__(self, model_code: str, device_id: str, host: str, local_key: str,
                  timeout: float, ping_interval: float, update_entity_state: Any,
@@ -323,3 +326,95 @@ class PyTuyaRoboVac(PyTuyaDevice, RoboVac):
             model_code,
             protocol_version,
         )
+
+    # Copy all RoboVac methods that don't depend on TuyaDevice
+    def getHomeAssistantFeatures(self) -> int:
+        """Get the Home Assistant supported features for this vacuum model."""
+        return self.model_details.homeassistant_features
+
+    def getRoboVacFeatures(self) -> int:
+        """Get the RoboVac-specific features for this vacuum model."""
+        return self.model_details.robovac_features
+
+    def getAvailableCommands(self) -> list[str]:
+        """Get list of available commands for this vacuum model."""
+        return list(self.model_details.commands.keys())
+
+    def getDpsCodes(self) -> dict[str, str]:
+        """Get the DPS codes for this model based on command codes."""
+        command_to_dps = {
+            "BATTERY": "BATTERY_LEVEL",
+            "ERROR": "ERROR_CODE",
+        }
+
+        codes = {}
+        for key, value in self.model_details.commands.items():
+            dps_name = command_to_dps.get(key.name, key.name)
+
+            if isinstance(value, dict) and "code" in value:
+                codes[dps_name] = str(value["code"])
+            elif isinstance(value, dict):
+                continue
+            else:
+                codes[dps_name] = str(value)
+
+        return codes
+
+    def getRoboVacCommandValue(self, command_name: RobovacCommand, value: str) -> str:
+        """Convert human-readable command value to model-specific device value."""
+        values = None
+        try:
+            cmd = command_name if isinstance(command_name, RobovacCommand) else RobovacCommand(command_name)
+            values = self._get_command_values(cmd)
+
+            if values is not None:
+                result = case_insensitive_lookup(values, value)
+                if result is not None:
+                    return str(result)
+
+        except (ValueError, KeyError):
+            pass
+
+        return value
+
+    def getRoboVacHumanReadableValue(self, command_name: RobovacCommand | str, value: str) -> str:
+        """Convert model-specific value to human-readable value."""
+        values = None
+        try:
+            cmd = command_name if isinstance(command_name, RobovacCommand) else RobovacCommand(command_name)
+            values = self._get_command_values(cmd)
+
+            if values is not None:
+                result = case_insensitive_lookup(values, value)
+                if result is not None:
+                    return str(result)
+
+                _LOGGER.debug(
+                    "Command %s with value %r (type: %s) not found for model %s. "
+                    "Available keys: %r",
+                    command_name,
+                    value,
+                    type(value).__name__,
+                    self.model_code,
+                    list(values.keys()),
+                )
+
+        except (ValueError, KeyError):
+            pass
+
+        return value
+
+    def getRoboVacActivityMapping(self) -> Mapping[str, VacuumActivity] | None:
+        """Get the activity mapping for this vacuum model."""
+        return self.model_details.activity_mapping
+
+    def _get_command_values(self, command_name: RobovacCommand) -> dict[str, str] | None:
+        """Get the values dictionary for a specific command."""
+        if command_name not in self.model_details.commands:
+            return None
+
+        command_data = self.model_details.commands[command_name]
+        if isinstance(command_data, dict) and "values" in command_data:
+            return cast(dict[str, str], command_data["values"])
+
+        return None
