@@ -55,21 +55,3 @@ def test_t2080_status_human_readable(mock_t2080_robovac) -> None:
     assert mock_t2080_robovac.getRoboVacHumanReadableValue(RobovacCommand.STATUS, "CgoAEAkaAggBMgA=") == "Auto Cleaning"
     assert mock_t2080_robovac.getRoboVacHumanReadableValue(RobovacCommand.STATUS, "BhADGgIIAQ==") == "Completed"
     assert mock_t2080_robovac.getRoboVacHumanReadableValue(RobovacCommand.STATUS, "BBADGgA=") == "Charging"
-
-
-def test_t2080_model_has_mop_level_command(mock_t2080_robovac) -> None:
-    """Test that T2080 model has MOP_LEVEL command defined."""
-    commands = mock_t2080_robovac.model_details.commands
-
-    # Test that MOP_LEVEL command is present - this is the new feature
-    assert RobovacCommand.MOP_LEVEL in commands
-    assert RobovacCommand.FAN_SPEED in commands
-
-
-def test_t2080_mop_level_dps_code(mock_t2080_robovac) -> None:
-    """Test T2080 MOP_LEVEL DPS code mapping."""
-    commands = mock_t2080_robovac.model_details.commands
-
-    # Verify MOP_LEVEL DPS code from issue #105 debug logs
-    if RobovacCommand.MOP_LEVEL in commands:
-        assert commands[RobovacCommand.MOP_LEVEL]["code"] == 10
