@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0](https://github.com/damacus/robovac/compare/v1.3.4...v1.4.0) (2025-10-22)
+
+
+### Features
+
+* add case-insensitive value lookup utility ([ff93578](https://github.com/damacus/robovac/commit/ff935781b87d55b47673b6679b49596d2f33b379))
+* add command mapping tests for seven vacuum models ([ff93578](https://github.com/damacus/robovac/commit/ff935781b87d55b47673b6679b49596d2f33b379))
+* **battery:** Fix battery deprecation notice ([#231](https://github.com/damacus/robovac/issues/231)) ([4efd321](https://github.com/damacus/robovac/commit/4efd321a9179a886f1dd31b1cd07ebc248e5164e))
+* standardise vacuum model command mappings ([ff93578](https://github.com/damacus/robovac/commit/ff935781b87d55b47673b6679b49596d2f33b379))
+
+
+### Bug Fixes
+
+* **codes:** Stop duplicating codes in config ([#222](https://github.com/damacus/robovac/issues/222)) ([ff93578](https://github.com/damacus/robovac/commit/ff935781b87d55b47673b6679b49596d2f33b379))
+* improve logging strategy for value lookups ([ff93578](https://github.com/damacus/robovac/commit/ff935781b87d55b47673b6679b49596d2f33b379))
+* **python:** Drop down to python 3.13.1 to match home assistant ([#232](https://github.com/damacus/robovac/issues/232)) ([1321d46](https://github.com/damacus/robovac/commit/1321d46e7b0a760a0720fdff822825061feff395))
+
+
+### Documentation
+
+* add development guide and update README ([ff93578](https://github.com/damacus/robovac/commit/ff935781b87d55b47673b6679b49596d2f33b379))
+
 ## [1.3.4](https://github.com/damacus/robovac/compare/v1.3.3...v1.3.4) (2025-10-13)
 
 
