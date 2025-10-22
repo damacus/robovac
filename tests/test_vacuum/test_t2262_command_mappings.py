@@ -1,6 +1,7 @@
 """Tests for T2262 command mappings and DPS codes."""
 
 import pytest
+from typing import Any
 from unittest.mock import patch
 
 from custom_components.robovac.robovac import RoboVac
@@ -8,7 +9,7 @@ from custom_components.robovac.vacuums.base import RobovacCommand
 
 
 @pytest.fixture
-def mock_t2262_robovac():
+def mock_t2262_robovac() -> RoboVac:
     """Create a mock T2262 RoboVac instance for testing."""
     with patch("custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None):
         robovac = RoboVac(
@@ -20,7 +21,7 @@ def mock_t2262_robovac():
         return robovac
 
 
-def test_t2262_mode_command_values(mock_t2262_robovac):
+def test_t2262_mode_command_values(mock_t2262_robovac) -> None:
     """Test T2262 MODE command value mappings."""
     assert mock_t2262_robovac.getRoboVacCommandValue(RobovacCommand.MODE, "auto") == "Auto"
     assert mock_t2262_robovac.getRoboVacCommandValue(RobovacCommand.MODE, "small_room") == "SmallRoom"
@@ -32,7 +33,7 @@ def test_t2262_mode_command_values(mock_t2262_robovac):
     assert mock_t2262_robovac.getRoboVacCommandValue(RobovacCommand.MODE, "unknown") == "unknown"
 
 
-def test_t2262_mode_case_insensitive(mock_t2262_robovac):
+def test_t2262_mode_case_insensitive(mock_t2262_robovac) -> None:
     """Test T2262 MODE command accepts case-insensitive values via getRoboVacHumanReadableValue."""
     # Case-insensitive matching should work for device responses
     assert mock_t2262_robovac.getRoboVacHumanReadableValue(RobovacCommand.MODE, "auto") == "Auto"
@@ -40,7 +41,7 @@ def test_t2262_mode_case_insensitive(mock_t2262_robovac):
     assert mock_t2262_robovac.getRoboVacHumanReadableValue(RobovacCommand.MODE, "AUTO") == "Auto"
 
 
-def test_t2262_fan_speed_command_values(mock_t2262_robovac):
+def test_t2262_fan_speed_command_values(mock_t2262_robovac) -> None:
     """Test T2262 FAN_SPEED value mapping."""
     assert mock_t2262_robovac.getRoboVacCommandValue(RobovacCommand.FAN_SPEED, "pure") == "Pure"
     assert mock_t2262_robovac.getRoboVacCommandValue(RobovacCommand.FAN_SPEED, "standard") == "Standard"
@@ -49,12 +50,12 @@ def test_t2262_fan_speed_command_values(mock_t2262_robovac):
     assert mock_t2262_robovac.getRoboVacCommandValue(RobovacCommand.FAN_SPEED, "unknown") == "unknown"
 
 
-def test_t2262_error_code_mapping(mock_t2262_robovac):
+def test_t2262_error_code_mapping(mock_t2262_robovac) -> None:
     """Test T2262 error code 0 maps to 'No error'."""
     assert mock_t2262_robovac.getRoboVacHumanReadableValue(RobovacCommand.ERROR, "0") == "No error"
 
 
-def test_t2262_model_has_commands(mock_t2262_robovac):
+def test_t2262_model_has_commands(mock_t2262_robovac) -> None:
     """Test that T2262 model has required commands defined."""
     commands = mock_t2262_robovac.model_details.commands
 

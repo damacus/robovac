@@ -4,12 +4,13 @@ import time
 from unittest.mock import MagicMock, patch
 
 import pytest
+from typing import Any
 
 from custom_components.robovac.vacuum import RoboVacEntity
 
 
 @pytest.mark.asyncio
-async def test_no_data_warning_logged_once(mock_robovac, mock_vacuum_data, caplog):
+async def test_no_data_warning_logged_once(mock_robovac, mock_vacuum_data: Any, caplog) -> None:
     """Test that no data warning is logged only once initially."""
     # Arrange
     mock_robovac._dps = None
@@ -32,7 +33,7 @@ async def test_no_data_warning_logged_once(mock_robovac, mock_vacuum_data, caplo
 
 
 @pytest.mark.asyncio
-async def test_no_data_warning_logged_after_threshold(mock_robovac, mock_vacuum_data, caplog):
+async def test_no_data_warning_logged_after_threshold(mock_robovac, mock_vacuum_data: Any, caplog) -> None:
     """Test that no data warning is logged again after 5 minute threshold."""
     # Arrange
     mock_robovac._dps = None
@@ -65,7 +66,7 @@ async def test_no_data_warning_logged_after_threshold(mock_robovac, mock_vacuum_
 
 
 @pytest.mark.asyncio
-async def test_no_data_warning_not_logged_before_threshold(mock_robovac, mock_vacuum_data, caplog):
+async def test_no_data_warning_not_logged_before_threshold(mock_robovac, mock_vacuum_data: Any, caplog) -> None:
     """Test that no data warning is not logged again before 5 minute threshold."""
     # Arrange
     mock_robovac._dps = None
@@ -98,7 +99,7 @@ async def test_no_data_warning_not_logged_before_threshold(mock_robovac, mock_va
 
 
 @pytest.mark.asyncio
-async def test_data_recovery_info_logged(mock_robovac, mock_vacuum_data, caplog):
+async def test_data_recovery_info_logged(mock_robovac, mock_vacuum_data: Any, caplog) -> None:
     """Test that info message is logged when data becomes available after warning."""
     # Arrange
     mock_robovac._dps = None
@@ -123,7 +124,7 @@ async def test_data_recovery_info_logged(mock_robovac, mock_vacuum_data, caplog)
 
 
 @pytest.mark.asyncio
-async def test_no_info_logged_when_data_always_available(mock_robovac, mock_vacuum_data, caplog):
+async def test_no_info_logged_when_data_always_available(mock_robovac, mock_vacuum_data: Any, caplog) -> None:
     """Test that no info message is logged when data is always available."""
     # Arrange
     mock_robovac._dps = {"103": 100, "15": "Charging", "106": 0}
@@ -146,7 +147,7 @@ async def test_no_info_logged_when_data_always_available(mock_robovac, mock_vacu
 
 
 @pytest.mark.asyncio
-async def test_warning_state_resets_after_data_recovery(mock_robovac, mock_vacuum_data, caplog):
+async def test_warning_state_resets_after_data_recovery(mock_robovac, mock_vacuum_data: Any, caplog) -> None:
     """Test that warning state resets after data recovery and can be logged again."""
     # Arrange
     mock_robovac._dps = None

@@ -18,7 +18,7 @@ from homeassistant.const import (
 
 
 @pytest.mark.asyncio
-async def test_l60_start_command_uses_correct_dps_value():
+async def test_l60_start_command_uses_correct_dps_value() -> None:
     """Test that L60 model sends the correct base64 encoded value for DPS 152 when starting."""
     # Setup mock vacuum data for L60 model
     mock_vacuum_data = {

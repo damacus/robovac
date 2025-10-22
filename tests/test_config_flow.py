@@ -4,6 +4,7 @@ import json
 import asyncio
 from unittest.mock import patch, MagicMock, AsyncMock
 import pytest
+from typing import Any
 
 from homeassistant import config_entries, data_entry_flow
 from homeassistant.const import (
@@ -27,10 +28,11 @@ from custom_components.robovac.config_flow import (
     OptionsFlowHandler,
 )
 from custom_components.robovac.const import DOMAIN, CONF_AUTODISCOVERY, CONF_VACS
+from custom_components.robovac.robovac import RoboVac
 
 
 @pytest.fixture
-def mock_eufy_response():
+def mock_eufy_response() -> RoboVac:
     """Create a mock response from the Eufy API."""
     user_info_response = MagicMock()
     user_info_response.status_code = 200
@@ -81,13 +83,13 @@ def mock_eufy_response():
 
 
 @pytest.fixture
-def mock_tuya_device():
+def mock_tuya_device() -> RoboVac:
     """Create a mock Tuya device response."""
     return {"localKey": "test_local_key"}
 
 
 @pytest.mark.asyncio
-async def test_user_form(hass: HomeAssistant):
+async def test_user_form(hass: HomeAssistant) -> None:
     """Test we get the user form."""
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": config_entries.SOURCE_USER}
@@ -97,7 +99,7 @@ async def test_user_form(hass: HomeAssistant):
 
 
 @pytest.mark.asyncio
-async def test_user_form_cannot_connect(hass: HomeAssistant, mock_eufy_response):
+async def test_user_form_cannot_connect(hass: HomeAssistant, mock_eufy_response) -> None:
     """Test we handle cannot connect error."""
     # Mock the EufyLogon.get_user_info to return a 400 status code
     mock_eufy_response["user_info"].status_code = 400
@@ -123,7 +125,7 @@ async def test_user_form_cannot_connect(hass: HomeAssistant, mock_eufy_response)
 
 
 @pytest.mark.asyncio
-async def test_user_form_invalid_auth(hass: HomeAssistant, mock_eufy_response):
+async def test_user_form_invalid_auth(hass: HomeAssistant, mock_eufy_response) -> None:
     """Test we handle invalid auth error."""
     # Mock the EufyLogon.get_user_info to return a 200 status code but res_code != 1
     mock_eufy_response["user_info"].json.return_value["res_code"] = 0
@@ -149,7 +151,7 @@ async def test_user_form_invalid_auth(hass: HomeAssistant, mock_eufy_response):
 
 
 @pytest.mark.asyncio
-async def test_user_form_unexpected_exception(hass: HomeAssistant):
+async def test_user_form_unexpected_exception(hass: HomeAssistant) -> None:
     """Test we handle unexpected exception."""
     with patch(
         "custom_components.robovac.config_flow.EufyLogon",
@@ -172,7 +174,7 @@ async def test_user_form_unexpected_exception(hass: HomeAssistant):
 @pytest.mark.asyncio
 async def test_user_form_success(
     hass: HomeAssistant, mock_eufy_response, mock_tuya_device
-):
+) -> None:
     """Test successful form submission."""
     with (
         patch(
@@ -227,7 +229,7 @@ async def test_user_form_success(
 
 
 @pytest.mark.asyncio
-async def test_options_flow_init(hass: HomeAssistant):
+async def test_options_flow_init(hass: HomeAssistant) -> None:
     """Test options flow init step."""
     # Create a mock config entry using MagicMock instead of actual ConfigEntry
     config_entry = MagicMock(spec=config_entries.ConfigEntry)
@@ -253,7 +255,7 @@ async def test_options_flow_init(hass: HomeAssistant):
 
 
 @pytest.mark.asyncio
-async def test_options_flow_edit(hass: HomeAssistant):
+async def test_options_flow_edit(hass: HomeAssistant) -> None:
     """Test options flow edit step."""
     # Create a mock config entry using MagicMock instead of actual ConfigEntry
     config_entry = MagicMock(spec=config_entries.ConfigEntry)
@@ -284,7 +286,7 @@ async def test_options_flow_edit(hass: HomeAssistant):
 
 
 @pytest.mark.asyncio
-async def test_options_flow_edit_submit(hass: HomeAssistant):
+async def test_options_flow_edit_submit(hass: HomeAssistant) -> None:
     """Test options flow edit step submission."""
     # Create a mock config entry using MagicMock instead of actual ConfigEntry
     config_entry = MagicMock(spec=config_entries.ConfigEntry)

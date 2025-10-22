@@ -42,8 +42,7 @@ def test_get_home_assistant_features() -> None:
         )
 
         expected_features = (
-            VacuumEntityFeature.BATTERY
-            | VacuumEntityFeature.CLEAN_SPOT
+            VacuumEntityFeature.CLEAN_SPOT
             | VacuumEntityFeature.FAN_SPEED
             | VacuumEntityFeature.LOCATE
             | VacuumEntityFeature.PAUSE

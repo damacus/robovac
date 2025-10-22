@@ -3,6 +3,7 @@
 import os
 import sys
 import pytest
+from typing import Any
 from unittest.mock import MagicMock, patch, AsyncMock
 
 # Add the project root directory to the Python path
@@ -27,19 +28,18 @@ from custom_components.robovac.vacuums.base import RoboVacEntityFeature
 
 # This fixture is required for testing custom components
 @pytest.fixture(autouse=True)
-def auto_enable_custom_integrations(enable_custom_integrations):
+def auto_enable_custom_integrations(enable_custom_integrations: object) -> object:
     """Enable custom integrations for testing."""
     yield
 
 
 @pytest.fixture
-def mock_robovac():
+def mock_robovac() -> MagicMock:
     """Create a mock RoboVac device."""
     mock = MagicMock()
     # Set up common return values
     mock.getHomeAssistantFeatures.return_value = (
-        VacuumEntityFeature.BATTERY
-        | VacuumEntityFeature.CLEAN_SPOT
+        VacuumEntityFeature.CLEAN_SPOT
         | VacuumEntityFeature.FAN_SPEED
         | VacuumEntityFeature.LOCATE
         | VacuumEntityFeature.PAUSE
@@ -51,7 +51,7 @@ def mock_robovac():
     )
 
     # Set up getRoboVacCommandValue to simulate T2268 model lookup behavior
-    def command_value_side_effect(command_name, value):
+    def command_value_side_effect(command_name: Any, value: str) -> str:
         # Simulate T2268 model command value mappings
         if command_name.name == "MODE":
             mode_mappings = {
@@ -109,7 +109,7 @@ def mock_robovac():
 
 
 @pytest.fixture
-def mock_g30():
+def mock_g30() -> MagicMock:
     """Create a mock G30 RoboVac device."""
     mock = MagicMock()
     # Set up common return values
@@ -140,7 +140,7 @@ def mock_g30():
 
 
 @pytest.fixture
-def mock_vacuum_data():
+def mock_vacuum_data() -> dict:
     """Create mock vacuum configuration data."""
     return {
         CONF_NAME: "Test RoboVac",
@@ -154,7 +154,7 @@ def mock_vacuum_data():
 
 
 @pytest.fixture
-def mock_g30_data():
+def mock_g30_data() -> dict:
     """Create mock G30 vacuum configuration data."""
     return {
         CONF_NAME: "Test G30",
@@ -168,7 +168,7 @@ def mock_g30_data():
 
 
 @pytest.fixture
-def mock_l60():
+def mock_l60() -> MagicMock:
     """Create a mock L60 RoboVac device."""
     mock = MagicMock()
     # Set up common return values
@@ -201,7 +201,7 @@ def mock_l60():
     }
 
     # Set up L60-specific command value mapping
-    def l60_command_value_side_effect(command_name, value):
+    def l60_command_value_side_effect(command_name: Any, value: str) -> str:
         from custom_components.robovac.robovac import RobovacCommand
         if (command_name == RobovacCommand.MODE or command_name == "MODE") and value == "auto":
             return "BBoCCAE="
@@ -218,7 +218,7 @@ def mock_l60():
 
 
 @pytest.fixture
-def mock_l60_data():
+def mock_l60_data() -> dict:
     """Create mock L60 vacuum configuration data."""
     return {
         CONF_NAME: "Test L60",
@@ -232,7 +232,7 @@ def mock_l60_data():
 
 
 @pytest.fixture
-def mock_t2080():
+def mock_t2080() -> MagicMock:
     """Create a mock T2080 RoboVac device."""
     mock = MagicMock()
     # Set up T2080-specific return values
@@ -293,7 +293,7 @@ def mock_t2080():
     }
 
     # Mock human readable value conversion
-    def mock_get_human_readable_value(command, value):
+    def mock_get_human_readable_value(command: Any, value: str) -> str:
         from custom_components.robovac.vacuums.base import RobovacCommand
         status_mapping = {
             "CAoAEAUyAggB": "Paused",
@@ -314,7 +314,7 @@ def mock_t2080():
 
 
 @pytest.fixture
-def mock_t2080_data():
+def mock_t2080_data() -> dict:
     """Create mock T2080 vacuum configuration data."""
     return {
         CONF_ID: "test_t2080_id",

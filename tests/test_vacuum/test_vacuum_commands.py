@@ -1,13 +1,14 @@
 """Tests for the RoboVac vacuum entity commands."""
 
 import pytest
+from typing import Any
 from unittest.mock import patch, MagicMock, call
 
 from custom_components.robovac.vacuum import RoboVacEntity
 
 
 @pytest.mark.asyncio
-async def test_async_locate(mock_robovac, mock_vacuum_data):
+async def test_async_locate(mock_robovac, mock_vacuum_data) -> None:
     """Test the async_locate method."""
     # Arrange
     with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
@@ -38,7 +39,7 @@ async def test_async_locate(mock_robovac, mock_vacuum_data):
 
 
 @pytest.mark.asyncio
-async def test_async_return_to_base(mock_robovac, mock_vacuum_data):
+async def test_async_return_to_base(mock_robovac, mock_vacuum_data) -> None:
     """Test the async_return_to_base method."""
     # Arrange
     with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
@@ -52,7 +53,7 @@ async def test_async_return_to_base(mock_robovac, mock_vacuum_data):
 
 
 @pytest.mark.asyncio
-async def test_async_start(mock_robovac, mock_vacuum_data):
+async def test_async_start(mock_robovac, mock_vacuum_data) -> None:
     """Test the async_start method."""
     # Arrange
     with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
@@ -67,7 +68,7 @@ async def test_async_start(mock_robovac, mock_vacuum_data):
 
 
 @pytest.mark.asyncio
-async def test_async_start_model_specific(mock_robovac, mock_vacuum_data, mock_l60, mock_l60_data):
+async def test_async_start_model_specific(mock_robovac, mock_vacuum_data: Any, mock_l60, mock_l60_data) -> None:
     """Test that async_start uses the correct code for different models."""
     # Test with standard model (should use code "5")
     with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
@@ -88,7 +89,7 @@ async def test_async_start_model_specific(mock_robovac, mock_vacuum_data, mock_l
 
 
 @pytest.mark.asyncio
-async def test_async_pause(mock_robovac, mock_vacuum_data):
+async def test_async_pause(mock_robovac, mock_vacuum_data) -> None:
     """Test the async_pause method."""
     # Arrange
     with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
@@ -102,7 +103,7 @@ async def test_async_pause(mock_robovac, mock_vacuum_data):
 
 
 @pytest.mark.asyncio
-async def test_async_stop(mock_robovac, mock_vacuum_data):
+async def test_async_stop(mock_robovac, mock_vacuum_data) -> None:
     """Test the async_stop method."""
     # Arrange
     with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
@@ -118,7 +119,7 @@ async def test_async_stop(mock_robovac, mock_vacuum_data):
 
 
 @pytest.mark.asyncio
-async def test_async_clean_spot(mock_robovac, mock_vacuum_data):
+async def test_async_clean_spot(mock_robovac, mock_vacuum_data) -> None:
     """Test the async_clean_spot method."""
     # Arrange
     with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
@@ -132,7 +133,7 @@ async def test_async_clean_spot(mock_robovac, mock_vacuum_data):
 
 
 @pytest.mark.asyncio
-async def test_async_set_fan_speed(mock_robovac, mock_vacuum_data):
+async def test_async_set_fan_speed(mock_robovac, mock_vacuum_data) -> None:
     """Test the async_set_fan_speed method."""
     # Arrange
     with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
@@ -160,7 +161,7 @@ async def test_async_set_fan_speed(mock_robovac, mock_vacuum_data):
 
 
 @pytest.mark.asyncio
-async def test_async_send_command(mock_robovac, mock_vacuum_data):
+async def test_async_send_command(mock_robovac, mock_vacuum_data) -> None:
     """Test the async_send_command method."""
     # Arrange
     with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
@@ -218,7 +219,7 @@ async def test_async_send_command(mock_robovac, mock_vacuum_data):
 
 
 @pytest.mark.asyncio
-async def test_async_update(mock_robovac, mock_vacuum_data):
+async def test_async_update(mock_robovac, mock_vacuum_data) -> None:
     """Test the async_update method."""
     # Arrange
     with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
@@ -249,7 +250,7 @@ async def test_async_update(mock_robovac, mock_vacuum_data):
 
 
 @pytest.mark.asyncio
-async def test_async_will_remove_from_hass(mock_robovac, mock_vacuum_data):
+async def test_async_will_remove_from_hass(mock_robovac, mock_vacuum_data) -> None:
     """Test the async_will_remove_from_hass method."""
     # Arrange
     with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
