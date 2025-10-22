@@ -11,8 +11,7 @@ class T2128(RobovacModelDetails):
     """
 
     homeassistant_features = (
-        VacuumEntityFeature.BATTERY
-        | VacuumEntityFeature.CLEAN_SPOT
+        VacuumEntityFeature.CLEAN_SPOT
         | VacuumEntityFeature.FAN_SPEED
         | VacuumEntityFeature.LOCATE
         | VacuumEntityFeature.PAUSE
