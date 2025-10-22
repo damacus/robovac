@@ -1,6 +1,7 @@
 """Tests for the getRoboVacHumanReadableValue method."""
 
 import pytest
+from typing import Any
 from unittest.mock import patch, MagicMock
 
 from custom_components.robovac.robovac import RoboVac
@@ -8,7 +9,7 @@ from custom_components.robovac.vacuums.base import RobovacCommand
 
 
 @pytest.fixture
-def mock_t2080_robovac():
+def mock_t2080_robovac() -> RoboVac:
     """Create a mock T2080 RoboVac instance for testing."""
     with patch("custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None):
         robovac = RoboVac(
@@ -61,7 +62,7 @@ def mock_t2080_robovac():
         return robovac
 
 
-def test_get_human_readable_value_status_success(mock_t2080_robovac):
+def test_get_human_readable_value_status_success(mock_t2080_robovac) -> None:
     """Test getRoboVacHumanReadableValue returns correct human-readable status values."""
     # Test various status codes
     assert mock_t2080_robovac.getRoboVacHumanReadableValue(
@@ -81,7 +82,7 @@ def test_get_human_readable_value_status_success(mock_t2080_robovac):
     ) == "Charging"
 
 
-def test_get_human_readable_value_mode_success(mock_t2080_robovac):
+def test_get_human_readable_value_mode_success(mock_t2080_robovac) -> None:
     """Test getRoboVacHumanReadableValue returns correct human-readable mode values."""
     assert mock_t2080_robovac.getRoboVacHumanReadableValue(
         RobovacCommand.MODE, "BBoCCAE="
@@ -96,7 +97,7 @@ def test_get_human_readable_value_mode_success(mock_t2080_robovac):
     ) == "Spot"
 
 
-def test_get_human_readable_value_error_success(mock_t2080_robovac):
+def test_get_human_readable_value_error_success(mock_t2080_robovac) -> None:
     """Test getRoboVacHumanReadableValue returns correct human-readable error values."""
     assert mock_t2080_robovac.getRoboVacHumanReadableValue(
         RobovacCommand.ERROR, "E001"
@@ -107,7 +108,7 @@ def test_get_human_readable_value_error_success(mock_t2080_robovac):
     ) == "Side brush stuck"
 
 
-def test_get_human_readable_value_fan_speed_success(mock_t2080_robovac):
+def test_get_human_readable_value_fan_speed_success(mock_t2080_robovac) -> None:
     """Test getRoboVacHumanReadableValue returns correct human-readable fan speed values."""
     assert mock_t2080_robovac.getRoboVacHumanReadableValue(
         RobovacCommand.FAN_SPEED, "quiet"
@@ -118,7 +119,7 @@ def test_get_human_readable_value_fan_speed_success(mock_t2080_robovac):
     ) == "Standard"
 
 
-def test_get_human_readable_value_unknown_value(mock_t2080_robovac):
+def test_get_human_readable_value_unknown_value(mock_t2080_robovac) -> None:
     """Test getRoboVacHumanReadableValue returns original value for unknown values."""
     with patch("custom_components.robovac.robovac._LOGGER") as mock_logger:
         result = mock_t2080_robovac.getRoboVacHumanReadableValue(
@@ -139,7 +140,7 @@ def test_get_human_readable_value_unknown_value(mock_t2080_robovac):
         assert call_args[0][4] == "T2080"
 
 
-def test_get_human_readable_value_invalid_command(mock_t2080_robovac):
+def test_get_human_readable_value_invalid_command(mock_t2080_robovac) -> None:
     """Test getRoboVacHumanReadableValue handles invalid commands gracefully."""
     with patch("custom_components.robovac.robovac._LOGGER") as mock_logger:
         result = mock_t2080_robovac.getRoboVacHumanReadableValue(
@@ -153,7 +154,7 @@ def test_get_human_readable_value_invalid_command(mock_t2080_robovac):
         mock_logger.warning.assert_not_called()
 
 
-def test_get_human_readable_value_command_no_values(mock_t2080_robovac):
+def test_get_human_readable_value_command_no_values(mock_t2080_robovac) -> None:
     """Test getRoboVacHumanReadableValue handles commands with no values field."""
     # Add a command with no values field
     mock_t2080_robovac.model_details.commands[RobovacCommand.BATTERY] = {
@@ -172,7 +173,7 @@ def test_get_human_readable_value_command_no_values(mock_t2080_robovac):
         mock_logger.warning.assert_not_called()
 
 
-def test_get_human_readable_value_case_insensitive(mock_t2080_robovac):
+def test_get_human_readable_value_case_insensitive(mock_t2080_robovac) -> None:
     """Test getRoboVacHumanReadableValue handles case-insensitive matching."""
     # Test that "Quiet" (capitalized) matches "quiet" (lowercase key)
     assert mock_t2080_robovac.getRoboVacHumanReadableValue(
