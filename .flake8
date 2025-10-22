@@ -1,6 +1,6 @@
 [flake8]
 max-line-length = 180
-exclude = .git,__pycache__,docs/source/conf.py,old,build,dist,.venv
+exclude = .git,__pycache__,docs/source/conf.py,old,build,dist,.venv,custom_components/robovac/pytuya
 ignore =
     # D100: Missing docstring in public module
     D100,

@@ -43,9 +43,11 @@ module = [
     "voluptuous.*",
     "homeassistant.*",
     "numpy.*",
-    "pytest_homeassistant_custom_component.*"
+    "pytest_homeassistant_custom_component.*",
+    "custom_components.robovac.pytuya.*"
 ]
 ignore_missing_imports = true
+ignore_errors = true
 
 # Disable override check for config_flow.py
 [[tool.mypy.overrides]]

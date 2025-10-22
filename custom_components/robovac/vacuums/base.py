@@ -70,3 +70,5 @@ class RobovacModelDetails(Protocol):
     commands: Dict[RobovacCommand, Any]
     dps_codes: Dict[str, str] = {}  # Optional model-specific DPS codes
     activity_mapping: Dict[str, VacuumActivity] | None = None
+    protocol_version: float = 3.1  # Tuya protocol version (3.1, 3.3, 3.4, 3.5)
+    use_pytuya: bool = False  # Use PyTuya implementation instead of legacy
