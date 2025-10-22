@@ -23,7 +23,7 @@ def mock_t2080_robovac() -> RoboVac:
     for module_name in modules_to_reload:
         if module_name in sys.modules:
             importlib.reload(sys.modules[module_name])
-    
+
     with patch("custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None):
         robovac = RoboVac(
             model_code="T2080",
@@ -76,17 +76,17 @@ def test_t2080_mop_level_command_exists(mock_t2080_robovac) -> None:
 
     # Verify MOP_LEVEL command exists
     assert RobovacCommand.MOP_LEVEL in commands, "MOP_LEVEL command should be defined in T2080"
-    
+
     # Verify DPS code from issue #105 debug logs
     assert commands[RobovacCommand.MOP_LEVEL]["code"] == 10, "MOP_LEVEL should use DPS code 10"
-    
+
     # Verify all mop level values are defined
     mop_values = commands[RobovacCommand.MOP_LEVEL]["values"]
     assert "low" in mop_values, "MOP_LEVEL should support 'low'"
     assert "middle" in mop_values, "MOP_LEVEL should support 'middle'"
     assert "normal" in mop_values, "MOP_LEVEL should support 'normal'"
     assert "strong" in mop_values, "MOP_LEVEL should support 'strong'"
-    
+
     # Verify symmetric string mappings
     assert mop_values["low"] == "low"
     assert mop_values["middle"] == "middle"
