@@ -3,7 +3,7 @@
 import pytest
 from unittest.mock import patch, MagicMock
 
-from custom_components.robovac.ha_vacuum_activity import VacuumActivity
+from homeassistant.components.vacuum import VacuumActivity
 from custom_components.robovac.vacuum import RoboVacEntity
 from custom_components.robovac.vacuums.base import TuyaCodes
 
