@@ -1,4 +1,4 @@
-from homeassistant.components.vacuum import VacuumActivity
+from ..ha_vacuum_activity import VacuumActivity
 from enum import IntEnum, StrEnum
 from typing import Protocol, Dict, List, Any, Type, Optional
 
