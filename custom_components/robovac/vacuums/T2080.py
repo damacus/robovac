@@ -1,7 +1,5 @@
 """RoboVac S1 Pro (T2080A)"""
-from homeassistant.components.vacuum import VacuumEntityFeature
-
-from ..ha_vacuum_activity import VacuumActivity
+from homeassistant.components.vacuum import (VacuumEntityFeature, VacuumActivity)
 from .base import RoboVacEntityFeature, RobovacCommand, RobovacModelDetails
 
 
