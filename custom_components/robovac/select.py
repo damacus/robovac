@@ -8,6 +8,7 @@ from typing import Any
 
 from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import CONF_ID
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -31,10 +32,16 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up RoboVac room selectors for a config entry."""
-    vacuums = hass.data.get(DOMAIN, {}).get(CONF_VACS, {})
+    configured_vacuums = entry.data.get(CONF_VACS, {})
 
     entities: list[RobovacRoomSelect] = []
-    for vacuum in vacuums.values():
+    for vacuum_entry in configured_vacuums.values():
+        vacuum_id = (
+            vacuum_entry.get(CONF_ID)
+            if isinstance(vacuum_entry, dict)
+            else None
+        )
+        vacuum = hass.data.get(DOMAIN, {}).get(CONF_VACS, {}).get(vacuum_id)
         if isinstance(vacuum, RoboVacEntity):
             entities.append(RobovacRoomSelect(vacuum))
 
