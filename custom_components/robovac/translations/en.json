@@ -31,10 +31,14 @@
                 "title": "Edit vacuum",
                 "data": {
                     "autodiscovery": "Enable autodiscovery",
-                    "ip_address": "IP Address"
+                    "ip_address": "IP Address",
+                    "room_names": "Room name overrides (JSON mapping of ID to label)"
                 },
                 "description": "Autodiscovery will automatically update the IP address"
             }
+        },
+        "error": {
+            "invalid_room_names": "Provide room overrides as a JSON object where each key is the room ID and the value is its label."
         }
     }
 }

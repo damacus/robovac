@@ -26,7 +26,12 @@ from homeassistant.core import HomeAssistant
 from custom_components.robovac.config_flow import (
     OptionsFlowHandler,
 )
-from custom_components.robovac.const import DOMAIN, CONF_AUTODISCOVERY, CONF_VACS
+from custom_components.robovac.const import (
+    DOMAIN,
+    CONF_AUTODISCOVERY,
+    CONF_ROOM_NAMES,
+    CONF_VACS,
+)
 
 
 @pytest.fixture
@@ -281,6 +286,7 @@ async def test_options_flow_edit(hass: HomeAssistant):
     assert result["step_id"] == "edit"
     assert CONF_AUTODISCOVERY in result["data_schema"].schema
     assert CONF_IP_ADDRESS in result["data_schema"].schema
+    assert CONF_ROOM_NAMES in result["data_schema"].schema
 
 
 @pytest.mark.asyncio
@@ -330,6 +336,7 @@ async def test_options_flow_edit_submit(hass: HomeAssistant):
         {
             CONF_AUTODISCOVERY: False,
             CONF_IP_ADDRESS: "192.168.1.100",
+            CONF_ROOM_NAMES: "",
         }
     )
 

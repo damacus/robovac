@@ -145,3 +145,19 @@ def test_get_fan_speeds():
             )
 
             assert robovac.getFanSpeeds() == expected_speeds
+
+
+def test_get_room_names():
+    """Ensure the T2320 exposes its custom room-clean DPS mapping."""
+
+    with patch(
+        "custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None
+    ):
+        robovac = RoboVac(
+            model_code="T2320",
+            device_id="test_id",
+            host="192.168.1.100",
+            local_key="test_key",
+        )
+
+    assert robovac.getDpsCodes()["ROOM_CLEAN"] == "168"

@@ -85,6 +85,7 @@ def mock_robovac():
     mock.async_disable = AsyncMock(return_value=True)
     mock.getRoboVacCommandValue.side_effect = _command_value
     mock.getRoboVacActivityMapping.return_value = None
+    mock.getDpsCodes.return_value = {}
 
     return mock
 

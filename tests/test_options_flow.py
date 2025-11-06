@@ -20,7 +20,12 @@ from homeassistant.const import (
 from homeassistant.core import HomeAssistant
 
 from custom_components.robovac.config_flow import OptionsFlowHandler
-from custom_components.robovac.const import DOMAIN, CONF_AUTODISCOVERY, CONF_VACS
+from custom_components.robovac.const import (
+    DOMAIN,
+    CONF_AUTODISCOVERY,
+    CONF_ROOM_NAMES,
+    CONF_VACS,
+)
 
 
 @pytest.fixture
@@ -103,6 +108,7 @@ async def test_options_flow_edit_default_values(hass: HomeAssistant, mock_config
     # Verify that the form contains the expected fields
     assert CONF_AUTODISCOVERY in result["data_schema"].schema
     assert CONF_IP_ADDRESS in result["data_schema"].schema
+    assert CONF_ROOM_NAMES in result["data_schema"].schema
 
 
 @pytest.mark.asyncio
@@ -137,6 +143,7 @@ async def test_options_flow_edit_custom_values(hass: HomeAssistant):
     # Verify that the form contains the expected fields
     assert CONF_AUTODISCOVERY in result["data_schema"].schema
     assert CONF_IP_ADDRESS in result["data_schema"].schema
+    assert CONF_ROOM_NAMES in result["data_schema"].schema
 
 
 @pytest.mark.asyncio
@@ -172,6 +179,7 @@ async def test_options_flow_edit_submit_with_ip(hass: HomeAssistant, mock_config
         {
             CONF_AUTODISCOVERY: False,
             CONF_IP_ADDRESS: "192.168.1.100",
+            CONF_ROOM_NAMES: "",
         }
     )
 
@@ -218,6 +226,7 @@ async def test_options_flow_edit_submit_without_ip(
         {
             CONF_AUTODISCOVERY: True,
             CONF_IP_ADDRESS: "",
+            CONF_ROOM_NAMES: "",
         }
     )
 
@@ -225,3 +234,25 @@ async def test_options_flow_edit_submit_without_ip(
 
     # Verify the config entry was updated correctly
     hass.config_entries.async_update_entry.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_options_flow_edit_invalid_room_names(
+    hass: HomeAssistant, mock_config_entry
+):
+    """Submitting invalid room overrides should surface a form error."""
+
+    flow = OptionsFlowHandler(mock_config_entry)
+    flow.hass = hass
+    flow.selected_vacuum = "test_device_id"
+
+    result = await flow.async_step_edit(
+        {
+            CONF_AUTODISCOVERY: True,
+            CONF_IP_ADDRESS: "",
+            CONF_ROOM_NAMES: "[invalid]",
+        }
+    )
+
+    assert result["type"] == data_entry_flow.FlowResultType.FORM
+    assert result["errors"][CONF_ROOM_NAMES] == "invalid_room_names"

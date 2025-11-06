@@ -1,9 +1,13 @@
 """Tests for the RoboVac vacuum entity."""
 
+import base64
+import json
+
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 from homeassistant.components.vacuum import VacuumActivity
+from custom_components.robovac.const import CONF_ROOM_NAMES
 from custom_components.robovac.vacuum import RoboVacEntity
 from custom_components.robovac.vacuums.base import TuyaCodes
 
@@ -208,3 +212,58 @@ async def test_fan_speed_formatting(mock_robovac, mock_vacuum_data):
             assert (
                 entity._attr_fan_speed == expected_output
             ), f"Failed for input: {input_speed}"
+
+
+@pytest.mark.asyncio
+async def test_update_entity_values_decodes_room_names(mock_robovac, mock_vacuum_data):
+    """Room metadata embedded in the room clean DPS is decoded into labels."""
+
+    mock_robovac.getDpsCodes.return_value = {"ROOM_CLEAN": "168"}
+    room_payload = base64.b64encode(
+        json.dumps(
+            {
+                "method": "syncMultiMapRoomList",
+                "data": {
+                    "rooms": [
+                        {"roomId": 1, "roomName": "Kitchen"},
+                        {"roomId": 3, "label": "Bedroom"},
+                        {"roomId": "uuid-4", "name": "Office"},
+                    ]
+                },
+            }
+        ).encode("utf-8")
+    ).decode("utf-8")
+    mock_robovac._dps = {"168": room_payload}
+
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
+        entity = RoboVacEntity(mock_vacuum_data)
+        entity.update_entity_values()
+
+    assert entity._attr_room_names is not None
+    assert entity._attr_room_names["1"]["label"] == "Kitchen"
+    assert entity._attr_room_names["3"]["label"] == "Bedroom"
+    assert entity._attr_room_names["uuid-4"]["label"] == "Office"
+
+
+@pytest.mark.asyncio
+async def test_room_name_overrides_take_precedence(mock_robovac, mock_vacuum_data):
+    """Configured overrides replace discovered room labels."""
+
+    mock_vacuum_data[CONF_ROOM_NAMES] = {"3": "Guest Room"}
+    mock_robovac.getDpsCodes.return_value = {"ROOM_CLEAN": "168"}
+    room_payload = base64.b64encode(
+        json.dumps(
+            {
+                "method": "syncMultiMapRoomList",
+                "data": {"rooms": [{"roomId": 3, "roomName": "Bedroom"}]},
+            }
+        ).encode("utf-8")
+    ).decode("utf-8")
+    mock_robovac._dps = {"168": room_payload}
+
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
+        entity = RoboVacEntity(mock_vacuum_data)
+        entity.update_entity_values()
+
+    assert entity._attr_room_names is not None
+    assert entity._attr_room_names["3"]["label"] == "Guest Room"

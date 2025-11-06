@@ -45,7 +45,7 @@ from homeassistant.const import (
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 
-from .const import CONF_AUTODISCOVERY, CONF_VACS, DOMAIN
+from .const import CONF_AUTODISCOVERY, CONF_VACS, CONF_ROOM_NAMES, DOMAIN
 from .countries import (
     get_phone_code_by_country_code,
     get_phone_code_by_region,
@@ -275,14 +275,76 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         vacuums = self.config_entry.data[CONF_VACS]
 
         if user_input is not None:
+            errors = {}
+            room_names_update: dict[str, str] | None = None
+
+            if CONF_ROOM_NAMES in user_input:
+                raw_room_names = user_input.get(CONF_ROOM_NAMES, "")
+                parsed_room_names: dict[str, str] = {}
+
+                if isinstance(raw_room_names, str) and raw_room_names.strip():
+                    try:
+                        loaded = json.loads(raw_room_names)
+                    except (TypeError, ValueError):
+                        errors[CONF_ROOM_NAMES] = "invalid_room_names"
+                    else:
+                        if isinstance(loaded, dict):
+                            for key, value in loaded.items():
+                                if value is None:
+                                    continue
+                                label = str(value).strip()
+                                if not label:
+                                    continue
+                                parsed_room_names[str(key)] = label
+                        else:
+                            errors[CONF_ROOM_NAMES] = "invalid_room_names"
+                elif isinstance(raw_room_names, str):
+                    parsed_room_names = {}
+                else:
+                    errors[CONF_ROOM_NAMES] = "invalid_room_names"
+
+                if not errors:
+                    room_names_update = parsed_room_names
+
+            if errors:
+                options_schema = vol.Schema(
+                    {
+                        vol.Required(
+                            CONF_AUTODISCOVERY,
+                            default=vacuums[self.selected_vacuum].get(
+                                CONF_AUTODISCOVERY, True
+                            ),
+                        ): bool,
+                        vol.Optional(
+                            CONF_IP_ADDRESS,
+                            default=vacuums[self.selected_vacuum].get(CONF_IP_ADDRESS),
+                        ): str,
+                        vol.Optional(
+                            CONF_ROOM_NAMES,
+                            default=user_input.get(CONF_ROOM_NAMES, ""),
+                        ): str,
+                    }
+                )
+
+                return self.async_show_form(
+                    step_id="edit",
+                    data_schema=options_schema,
+                    errors=errors,
+                )  # type: ignore[return-value]
+
             updated_vacuums = deepcopy(vacuums)
-            updated_vacuums[self.selected_vacuum][CONF_AUTODISCOVERY] = user_input[
-                CONF_AUTODISCOVERY
-            ]
-            if user_input[CONF_IP_ADDRESS]:
-                updated_vacuums[self.selected_vacuum][CONF_IP_ADDRESS] = user_input[
-                    CONF_IP_ADDRESS
-                ]
+            updated_entry = updated_vacuums[self.selected_vacuum]
+            updated_entry[CONF_AUTODISCOVERY] = user_input[CONF_AUTODISCOVERY]
+
+            ip_address = user_input.get(CONF_IP_ADDRESS)
+            if ip_address:
+                updated_entry[CONF_IP_ADDRESS] = ip_address
+
+            if room_names_update is not None:
+                if room_names_update:
+                    updated_entry[CONF_ROOM_NAMES] = room_names_update
+                else:
+                    updated_entry.pop(CONF_ROOM_NAMES, None)
 
             self.hass.config_entries.async_update_entry(
                 self.config_entry,
@@ -300,6 +362,17 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 vol.Optional(
                     CONF_IP_ADDRESS,
                     default=vacuums[self.selected_vacuum].get(CONF_IP_ADDRESS),
+                ): str,
+                vol.Optional(
+                    CONF_ROOM_NAMES,
+                    default=(
+                        json.dumps(
+                            vacuums[self.selected_vacuum].get(CONF_ROOM_NAMES, {}),
+                            separators=(",", ":"),
+                        )
+                        if vacuums[self.selected_vacuum].get(CONF_ROOM_NAMES)
+                        else ""
+                    ),
                 ): str,
             }
         )
