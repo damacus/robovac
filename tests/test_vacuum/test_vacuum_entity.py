@@ -4,9 +4,10 @@ import base64
 import json
 
 import pytest
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 from homeassistant.components.vacuum import VacuumActivity
+from homeassistant.core import State
 from custom_components.robovac.const import CONF_ROOM_NAMES
 from custom_components.robovac.vacuum import RoboVacEntity
 from custom_components.robovac.vacuums.base import TuyaCodes
@@ -283,8 +284,13 @@ async def test_update_entity_values_decodes_room_names(mock_robovac, mock_vacuum
 
     assert entity._attr_room_names is not None
     assert entity._attr_room_names["1"]["label"] == "Kitchen"
+    assert entity._attr_room_names["1"]["device_label"] == "Kitchen"
+    assert entity._attr_room_names["1"]["source"] == "device"
+    assert entity._attr_room_names["1"]["key"] == "1"
     assert entity._attr_room_names["3"]["label"] == "Bedroom"
+    assert entity._attr_room_names["3"]["source"] == "device"
     assert entity._attr_room_names["uuid-4"]["label"] == "Office"
+    assert entity._attr_room_names["uuid-4"]["source"] == "device"
 
 
 @pytest.mark.asyncio

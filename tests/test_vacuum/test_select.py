@@ -27,6 +27,7 @@ async def _setup_select_entity(
     """Helper to set up the select platform and return the created entity."""
 
     hass.data = {DOMAIN: {CONF_VACS: {vacuum_data[CONF_ID]: vacuum_entity}}}
+    vacuum_entity.hass = hass
     config_entry = MockConfigEntry(
         domain=DOMAIN,
         data={CONF_VACS: {vacuum_data[CONF_ID]: vacuum_data}},
@@ -123,3 +124,25 @@ async def test_select_room_triggers_room_clean_payload(
     assert decoded["method"] == "selectRoomsClean"
     assert decoded["data"] == {"roomIds": [1], "cleanTimes": 1}
     assert select_entity.current_option == "Kitchen"
+
+
+@pytest.mark.asyncio
+async def test_select_entity_tracks_room_name_updates(
+    hass, mock_vacuum_data, mock_robovac
+) -> None:
+    """Room discovery updates trigger a select entity state refresh."""
+
+    mock_robovac.getDpsCodes.return_value = {"ROOM_CLEAN": "168"}
+
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
+        vacuum_entity = RoboVacEntity(mock_vacuum_data)
+
+    select_entity = await _setup_select_entity(hass, vacuum_entity, mock_vacuum_data)
+
+    with patch.object(select_entity, "async_write_ha_state") as mock_write:
+        vacuum_entity._room_name_registry["1"] = {"id": 1, "label": "Living Room"}
+        vacuum_entity._refresh_room_names_attr()
+        await hass.async_block_till_done()
+
+    assert "Living Room" in select_entity.options
+    mock_write.assert_called()
