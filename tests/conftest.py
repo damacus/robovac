@@ -3,14 +3,12 @@
 import os
 import sys
 import pytest
-from unittest.mock import MagicMock, patch, AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 
 # Add the project root directory to the Python path
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
-# Import from pytest_homeassistant_custom_component instead of directly from homeassistant
-from pytest_homeassistant_custom_component.common import MockConfigEntry
 from homeassistant.components.vacuum import VacuumEntityFeature
 from homeassistant.const import (
     CONF_ACCESS_TOKEN,
@@ -49,6 +47,23 @@ def _command_value(command, value):
     return value
 
 
+# Provide minimal replacements for fixtures that normally come from
+# pytest-homeassistant-custom-component.
+@pytest.fixture
+def enable_custom_integrations():
+    """Fixture placeholder that matches the real test helper."""
+
+    yield
+
+
+@pytest.fixture
+def hass(event_loop):
+    from homeassistant.core import HomeAssistant
+
+    hass = HomeAssistant(loop=event_loop)
+    return hass
+
+
 # This fixture is required for testing custom components
 @pytest.fixture(autouse=True)
 def auto_enable_custom_integrations(enable_custom_integrations):
@@ -84,6 +99,7 @@ def mock_robovac():
     mock.async_set = AsyncMock(return_value=True)
     mock.async_disable = AsyncMock(return_value=True)
     mock.getRoboVacCommandValue.side_effect = _command_value
+    mock.getRoboVacHumanReadableValue.side_effect = lambda _command, raw_value, **_: raw_value
     mock.getRoboVacActivityMapping.return_value = None
     mock.getDpsCodes.return_value = {}
 
@@ -118,6 +134,7 @@ def mock_g30():
     mock.async_set = AsyncMock(return_value=True)
     mock.async_disable = AsyncMock(return_value=True)
     mock.getRoboVacCommandValue.side_effect = _command_value
+    mock.getRoboVacHumanReadableValue.side_effect = lambda _command, raw_value, **_: raw_value
 
     return mock
 
@@ -188,6 +205,7 @@ def mock_l60():
     mock.async_set = AsyncMock(return_value=True)
     mock.async_disable = AsyncMock(return_value=True)
     mock.getRoboVacCommandValue.side_effect = _command_value
+    mock.getRoboVacHumanReadableValue.side_effect = lambda _command, raw_value, **_: raw_value
 
     return mock
 
