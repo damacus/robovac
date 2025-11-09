@@ -1111,6 +1111,33 @@ class RoboVacEntity(RestoreEntity, StateVacuumEntity):
             for callback in listeners:
                 callback()
 
+    def add_room_name_listener(self, listener: Callable[[], None]) -> Callable[[], None]:
+        """Register a callback that fires when room metadata changes."""
+
+        self._room_name_listeners.append(listener)
+
+        def _remove_listener() -> None:
+            try:
+                self._room_name_listeners.remove(listener)
+            except ValueError:
+                pass
+
+        return _remove_listener
+
+    def _notify_room_name_listeners(self) -> None:
+        """Notify listeners that room metadata has been refreshed."""
+
+        if not self._room_name_listeners:
+            return
+
+        listeners = list(self._room_name_listeners)
+        if self.hass is not None:
+            for callback in listeners:
+                self.hass.loop.call_soon(callback)
+        else:
+            for callback in listeners:
+                callback()
+
     def _refresh_room_names_attr(self) -> None:
         """Expose the current room name registry via the entity attribute."""
 

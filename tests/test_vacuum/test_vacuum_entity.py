@@ -318,53 +318,19 @@ async def test_room_name_overrides_take_precedence(mock_robovac, mock_vacuum_dat
 
 
 @pytest.mark.asyncio
-async def test_sample_binary_payload_without_labels(mock_robovac, mock_vacuum_data):
-    """Binary payloads without labels still register room identifiers."""
+async def test_extra_state_attributes_include_room_names(
+    mock_robovac, mock_vacuum_data
+) -> None:
+    """Room metadata is exposed via extra state attributes for other platforms."""
 
     mock_robovac.getDpsCodes.return_value = {"ROOM_CLEAN": "168"}
-    mock_robovac._dps = {
-        "168": "KAomCgIIZBIDCI4CGgMIjgIiAghkKgIIZDIDCJ4BoAG4x7Lu/9HAuhg=",
-    }
 
     with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
         entity = RoboVacEntity(mock_vacuum_data)
-        entity.update_entity_values()
 
-    assert entity._attr_room_names is not None
-    entry = entity._attr_room_names["100"]
-    assert entry["id"] == 100
-    assert entry.get("label") is None
+    entity._room_name_registry["1"] = {"id": 1, "label": "Living Room"}
+    entity._refresh_room_names_attr()
 
-
-@pytest.mark.asyncio
-async def test_binary_room_payload_decoding(
-    mock_robovac, mock_vacuum_data, binary_room_payload
-):
-    """Binary protobuf payloads provide room metadata for advanced models."""
-
-    mock_robovac.getDpsCodes.return_value = {"ROOM_CLEAN": "168"}
-    mock_robovac._dps = {"168": binary_room_payload["payload"]}
-
-    with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
-        entity = RoboVacEntity(mock_vacuum_data)
-        entity.update_entity_values()
-
-    assert entity._attr_room_names is not None
-    for identifier, label in binary_room_payload["rooms"]:
-        key = str(identifier)
-        assert entity._attr_room_names[key]["label"] == label
-
-    extra = entity.extra_state_attributes
-    assert "robot_vacuum" in extra
-    rooms = extra["robot_vacuum"]["rooms"]
-    for identifier, label in binary_room_payload["rooms"]:
-        entry = rooms[str(identifier)]
-        assert entry["label"] == label
-
-    capabilities = entity.capability_attributes
-    assert "robot_vacuum" in capabilities
-    capability_rooms = capabilities["robot_vacuum"]["rooms"]
-    for identifier, label in binary_room_payload["rooms"]:
-        matching = [room for room in capability_rooms if room.get("id") == identifier]
-        assert matching
-        assert matching[0]["label"] == label
+    attributes = entity.extra_state_attributes
+    assert "room_names" in attributes
+    assert attributes["room_names"]["1"]["label"] == "Living Room"

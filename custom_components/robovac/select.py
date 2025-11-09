@@ -33,15 +33,11 @@ async def async_setup_entry(
 ) -> None:
     """Set up RoboVac room selectors for a config entry."""
     configured_vacuums = entry.data.get(CONF_VACS, {})
+    registered_vacuums = hass.data.get(DOMAIN, {}).get(CONF_VACS, {})
 
     entities: list[RobovacRoomSelect] = []
-    for vacuum_entry in configured_vacuums.values():
-        vacuum_id = (
-            vacuum_entry.get(CONF_ID)
-            if isinstance(vacuum_entry, dict)
-            else None
-        )
-        vacuum = hass.data.get(DOMAIN, {}).get(CONF_VACS, {}).get(vacuum_id)
+    for vacuum_id in configured_vacuums:
+        vacuum = registered_vacuums.get(vacuum_id)
         if isinstance(vacuum, RoboVacEntity):
             entities.append(RobovacRoomSelect(vacuum))
 
