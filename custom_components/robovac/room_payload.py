@@ -2,11 +2,7 @@
 
 from __future__ import annotations
 
-import logging
 from typing import List, Sequence, Tuple
-
-
-_LOGGER = logging.getLogger(__name__)
 
 
 def decode_binary_room_list(payload: bytes) -> List[Tuple[int | str, str | None]]:
@@ -37,9 +33,6 @@ def decode_binary_room_list(payload: bytes) -> List[Tuple[int | str, str | None]
         top_level = _parse_message(message)
     except ValueError:
         return []
-    except Exception:  # pragma: no cover - defensive guard
-        _LOGGER.exception("Failed to parse RoboVac room payload")
-        return []
 
     rooms: List[Tuple[int | str, str | None]] = []
     for room_payload in top_level.get(1, []):
@@ -48,9 +41,6 @@ def decode_binary_room_list(payload: bytes) -> List[Tuple[int | str, str | None]
         try:
             room_fields = _parse_message(bytes(room_payload))
         except ValueError:
-            continue
-        except Exception:  # pragma: no cover - defensive guard
-            _LOGGER.exception("Failed to parse RoboVac room entry")
             continue
 
         identifier = _extract_identifier(room_fields)
