@@ -26,7 +26,7 @@ from enum import StrEnum
 import json
 import logging
 import time
-from typing import Any
+from typing import Any, Callable
 
 from homeassistant.components.vacuum import (
     StateVacuumEntity,
@@ -73,6 +73,9 @@ ATTR_DO_NOT_DISTURB = "do_not_disturb"
 ATTR_BOOST_IQ = "boost_iq"
 ATTR_CONSUMABLES = "consumables"
 ATTR_MODE = "mode"
+
+ROOM_NAME_SOURCE_DEVICE = "device"
+ROOM_NAME_SOURCE_USER = "user"
 
 _LOGGER = logging.getLogger(__name__)
 SCAN_INTERVAL = timedelta(seconds=REFRESH_RATE)
@@ -413,6 +416,10 @@ class RoboVacEntity(StateVacuumEntity):
             and self.consumables
         ):
             data[ATTR_CONSUMABLES] = self.consumables
+        if self._attr_room_names:
+            data["room_names"] = {
+                key: dict(value) for key, value in self._attr_room_names.items()
+            }
         if self.mode:
             data[ATTR_MODE] = self.mode
         return data
@@ -449,6 +456,7 @@ class RoboVacEntity(StateVacuumEntity):
         self._last_return_ts: float | None = None
         self._room_name_registry: dict[str, dict[str, Any]] = {}
         self._room_name_overrides: dict[str, str] = {}
+        self._room_name_listeners: list[Callable[[], None]] = []
         self._attr_room_names: dict[str, dict[str, Any]] | None = None
 
         # Initialize the RoboVac connection
@@ -523,8 +531,10 @@ class RoboVacEntity(StateVacuumEntity):
                 self._room_name_overrides[key_str] = label
                 self._room_name_registry[key_str] = {
                     "id": self._coerce_room_identifier(key),
+                    "key": key_str,
                     "label": label,
                     "room_name": label,
+                    "source": ROOM_NAME_SOURCE_USER,
                 }
 
         self._refresh_room_names_attr()
@@ -933,10 +943,16 @@ class RoboVacEntity(StateVacuumEntity):
         key = str(identifier)
         entry = self._room_name_registry.get(key, {})
         entry["id"] = self._coerce_room_identifier(identifier)
+        entry.setdefault("key", key)
 
         if label:
-            entry["label"] = label
-            entry["room_name"] = label
+            entry["device_label"] = label
+            if entry.get("source") != ROOM_NAME_SOURCE_USER:
+                entry["label"] = label
+                entry["room_name"] = label
+                entry["source"] = ROOM_NAME_SOURCE_DEVICE
+        elif entry.get("source") is None:
+            entry["source"] = ROOM_NAME_SOURCE_DEVICE
 
         self._room_name_registry[key] = entry
 
@@ -946,20 +962,129 @@ class RoboVacEntity(StateVacuumEntity):
         for key, label in self._room_name_overrides.items():
             entry = self._room_name_registry.setdefault(
                 key,
-                {"id": self._coerce_room_identifier(key)},
+                {
+                    "id": self._coerce_room_identifier(key),
+                    "key": key,
+                },
             )
             entry["label"] = label
             entry["room_name"] = label
+            entry["source"] = ROOM_NAME_SOURCE_USER
+
+    def add_room_name_listener(self, listener: Callable[[], None]) -> Callable[[], None]:
+        """Register a callback that fires when room metadata changes."""
+
+        self._room_name_listeners.append(listener)
+
+        def _remove_listener() -> None:
+            try:
+                self._room_name_listeners.remove(listener)
+            except ValueError:
+                pass
+
+        return _remove_listener
+
+    def _notify_room_name_listeners(self) -> None:
+        """Notify listeners that room metadata has been refreshed."""
+
+        if not self._room_name_listeners:
+            return
+
+        listeners = list(self._room_name_listeners)
+        if self.hass is not None:
+            for callback in listeners:
+                self.hass.loop.call_soon(callback)
+        else:
+            for callback in listeners:
+                callback()
 
     def _refresh_room_names_attr(self) -> None:
         """Expose the current room name registry via the entity attribute."""
 
+        previous = self._attr_room_names
         if self._room_name_registry:
             self._attr_room_names = {
                 key: dict(value) for key, value in self._room_name_registry.items()
             }
         else:
             self._attr_room_names = None
+
+        if previous != self._attr_room_names:
+            self._notify_room_name_listeners()
+            if self.hass is not None:
+                self.async_write_ha_state()
+
+    def _robot_vacuum_capabilities(self) -> dict[str, Any] | None:
+        """Build capability metadata describing discovered rooms."""
+
+        if not self._attr_room_names:
+            return None
+
+        rooms: list[dict[str, Any]] = []
+        seen_identifiers: set[str] = set()
+
+        for key, value in self._attr_room_names.items():
+            identifier = value.get("id")
+            if identifier is None:
+                identifier = self._coerce_room_identifier(key)
+            if identifier is None:
+                continue
+
+            identifier_key = str(identifier)
+            if identifier_key in seen_identifiers:
+                continue
+            seen_identifiers.add(identifier_key)
+
+            name: Any = (
+                value.get("room_name")
+                or value.get("label")
+                or value.get("device_label")
+                or identifier_key
+            )
+            if not isinstance(name, str):
+                name = str(name)
+
+            room_entry: dict[str, Any] = {
+                "id": identifier,
+                "name": name,
+                "key": value.get("key", key),
+            }
+
+            if (source := value.get("source")):
+                room_entry["source"] = source
+            if (device_label := value.get("device_label")):
+                room_entry["device_label"] = device_label
+
+            rooms.append(room_entry)
+
+        if not rooms:
+            return None
+
+        rooms.sort(
+            key=lambda item: (
+                str(item["name"]).casefold(),
+                str(item["id"]),
+            )
+        )
+        return {"rooms": rooms}
+
+    @property
+    def capability_attributes(self) -> dict[str, Any] | None:
+        """Return capability attributes including robot vacuum metadata."""
+
+        base_attrs = super().capability_attributes
+        robot_capabilities = self._robot_vacuum_capabilities()
+
+        if not robot_capabilities:
+            return base_attrs
+
+        if base_attrs:
+            combined: dict[str, Any] = dict(base_attrs)
+        else:
+            combined = {}
+
+        combined["robot_vacuum"] = robot_capabilities
+        return combined
 
     def _update_room_names(self) -> None:
         """Decode any room metadata embedded in the room clean DPS payload."""
