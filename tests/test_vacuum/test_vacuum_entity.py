@@ -4,12 +4,55 @@ import base64
 import json
 
 import pytest
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 from homeassistant.components.vacuum import VacuumActivity
+from homeassistant.core import State
 from custom_components.robovac.const import CONF_ROOM_NAMES
 from custom_components.robovac.vacuum import RoboVacEntity
 from custom_components.robovac.vacuums.base import TuyaCodes
+
+
+def _encode_varint(value: int) -> bytes:
+    buffer = bytearray()
+    remaining = value
+    while True:
+        to_write = remaining & 0x7F
+        remaining >>= 7
+        if remaining:
+            buffer.append(to_write | 0x80)
+        else:
+            buffer.append(to_write)
+            break
+    return bytes(buffer)
+
+
+def _encode_length_delimited(field_number: int, payload: bytes) -> bytes:
+    tag = (field_number << 3) | 2
+    return bytes([tag]) + _encode_varint(len(payload)) + payload
+
+
+@pytest.fixture
+def binary_room_payload() -> dict[str, object]:
+    """Construct a binary room payload with two entries."""
+
+    def build_room(room_id: int, name: str) -> bytes:
+        identifier = _encode_length_delimited(1, b"\x08" + _encode_varint(room_id))
+        label = _encode_length_delimited(6, _encode_length_delimited(2, name.encode()))
+        return identifier + label
+
+    rooms = [
+        (2, "Kitchen"),
+        (5, "Office"),
+    ]
+    room_entries = b"".join(
+        _encode_length_delimited(1, build_room(room_id, name)) for room_id, name in rooms
+    )
+    payload = _encode_varint(len(room_entries)) + room_entries
+    return {
+        "payload": base64.b64encode(payload).decode("utf-8"),
+        "rooms": rooms,
+    }
 
 
 @pytest.mark.asyncio
@@ -241,8 +284,13 @@ async def test_update_entity_values_decodes_room_names(mock_robovac, mock_vacuum
 
     assert entity._attr_room_names is not None
     assert entity._attr_room_names["1"]["label"] == "Kitchen"
+    assert entity._attr_room_names["1"]["device_label"] == "Kitchen"
+    assert entity._attr_room_names["1"]["source"] == "device"
+    assert entity._attr_room_names["1"]["key"] == "1"
     assert entity._attr_room_names["3"]["label"] == "Bedroom"
+    assert entity._attr_room_names["3"]["source"] == "device"
     assert entity._attr_room_names["uuid-4"]["label"] == "Office"
+    assert entity._attr_room_names["uuid-4"]["source"] == "device"
 
 
 @pytest.mark.asyncio
@@ -270,8 +318,8 @@ async def test_room_name_overrides_take_precedence(mock_robovac, mock_vacuum_dat
 
 
 @pytest.mark.asyncio
-async def test_known_room_payload_mapping(mock_robovac, mock_vacuum_data):
-    """Non-JSON room payloads map to known room labels when recognised."""
+async def test_sample_binary_payload_without_labels(mock_robovac, mock_vacuum_data):
+    """Binary payloads without labels still register room identifiers."""
 
     mock_robovac.getDpsCodes.return_value = {"ROOM_CLEAN": "168"}
     mock_robovac._dps = {
@@ -283,4 +331,40 @@ async def test_known_room_payload_mapping(mock_robovac, mock_vacuum_data):
         entity.update_entity_values()
 
     assert entity._attr_room_names is not None
-    assert entity._attr_room_names["100"]["label"] == "Living Room"
+    entry = entity._attr_room_names["100"]
+    assert entry["id"] == 100
+    assert entry.get("label") is None
+
+
+@pytest.mark.asyncio
+async def test_binary_room_payload_decoding(
+    mock_robovac, mock_vacuum_data, binary_room_payload
+):
+    """Binary protobuf payloads provide room metadata for advanced models."""
+
+    mock_robovac.getDpsCodes.return_value = {"ROOM_CLEAN": "168"}
+    mock_robovac._dps = {"168": binary_room_payload["payload"]}
+
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
+        entity = RoboVacEntity(mock_vacuum_data)
+        entity.update_entity_values()
+
+    assert entity._attr_room_names is not None
+    for identifier, label in binary_room_payload["rooms"]:
+        key = str(identifier)
+        assert entity._attr_room_names[key]["label"] == label
+
+    extra = entity.extra_state_attributes
+    assert "robot_vacuum" in extra
+    rooms = extra["robot_vacuum"]["rooms"]
+    for identifier, label in binary_room_payload["rooms"]:
+        entry = rooms[str(identifier)]
+        assert entry["label"] == label
+
+    capabilities = entity.capability_attributes
+    assert "robot_vacuum" in capabilities
+    capability_rooms = capabilities["robot_vacuum"]["rooms"]
+    for identifier, label in binary_room_payload["rooms"]:
+        matching = [room for room in capability_rooms if room.get("id") == identifier]
+        assert matching
+        assert matching[0]["label"] == label
