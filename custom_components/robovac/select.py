@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from typing import Any
 
@@ -31,10 +31,12 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up RoboVac room selectors for a config entry."""
-    vacuums = hass.data.get(DOMAIN, {}).get(CONF_VACS, {})
+    configured_vacuums = entry.data.get(CONF_VACS, {})
+    registered_vacuums = hass.data.get(DOMAIN, {}).get(CONF_VACS, {})
 
     entities: list[RobovacRoomSelect] = []
-    for vacuum in vacuums.values():
+    for vacuum_id in configured_vacuums:
+        vacuum = registered_vacuums.get(vacuum_id)
         if isinstance(vacuum, RoboVacEntity):
             entities.append(RobovacRoomSelect(vacuum))
 
@@ -55,6 +57,22 @@ class RobovacRoomSelect(SelectEntity):
         self._attr_name = "Cleaning Target"
         self._current_option: str | None = None
         self._attr_device_info = vacuum.device_info
+        self._remove_room_listener: Callable[[], None] | None = None
+
+    async def async_added_to_hass(self) -> None:
+        """Register callbacks once the entity is added to Home Assistant."""
+
+        await super().async_added_to_hass()
+
+        def _handle_room_update() -> None:
+            if self.hass is not None and self.enabled:
+                self.async_write_ha_state()
+
+        remove_listener = getattr(self._vacuum, "add_room_name_listener", None)
+        if callable(remove_listener):
+            self._remove_room_listener = remove_listener(_handle_room_update)
+            if self._remove_room_listener is not None:
+                self.async_on_remove(self._remove_room_listener)
 
     @property
     def available(self) -> bool:
@@ -76,6 +94,7 @@ class RobovacRoomSelect(SelectEntity):
         """Yield room options derived from the vacuum entity."""
         room_names = getattr(self._vacuum, "_attr_room_names", None)
         options: list[_RoomOption] = []
+        seen_identifiers: set[str] = set()
 
         if isinstance(room_names, dict):
             items = room_names.items()
@@ -104,6 +123,9 @@ class RobovacRoomSelect(SelectEntity):
                 continue
 
             identifier_str = str(identifier)
+            if identifier_str in seen_identifiers:
+                continue
+            seen_identifiers.add(identifier_str)
             display_label = label if label else identifier_str
             options.append(
                 _RoomOption(display_label, identifier_str)
