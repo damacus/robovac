@@ -2,6 +2,7 @@ from typing import Any, cast
 from collections.abc import Mapping
 from homeassistant.components.vacuum import VacuumActivity
 
+from .case_insensitive_lookup import case_insensitive_lookup
 from .tuyalocalapi import TuyaDevice
 from .vacuums import ROBOVAC_MODELS
 from .vacuums.base import RobovacCommand, RobovacModelDetails
@@ -211,23 +212,30 @@ class RoboVac(TuyaDevice):
             str: The human-readable value (e.g., "Auto cleaning", "Returning home", "auto").
                  Returns the original value if no mapping exists.
         """
+        values = None
         try:
             # Check if command_name is already a RobovacCommand enum
             cmd = command_name if isinstance(command_name, RobovacCommand) else RobovacCommand(command_name)
             values = self._get_command_values(cmd)
 
             if values is not None:
-                # Direct lookup: the input value should be a key in the values dict
-                if str(value) in values:
-                    return str(values[value])
+                # Try case-insensitive lookup
+                result = case_insensitive_lookup(values, value)
+                if result is not None:
+                    return str(result)
+
+                # Only log if values dict exists but value not found
+                _LOGGER.debug(
+                    "Command %s with value %r (type: %s) not found for model %s. "
+                    "Available keys: %r",
+                    command_name,
+                    value,
+                    type(value).__name__,
+                    self.model_code,
+                    list(values.keys()),
+                )
 
         except (ValueError, KeyError):
             pass
 
-        _LOGGER.warning(
-            "Command %s with value %s not found for model %s. If you know the status the Eufy app was showing at this time, please report that to the component maintainers.",
-            command_name,
-            value,
-            self.model_code,
-        )
         return value

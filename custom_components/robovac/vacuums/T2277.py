@@ -5,8 +5,7 @@ from .base import RoboVacEntityFeature, RobovacCommand, RobovacModelDetails
 
 class T2277(RobovacModelDetails):
     homeassistant_features = (
-        VacuumEntityFeature.BATTERY
-        | VacuumEntityFeature.CLEAN_SPOT
+        VacuumEntityFeature.CLEAN_SPOT
         | VacuumEntityFeature.FAN_SPEED
         | VacuumEntityFeature.LOCATE
         | VacuumEntityFeature.PAUSE
@@ -24,38 +23,101 @@ class T2277(RobovacModelDetails):
         RobovacCommand.MODE: {
             "code": 152,
             "values": {
-                "small_room": "AA==",
+                "standby": "AA==",
                 "pause": "AggN",
-                "edge": "AggG",
+                "stop": "AggG",
+                "return": "AggG",
                 "auto": "BBoCCAE=",
                 "nosweep": "AggO",
+                "AA==": "standby",
+                "AggN": "pause",
+                "AggG": "stop",
+                "BBoCCAE=": "auto",
+                "AggO": "nosweep"
             },
         },
-        RobovacCommand.STATUS: {
-            "code": 173,
+        RobovacCommand.START_PAUSE: {  # via mode command
+            "code": 152,
+            "values": {
+                "pause": "AggN",
+            },
         },
-        RobovacCommand.RETURN_HOME: {
+        RobovacCommand.RETURN_HOME: {  # via mode command
+            "code": 152,
+            "values": {
+                "return": "AggG",
+            },
+        },
+        RobovacCommand.STATUS: {  # works
             "code": 153,
             "values": {
-                "return_home": "AggB",
-            }
+                "auto": "BgoAEAUyAA===",
+                "positioning": "BgoAEAVSAA==",
+                "Paused": "CAoAEAUyAggB",  # capitalized in vacuum.py
+                "room": "CAoCCAEQBTIA",
+                "room_positioning": "CAoCCAEQBVIA",
+                "room_pause": "CgoCCAEQBTICCAE=",
+                "spot": "CAoCCAIQBTIA",
+                "spot_positioning": "CAoCCAIQBVIA",
+                "spot_pause": "CgoCCAIQBTICCAE=",
+                "start_manual": "BAoAEAY=",
+                "going_to_charge": "BBAHQgA=",
+                "Charging": "BBADGgA=",  # capitalized in vacuum.py
+                "completed": "BhADGgIIAQ==",
+                "Standby": "AA==",  # capitalized in vacuum.py
+                "Sleeping": "AhAB",  # capitalized in vacuum.py
+                "BgoAEAUyAA===": "auto",
+                "BgoAEAUyAA==": "auto",
+                "BgoAEAVSAA===": "positioning",
+                "BgoAEAVSAA==": "positioning",
+                "CAoAEAUyAggB": "Paused",  # capitalized in vacuum.py
+                "AggB": "Paused",
+                "CAoCCAEQBTIA": "room",
+                "CAoCCAEQBVIA": "room_positioning",
+                "CgoCCAEQBTICCAE=": "room_pause",
+                "CAoCCAIQBTIA": "spot",
+                "CAoCCAIQBVIA": "spot_positioning",
+                "CgoCCAIQBTICCAE=": "spot_pause",
+                "BAoAEAY=": "start_manual",
+                "BBAHQgA=": "going_to_charge",
+                "BBADGgA=": "Charging",  # capitalized in vacuum.py
+                "BhADGgIIAQ==": "completed",
+                "AA==": "Standby",  # capitalized in vacuum.py
+                "AhAB": "Sleeping",  # capitalized in vacuum.py
+            },
         },
+
         RobovacCommand.FAN_SPEED: {
-            "code": 154,
+            "code": 158,
             "values": {
-                "fan_speed": "AgkBCgIKAQoDCgEKBAoB",
-            }
+                "quiet": "Quiet",
+                "standard": "Standard",
+                "turbo": "Turbo",
+                "max": "Max",
+            },
         },
+
         RobovacCommand.LOCATE: {
-            "code": 153,
+            "code": 160,
             "values": {
-                "locate": "AggC",
+                "locate": "true",
             }
         },
         RobovacCommand.BATTERY: {
-            "code": 172,
+            "code": 163,
         },
-        RobovacCommand.ERROR: {
-            "code": 169,
-        },
+        # RobovacCommand.ERROR: {  # doesnt work, includes encrypted last error timestamp
+        #    "code": 177,
+        #    "values":
+        #    {
+        #        "DAiI6suO9dXszgFSAA==": "no_error",
+        #        "FAjwudWorOPszgEaAqURUgQSAqUR": "Sidebrush stuck",
+        #        "FAj+nMu7zuPszgEaAtg2UgQSAtg2": "Robot stuck",
+        #        "DAjtzbfps+XszgFSAA==": "no_error",
+        #        "DAiom9rd6eTszgFSAA==": "no_error",
+        #        "DAia8JTV5OPszgFSAA==": "no_error",
+        #        "DAj489bWsePszgFSAA==": "no_error",
+        #        "ByIDCgEAUgA=": "no_error",
+        #    }
+        # },
     }

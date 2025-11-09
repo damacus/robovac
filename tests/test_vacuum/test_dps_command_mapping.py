@@ -213,13 +213,17 @@ async def test_vacuum_update_uses_correct_dps_codes() -> None:
         "102": "Standard"  # Fan speed
     }
 
+    # Mock the new methods to return values as-is (no conversion)
+    mock_robovac.getRoboVacHumanReadableValue.side_effect = lambda command, value: value
+    mock_robovac.getRoboVacActivityMapping.return_value = None
+
     # Initialize the vacuum entity
     with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
         entity = RoboVacEntity(mock_vacuum_data)
         entity.update_entity_values()
 
         # Check that the correct values were extracted
-        assert entity._attr_battery_level == 75
+        # Battery level is now handled by separate sensor entity
         assert entity._attr_tuya_state == "Cleaning"
         assert entity._attr_error_code == 0
         assert entity._attr_mode == "auto"

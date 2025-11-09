@@ -6,6 +6,7 @@ This script helps identify models that need custom DPS code mapping.
 
 import sys
 import os
+from typing import Any, Dict
 from unittest.mock import patch, MagicMock
 
 # Add the project directory to the Python path
@@ -20,7 +21,7 @@ from custom_components.robovac.vacuums import ROBOVAC_MODELS
 def analyze_model_dps_codes() -> None:
     """Analyze DPS codes for all models to determine which ones differ from defaults."""
     # Dictionary to store results
-    model_dps_analysis = {}
+    model_dps_analysis: Dict[str, Dict[str, Any]] = {}
 
     # Default codes from TuyaCodes
     default_codes = {

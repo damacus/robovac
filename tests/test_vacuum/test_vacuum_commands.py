@@ -1,16 +1,15 @@
 """Tests for the RoboVac vacuum entity commands."""
 
 import pytest
-from unittest.mock import MagicMock, call, patch
-
-from homeassistant.components.vacuum import VacuumEntityFeature
+from typing import Any
+from unittest.mock import patch, MagicMock, call
 
 from custom_components.robovac.vacuum import RoboVacEntity
 from custom_components.robovac.vacuums.base import RobovacCommand
 
 
 @pytest.mark.asyncio
-async def test_async_locate(mock_robovac, mock_vacuum_data):
+async def test_async_locate(mock_robovac, mock_vacuum_data) -> None:
     """Test the async_locate method."""
     # Arrange
     with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
@@ -41,28 +40,7 @@ async def test_async_locate(mock_robovac, mock_vacuum_data):
 
 
 @pytest.mark.asyncio
-async def test_async_identify_triggers_locate(mock_robovac, mock_vacuum_data):
-    """Ensure async_identify calls async_locate."""
-    with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
-        entity = RoboVacEntity(mock_vacuum_data)
-        with patch.object(entity, "async_locate") as mock_locate:
-            await entity.async_identify()
-            mock_locate.assert_called_once()
-
-
-@pytest.mark.asyncio
-async def test_supported_features_include_locate(mock_robovac, mock_vacuum_data):
-    """Ensure LOCATE feature is set when command exists."""
-    with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
-        mock_robovac.getHomeAssistantFeatures.return_value = VacuumEntityFeature.BATTERY
-        mock_robovac.model_details = MagicMock()
-        mock_robovac.model_details.commands = {RobovacCommand.LOCATE: {"code": "103"}}
-        entity = RoboVacEntity(mock_vacuum_data)
-        assert entity.supported_features & VacuumEntityFeature.LOCATE
-
-
-@pytest.mark.asyncio
-async def test_async_return_to_base(mock_robovac, mock_vacuum_data):
+async def test_async_return_to_base(mock_robovac, mock_vacuum_data) -> None:
     """Test the async_return_to_base method."""
     # Arrange
     with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
@@ -72,11 +50,11 @@ async def test_async_return_to_base(mock_robovac, mock_vacuum_data):
         await entity.async_return_to_base()
 
         # Assert
-        mock_robovac.async_set.assert_called_once_with({"101": True})
+        mock_robovac.async_set.assert_called_once_with({"101": "return"})
 
 
 @pytest.mark.asyncio
-async def test_async_start(mock_robovac, mock_vacuum_data):
+async def test_async_start(mock_robovac, mock_vacuum_data) -> None:
     """Test the async_start method."""
     # Arrange
     with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
@@ -87,19 +65,17 @@ async def test_async_start(mock_robovac, mock_vacuum_data):
 
         # Assert
         assert entity._attr_mode == "auto"
-        mock_robovac.async_set.assert_called_once_with({"5": "auto"})
+        mock_robovac.async_set.assert_called_once_with({"5": "Auto"})
 
 
 @pytest.mark.asyncio
-async def test_async_start_model_specific(
-    mock_robovac, mock_vacuum_data, mock_l60, mock_l60_data
-):
+async def test_async_start_model_specific(mock_robovac, mock_vacuum_data: Any, mock_l60, mock_l60_data) -> None:
     """Test that async_start uses the correct code for different models."""
     # Test with standard model (should use code "5")
     with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
         entity = RoboVacEntity(mock_vacuum_data)
         await entity.async_start()
-        mock_robovac.async_set.assert_called_once_with({"5": "auto"})
+        mock_robovac.async_set.assert_called_once_with({"5": "Auto"})
         mock_robovac.async_set.reset_mock()
 
     # Test with L60 model (should use code "152")
@@ -108,13 +84,13 @@ async def test_async_start_model_specific(
     with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_l60):
         entity = RoboVacEntity(mock_l60_data)
         await entity.async_start()
-        # This will fail with the current implementation because it always uses code "5"
-        # The fix will make it use "152" for L60 models
-        mock_l60.async_set.assert_called_once_with({"152": "auto"})
+        # Now that we've updated the implementation, L60 should send base64 value "BBoCCAE="
+        # instead of "auto" for the MODE command
+        mock_l60.async_set.assert_called_once_with({"152": "BBoCCAE="})
 
 
 @pytest.mark.asyncio
-async def test_async_pause(mock_robovac, mock_vacuum_data):
+async def test_async_pause(mock_robovac, mock_vacuum_data) -> None:
     """Test the async_pause method."""
     # Arrange
     with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
@@ -124,11 +100,11 @@ async def test_async_pause(mock_robovac, mock_vacuum_data):
         await entity.async_pause()
 
         # Assert
-        mock_robovac.async_set.assert_called_once_with({"2": False})
+        mock_robovac.async_set.assert_called_once_with({"2": "pause"})
 
 
 @pytest.mark.asyncio
-async def test_async_stop(mock_robovac, mock_vacuum_data):
+async def test_async_stop(mock_robovac, mock_vacuum_data) -> None:
     """Test the async_stop method."""
     # Arrange
     with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
@@ -144,7 +120,7 @@ async def test_async_stop(mock_robovac, mock_vacuum_data):
 
 
 @pytest.mark.asyncio
-async def test_async_clean_spot(mock_robovac, mock_vacuum_data):
+async def test_async_clean_spot(mock_robovac, mock_vacuum_data) -> None:
     """Test the async_clean_spot method."""
     # Arrange
     with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
@@ -158,7 +134,7 @@ async def test_async_clean_spot(mock_robovac, mock_vacuum_data):
 
 
 @pytest.mark.asyncio
-async def test_async_set_fan_speed(mock_robovac, mock_vacuum_data):
+async def test_async_set_fan_speed(mock_robovac, mock_vacuum_data) -> None:
     """Test the async_set_fan_speed method."""
     # Arrange
     with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
@@ -166,10 +142,12 @@ async def test_async_set_fan_speed(mock_robovac, mock_vacuum_data):
 
         # Test cases for fan speed conversion
         test_cases = [
-            ("No Suction", "No_suction"),
-            ("Boost IQ", "Boost_IQ"),
-            ("Pure", "Quiet"),
-            ("Standard", "Standard"),  # No change
+            ("Turbo", "Turbo"),                # Input normalized to "turbo" -> maps to "Turbo"
+            ("Max", "Max"),                    # Input normalized to "max" -> maps to "Max"
+            ("Standard", "Standard"),          # Input normalized to "standard" -> maps to "Standard"
+            ("Quiet", "quiet"),                # Input normalized to "quiet" -> not in mapping, returns input
+            ("Boost_IQ", "Boost IQ"),          # Input normalized to "boost_iq" -> maps to "Boost IQ"
+            ("No_suction", "No Suction"),  # Input normalized to "no_suction" -> maps to "No Suction"
         ]
 
         for input_speed, expected_output in test_cases:
@@ -184,7 +162,7 @@ async def test_async_set_fan_speed(mock_robovac, mock_vacuum_data):
 
 
 @pytest.mark.asyncio
-async def test_async_send_command(mock_robovac, mock_vacuum_data):
+async def test_async_send_command(mock_robovac, mock_vacuum_data) -> None:
     """Test the async_send_command method."""
     # Arrange
     with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
@@ -202,53 +180,47 @@ async def test_async_send_command(mock_robovac, mock_vacuum_data):
 
         # Test auto clean command
         await entity.async_send_command("autoClean")
-        mock_robovac.async_set.assert_called_once_with({"5": "auto"})
+        mock_robovac.async_set.assert_called_once_with({"5": "Auto"})
         mock_robovac.async_set.reset_mock()
 
-        # Test auto return command (when off)
+        # Test auto return command (when off - should toggle to on)
         entity._attr_auto_return = False
         await entity.async_send_command("autoReturn")
         mock_robovac.async_set.assert_called_once_with({"135": True})
         mock_robovac.async_set.reset_mock()
 
-        # Test auto return command (when on)
+        # Test auto return command (when on - should toggle to off)
         entity._attr_auto_return = True
         await entity.async_send_command("autoReturn")
         mock_robovac.async_set.assert_called_once_with({"135": False})
         mock_robovac.async_set.reset_mock()
 
-        # Test do not disturb command (when off)
+        # Test do not disturb command (when off - should toggle to on)
         entity._attr_do_not_disturb = False
         await entity.async_send_command("doNotDisturb")
-        assert mock_robovac.async_set.call_count == 2
-        mock_robovac.async_set.assert_has_calls(
-            [call({"139": "MTAwMDAwMDAw"}), call({"107": True})]
-        )
+        mock_robovac.async_set.assert_called_once_with({"107": True})
         mock_robovac.async_set.reset_mock()
 
-        # Test do not disturb command (when on)
+        # Test do not disturb command (when on - should toggle to off)
         entity._attr_do_not_disturb = True
         await entity.async_send_command("doNotDisturb")
-        assert mock_robovac.async_set.call_count == 2
-        mock_robovac.async_set.assert_has_calls(
-            [call({"139": "MEQ4MDAwMDAw"}), call({"107": False})]
-        )
+        mock_robovac.async_set.assert_called_once_with({"107": False})
         mock_robovac.async_set.reset_mock()
 
-        # Test boost IQ command (when off)
+        # Test boost IQ command (when off - should toggle to on)
         entity._attr_boost_iq = False
         await entity.async_send_command("boostIQ")
         mock_robovac.async_set.assert_called_once_with({"118": True})
         mock_robovac.async_set.reset_mock()
 
-        # Test boost IQ command (when on)
+        # Test boost IQ command (when on - should toggle to off)
         entity._attr_boost_iq = True
         await entity.async_send_command("boostIQ")
         mock_robovac.async_set.assert_called_once_with({"118": False})
 
 
 @pytest.mark.asyncio
-async def test_async_update(mock_robovac, mock_vacuum_data):
+async def test_async_update(mock_robovac, mock_vacuum_data) -> None:
     """Test the async_update method."""
     # Arrange
     with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
@@ -279,7 +251,7 @@ async def test_async_update(mock_robovac, mock_vacuum_data):
 
 
 @pytest.mark.asyncio
-async def test_async_will_remove_from_hass(mock_robovac, mock_vacuum_data):
+async def test_async_will_remove_from_hass(mock_robovac, mock_vacuum_data) -> None:
     """Test the async_will_remove_from_hass method."""
     # Arrange
     with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):

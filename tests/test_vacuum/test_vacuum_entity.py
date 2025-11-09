@@ -4,7 +4,8 @@ import base64
 import json
 
 import pytest
-from unittest.mock import AsyncMock, patch
+from typing import Any
+from unittest.mock import patch, MagicMock
 
 from homeassistant.components.vacuum import VacuumActivity
 from homeassistant.core import State
@@ -56,7 +57,7 @@ def binary_room_payload() -> dict[str, object]:
 
 
 @pytest.mark.asyncio
-async def test_activity_property_none(mock_robovac, mock_vacuum_data):
+async def test_activity_property_none(mock_robovac, mock_vacuum_data) -> None:
     """Test activity property returns None when tuya_state is None."""
     # Arrange
     with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
@@ -71,7 +72,7 @@ async def test_activity_property_none(mock_robovac, mock_vacuum_data):
 
 
 @pytest.mark.asyncio
-async def test_activity_property_error(mock_robovac, mock_vacuum_data):
+async def test_activity_property_error(mock_robovac, mock_vacuum_data) -> None:
     """Test activity property returns ERROR when error_code is set."""
     # Arrange
     with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
@@ -87,7 +88,7 @@ async def test_activity_property_error(mock_robovac, mock_vacuum_data):
 
 
 @pytest.mark.asyncio
-async def test_activity_property_docked(mock_robovac, mock_vacuum_data):
+async def test_activity_property_docked(mock_robovac, mock_vacuum_data) -> None:
     """Test activity property returns DOCKED when state is Charging or completed."""
     # Arrange
     with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
@@ -114,23 +115,7 @@ async def test_activity_property_docked(mock_robovac, mock_vacuum_data):
 
 
 @pytest.mark.asyncio
-async def test_activity_property_drying_mop(mock_robovac, mock_vacuum_data):
-    """Test activity property returns DOCKED when state is Drying Mop."""
-    mock_robovac.getRoboVacActivityMapping.return_value = {
-        "Drying Mop": VacuumActivity.DOCKED
-    }
-
-    with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
-        entity = RoboVacEntity(mock_vacuum_data)
-        entity.tuya_state = "Drying Mop"
-
-        result = entity.activity
-
-        assert result == VacuumActivity.DOCKED
-
-
-@pytest.mark.asyncio
-async def test_activity_property_returning(mock_robovac, mock_vacuum_data):
+async def test_activity_property_returning(mock_robovac, mock_vacuum_data) -> None:
     """Test activity property returns RETURNING when state is Recharge."""
     # Arrange
     with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
@@ -146,7 +131,7 @@ async def test_activity_property_returning(mock_robovac, mock_vacuum_data):
 
 
 @pytest.mark.asyncio
-async def test_activity_property_idle(mock_robovac, mock_vacuum_data):
+async def test_activity_property_idle(mock_robovac, mock_vacuum_data) -> None:
     """Test activity property returns IDLE when state is Sleeping or standby."""
     # Arrange
     with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
@@ -173,7 +158,7 @@ async def test_activity_property_idle(mock_robovac, mock_vacuum_data):
 
 
 @pytest.mark.asyncio
-async def test_activity_property_paused(mock_robovac, mock_vacuum_data):
+async def test_activity_property_paused(mock_robovac, mock_vacuum_data) -> None:
     """Test activity property returns PAUSED when state is Paused."""
     # Arrange
     with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
@@ -189,7 +174,7 @@ async def test_activity_property_paused(mock_robovac, mock_vacuum_data):
 
 
 @pytest.mark.asyncio
-async def test_activity_property_cleaning(mock_robovac, mock_vacuum_data):
+async def test_activity_property_cleaning(mock_robovac, mock_vacuum_data) -> None:
     """Test activity property returns CLEANING for other states."""
     # Arrange
     with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
@@ -205,7 +190,7 @@ async def test_activity_property_cleaning(mock_robovac, mock_vacuum_data):
 
 
 @pytest.mark.asyncio
-async def test_update_entity_values(mock_robovac, mock_vacuum_data):
+async def test_update_entity_values(mock_robovac, mock_vacuum_data) -> None:
     """Test update_entity_values correctly sets entity attributes."""
     # Arrange
     mock_robovac._dps = {
@@ -223,7 +208,7 @@ async def test_update_entity_values(mock_robovac, mock_vacuum_data):
         entity.update_entity_values()
 
         # Assert
-        assert entity._attr_battery_level == 75
+        # Battery level is now handled by separate sensor entity
         assert entity.tuya_state == "Cleaning"
         assert entity.error_code == 0
         assert entity._attr_mode == "auto"
@@ -231,7 +216,7 @@ async def test_update_entity_values(mock_robovac, mock_vacuum_data):
 
 
 @pytest.mark.asyncio
-async def test_fan_speed_formatting(mock_robovac, mock_vacuum_data):
+async def test_fan_speed_formatting(mock_robovac, mock_vacuum_data) -> None:
     """Test fan speed formatting in update_entity_values."""
     # Arrange
     test_cases = [

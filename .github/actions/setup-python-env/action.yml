@@ -19,7 +19,7 @@ runs:
   using: "composite"
   steps:
     - name: Set up Python
-      uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+      uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6
       with:
         python-version: ${{ inputs.python-version }}
 
@@ -31,7 +31,7 @@ runs:
 
     - name: Install uv
       # Using the specific commit SHA you had, as it might be intentional over a simple vX tag
-      uses: astral-sh/setup-uv@4e1e303f7dafb1a3ec7770a507052543f593ad96 # From user's ci.yml
+      uses: astral-sh/setup-uv@8491d1d9a36c62443856ebb0fe897f2255bdc242 # From user's ci.yml
 
     - name: Install Python dependencies
       shell: bash

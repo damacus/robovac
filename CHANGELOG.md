@@ -5,6 +5,65 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0](https://github.com/damacus/robovac/compare/v1.4.0...v1.5.0) (2025-10-22)
+
+
+### Features
+
+* **T2080:** add MOP_LEVEL command support for Eufy Clean S1 ([#236](https://github.com/damacus/robovac/issues/236)) ([a11198c](https://github.com/damacus/robovac/commit/a11198cfeb2424ee2bccb554360fea2689910629))
+
+
+### Bug Fixes
+
+* **2280:** Add stub for 2280 vacuum cleaner ([#234](https://github.com/damacus/robovac/issues/234)) ([a173e16](https://github.com/damacus/robovac/commit/a173e1671e995ecbcf6c276f315c797c6aa02e66))
+
+## [1.4.0](https://github.com/damacus/robovac/compare/v1.3.4...v1.4.0) (2025-10-22)
+
+
+### Features
+
+* add case-insensitive value lookup utility ([ff93578](https://github.com/damacus/robovac/commit/ff935781b87d55b47673b6679b49596d2f33b379))
+* add command mapping tests for seven vacuum models ([ff93578](https://github.com/damacus/robovac/commit/ff935781b87d55b47673b6679b49596d2f33b379))
+* **battery:** Fix battery deprecation notice ([#231](https://github.com/damacus/robovac/issues/231)) ([4efd321](https://github.com/damacus/robovac/commit/4efd321a9179a886f1dd31b1cd07ebc248e5164e))
+* standardise vacuum model command mappings ([ff93578](https://github.com/damacus/robovac/commit/ff935781b87d55b47673b6679b49596d2f33b379))
+
+
+### Bug Fixes
+
+* **codes:** Stop duplicating codes in config ([#222](https://github.com/damacus/robovac/issues/222)) ([ff93578](https://github.com/damacus/robovac/commit/ff935781b87d55b47673b6679b49596d2f33b379))
+* improve logging strategy for value lookups ([ff93578](https://github.com/damacus/robovac/commit/ff935781b87d55b47673b6679b49596d2f33b379))
+* **python:** Drop down to python 3.13.1 to match home assistant ([#232](https://github.com/damacus/robovac/issues/232)) ([1321d46](https://github.com/damacus/robovac/commit/1321d46e7b0a760a0720fdff822825061feff395))
+
+
+### Documentation
+
+* add development guide and update README ([ff93578](https://github.com/damacus/robovac/commit/ff935781b87d55b47673b6679b49596d2f33b379))
+
+## [1.3.4](https://github.com/damacus/robovac/compare/v1.3.3...v1.3.4) (2025-10-13)
+
+
+### Documentation
+
+* add GitHub labels system documentation ([68e1cbe](https://github.com/damacus/robovac/commit/68e1cbe33b73e9f50788a07a2c2aa9e05400f05a))
+
+## [1.3.3](https://github.com/damacus/robovac/compare/v1.3.2...v1.3.3) (2025-10-13)
+
+
+### Bug Fixes
+
+* L60 commands ([#197](https://github.com/damacus/robovac/issues/197)) ([2fd0e9a](https://github.com/damacus/robovac/commit/2fd0e9a935100de0cba03ca6f62b0d412318e3a0))
+* **logs:** Limit logging ([#215](https://github.com/damacus/robovac/issues/215)) ([9936867](https://github.com/damacus/robovac/commit/9936867910097d06d5d5bc718e6835cc3c54672c))
+* **T2080:** Mapping more statuses for T2080 ([#208](https://github.com/damacus/robovac/issues/208)) ([67aaeb3](https://github.com/damacus/robovac/commit/67aaeb39068479bf32d0f3b2a3bece9ac1c8316a))
+* **test:** add missing BATTERY feature to T2118 test expectations ([#220](https://github.com/damacus/robovac/issues/220)) ([f3fa3ff](https://github.com/damacus/robovac/commit/f3fa3ff4e6141839dd4be6e1f7ba94648ac70ba2))
+
+## [1.3.2](https://github.com/damacus/robovac/compare/v1.3.1...v1.3.2) (2025-08-26)
+
+
+### Bug Fixes
+
+* correct autoReturn toggle logic and mode mappings ([#180](https://github.com/damacus/robovac/issues/180)) ([6dfd10d](https://github.com/damacus/robovac/commit/6dfd10d65951a3f4285d899718cbe667001c7f25))
+* Update how codes are looked up ([#149](https://github.com/damacus/robovac/issues/149)) ([e06aed0](https://github.com/damacus/robovac/commit/e06aed02a02df3dd2075aaee393cf18593250d20))
+
 ## [1.3.1](https://github.com/damacus/robovac/compare/v1.3.0...v1.3.1) (2025-07-05)
 
 

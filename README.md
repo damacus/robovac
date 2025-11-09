@@ -26,10 +26,10 @@ This is yet another Eufy fork, this time based on work from [CodeFoodPixels](htt
 4. Go to the Integrations Page and Click +Add Integration button
 5. Search for Eufy RoboVac and select it
 6. Enter your Eufy username and password (The ones you use to login to the add with) and submit
-7. If youve done it correctly you should get a success dialoge and option to enter an Area for each RoboVac you have
+7. If you've done it correctly you should get a success dialog and option to enter an Area for each RoboVac you have
 8. Click Finish
 9. On the Integrations Screen Locate your Eufy RoboVac card and click the configure button
-10. Select the Radio button beside the Vacuum name and type its IP addess in the box and press Submit
+10. Select the Radio button beside the Vacuum name and type its IP address in the box and press Submit
 (You need to repeat steps 9 and 10 for each RoboVac you have)
 11. Enjoy
 
@@ -49,4 +49,75 @@ logger:
   logs:
     custom_components.robovac.vacuum: debug
     custom_components.robovac.tuyalocalapi: debug
+    custom_components.robovac.robovac: debug
+```
+
+## Model Validation
+
+Before setting up the integration, you can validate if your RoboVac model is supported by using the included CLI tool:
+
+```bash
+python -m custom_components.robovac.model_validator_cli <YOUR_MODEL_CODE>
+```
+
+For example:
+
+```bash
+python -m custom_components.robovac.model_validator_cli T2278
+```
+
+To see a full list of all supported models, use the `--list` flag:
+
+```bash
+python -m custom_components.robovac.model_validator_cli --list
+```
+
+## Development
+
+### Code Quality
+
+This integration follows best practices for code quality and maintainability:
+
+- **Case-Insensitive Matching**: Device responses are matched case-insensitively, handling variations in capitalization automatically.
+- **Logging Strategy**: Debug logs provide diagnostic information for troubleshooting, while warnings are reserved for actual issues.
+- **Type Hints**: Full type annotations throughout the codebase for improved IDE support and type checking.
+- **Test Coverage**: Dedicated tests for each vacuum model with full coverage.
+
+### Running Tests
+
+```bash
+# Run all tests
+task test
+
+# Run specific test file
+pytest tests/test_vacuum/test_t2251_command_mappings.py -v
+
+# Check code style
+task lint
+
+# Verify type hints
+task type-check
+```
+
+### Command Mapping Conventions
+
+All vacuum models follow consistent conventions for command mappings:
+
+- **Keys**: Lowercase snake_case (e.g., `"auto"`, `"small_room"`)
+- **Values**: PascalCase (e.g., `"Auto"`, `"SmallRoom"`)
+- **Matching**: Device responses are matched case-insensitively
+
+Example from `T2250.py`:
+
+```python
+RobovacCommand.MODE: {
+    "code": 5,
+    "values": {
+        "auto": "Auto",
+        "small_room": "SmallRoom",
+        "spot": "Spot",
+        "edge": "Edge",
+        "nosweep": "Nosweep",
+    },
+},
 ```

@@ -5,8 +5,7 @@ from .base import RoboVacEntityFeature, RobovacCommand, RobovacModelDetails
 
 class T2320(RobovacModelDetails):
     homeassistant_features = (
-        VacuumEntityFeature.BATTERY
-        | VacuumEntityFeature.FAN_SPEED
+        VacuumEntityFeature.FAN_SPEED
         | VacuumEntityFeature.LOCATE
         | VacuumEntityFeature.PAUSE
         | VacuumEntityFeature.RETURN_HOME
@@ -23,30 +22,21 @@ class T2320(RobovacModelDetails):
     dps_codes = {"ROOM_CLEAN": "168"}
     # Align DP codes/values with field logs (similar to T2267/L60 layout)
     commands = {
-        # Pause is applied via MODE DP (152) on this model
         RobovacCommand.START_PAUSE: {
-            "code": 152,
+            "code": 2,
             "values": {
-                "pause": "AggN",
+                "start": True,
+                "pause": False
             },
         },
-        # Mode selection is DP 152 using Tuya base64 tokens
         RobovacCommand.MODE: {
             "code": 152,
             "values": {
-                # Bidirectional mapping: human -> token and token -> human
-                # human -> token (for sending commands)
-                "auto": "BBoCCAE=",
-                "pause": "AggN",
-                "spot": "AA==",
-                "return": "AggG",
-                "nosweep": "AggO",
-                # token -> human (for decoding DPS -> readable mode)
-                "BBoCCAE=": "auto",
-                "AggN": "pause",
-                "AA==": "spot",
-                "AggG": "return",
-                "AggO": "nosweep",
+                "auto": "auto",
+                "return": "return",
+                "pause": "pause",
+                "small_room": "small_room",
+                "single_room": "single_room"
             },
         },
         # Status reports via DP 153 (base64-encoded status payloads)
@@ -71,24 +61,27 @@ class T2320(RobovacModelDetails):
         },
         # Return home is triggered via MODE DP (152) on this model
         RobovacCommand.RETURN_HOME: {
-            "code": 152,
+            "code": 153,
             "values": {
-                "return": "AggG",
-            },
+                "return_home": True
+            }
         },
         # Fan speed is DP 158 with human-readable values
         RobovacCommand.FAN_SPEED: {
-            "code": 158,
+            "code": 154,
             "values": {
-                "quiet": "Quiet",
-                "standard": "Standard",
-                "turbo": "Turbo",
-                "max": "Max",
+                "Standard": "standard",
+                "Boost IQ": "boost_iq",
+                "Max": "max",
+                "Quiet": "Quiet",
             },
         },
         # Locate/beep is DP 160
         RobovacCommand.LOCATE: {
-            "code": 160,
+            "code": 153,
+            "values": {
+                "locate": True
+            }
         },
         # Battery level is DP 163
         RobovacCommand.BATTERY: {
