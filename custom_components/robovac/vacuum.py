@@ -58,6 +58,7 @@ from .vacuums.base import (
     TUYA_CONSUMABLES_CODES,
 )
 from .robovac import ModelNotSupportedException, RoboVac
+from .room_payload import decode_binary_room_list
 from .tuyalocalapi import TuyaException
 
 ATTR_BATTERY_ICON = "battery_icon"
@@ -81,17 +82,6 @@ ROOM_NAME_SOURCE_USER = "user"
 _LOGGER = logging.getLogger(__name__)
 SCAN_INTERVAL = timedelta(seconds=REFRESH_RATE)
 UPDATE_RETRIES = 3
-
-
-# Known room clean payloads that map to human-friendly room labels.
-# These values are captured from real devices that emit non-JSON payloads
-# for DP 168 updates. The mapping helps surface friendly labels when the
-# payload format cannot be decoded dynamically.
-KNOWN_ROOM_PAYLOAD_LABELS: dict[str, dict[str, str]] = {
-    "KAomCgIIZBIDCI4CGgMIjgIiAghkKgIIZDIDCJ4BoAG4x7Lu/9HAuhg=": {
-        "100": "Living Room",
-    }
-}
 
 
 async def async_setup_entry(
@@ -364,15 +354,17 @@ class RoboVacEntity(RestoreEntity, StateVacuumEntity):
             # If the state looks like an unmapped base64 payload, default to
             # an idle activity instead of incorrectly reporting cleaning.
             if isinstance(self._attr_tuya_state, str):
-                try:
-                    base64.b64decode(self._attr_tuya_state, validate=True)
-                    _LOGGER.debug(
-                        "Unmapped base64 state %s - assuming idle",
-                        self._attr_tuya_state,
-                    )
-                    return VacuumActivity.IDLE
-                except binascii.Error:
-                    pass
+                state_text = self._attr_tuya_state
+                if not state_text.isalpha():
+                    try:
+                        base64.b64decode(state_text, validate=True)
+                        _LOGGER.debug(
+                            "Unmapped base64 state %s - assuming idle",
+                            state_text,
+                        )
+                        return VacuumActivity.IDLE
+                    except binascii.Error:
+                        pass
             return VacuumActivity.CLEANING
 
     @property
@@ -437,7 +429,29 @@ class RoboVacEntity(RestoreEntity, StateVacuumEntity):
             data["robot_vacuum"] = robot_capabilities
         if self.mode:
             data[ATTR_MODE] = self.mode
+
+        if self._attr_room_names:
+            robot_vacuum_rooms = {
+                key: dict(value) for key, value in self._attr_room_names.items()
+            }
+            data.setdefault("robot_vacuum", {})["rooms"] = robot_vacuum_rooms
         return data
+
+    @property
+    def capability_attributes(self) -> dict[str, Any]:
+        """Expose capability metadata for the vacuum entity."""
+
+        base = super().capability_attributes or {}
+        attributes = dict(base)
+
+        if self._attr_room_names:
+            rooms = [
+                {"key": key, **dict(value)}
+                for key, value in self._attr_room_names.items()
+            ]
+            attributes.setdefault("robot_vacuum", {})["rooms"] = rooms
+
+        return attributes
 
     def __init__(self, item: dict[str, Any]) -> None:
         """Initialize the RoboVac vacuum entity.
@@ -1232,12 +1246,6 @@ class RoboVacEntity(RestoreEntity, StateVacuumEntity):
 
         updated = False
 
-        known_mapping = KNOWN_ROOM_PAYLOAD_LABELS.get(payload)
-        if known_mapping:
-            for identifier, label in known_mapping.items():
-                self._store_room_name(identifier, label)
-            updated = True
-
         try:
             decoded = base64.b64decode(payload)
         except (binascii.Error, ValueError):
@@ -1246,23 +1254,30 @@ class RoboVacEntity(RestoreEntity, StateVacuumEntity):
                 self._refresh_room_names_attr()
             return
 
+        binary_updated = False
+
+        def finalize_if_updated() -> None:
+            if updated or binary_updated:
+                self._apply_room_name_overrides()
+                self._refresh_room_names_attr()
+
         try:
             decoded_text = decoded.decode("utf-8")
         except UnicodeDecodeError:
-            if updated:
-                self._apply_room_name_overrides()
-                self._refresh_room_names_attr()
+            binary_updated = self._decode_binary_room_payload(decoded)
+            finalize_if_updated()
             return
 
         try:
             message = json.loads(decoded_text)
         except (TypeError, ValueError):
-            if updated:
-                self._apply_room_name_overrides()
-                self._refresh_room_names_attr()
+            binary_updated = self._decode_binary_room_payload(decoded)
+            finalize_if_updated()
             return
 
         if not isinstance(message, dict):
+            binary_updated = self._decode_binary_room_payload(decoded)
+            finalize_if_updated()
             return
 
         data = message.get("data") if isinstance(message.get("data"), dict) else None
@@ -1285,6 +1300,8 @@ class RoboVacEntity(RestoreEntity, StateVacuumEntity):
 
         rooms = next((value for value in candidate_lists if value), None)
         if not rooms:
+            binary_updated = self._decode_binary_room_payload(decoded)
+            finalize_if_updated()
             return
 
         json_updated = False
@@ -1317,11 +1334,13 @@ class RoboVacEntity(RestoreEntity, StateVacuumEntity):
             self._store_room_name(identifier, label if label else None)
             json_updated = True
 
-        if not (updated or json_updated):
-            return
-
         if json_updated:
             updated = True
+
+        if not updated:
+            binary_updated = self._decode_binary_room_payload(decoded)
+            if not binary_updated:
+                return
 
         self._apply_room_name_overrides()
         self._refresh_room_names_attr()
