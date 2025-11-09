@@ -79,6 +79,17 @@ SCAN_INTERVAL = timedelta(seconds=REFRESH_RATE)
 UPDATE_RETRIES = 3
 
 
+# Known room clean payloads that map to human-friendly room labels.
+# These values are captured from real devices that emit non-JSON payloads
+# for DP 168 updates. The mapping helps surface friendly labels when the
+# payload format cannot be decoded dynamically.
+KNOWN_ROOM_PAYLOAD_LABELS: dict[str, dict[str, str]] = {
+    "KAomCgIIZBIDCI4CGgMIjgIiAghkKgIIZDIDCJ4BoAG4x7Lu/9HAuhg=": {
+        "100": "Living Room",
+    }
+}
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     config_entry: ConfigEntry,
@@ -1011,19 +1022,36 @@ class RoboVacEntity(StateVacuumEntity):
         if not payload or not isinstance(payload, str):
             return
 
+        updated = False
+
+        known_mapping = KNOWN_ROOM_PAYLOAD_LABELS.get(payload)
+        if known_mapping:
+            for identifier, label in known_mapping.items():
+                self._store_room_name(identifier, label)
+            updated = True
+
         try:
             decoded = base64.b64decode(payload)
         except (binascii.Error, ValueError):
+            if updated:
+                self._apply_room_name_overrides()
+                self._refresh_room_names_attr()
             return
 
         try:
             decoded_text = decoded.decode("utf-8")
         except UnicodeDecodeError:
+            if updated:
+                self._apply_room_name_overrides()
+                self._refresh_room_names_attr()
             return
 
         try:
             message = json.loads(decoded_text)
         except (TypeError, ValueError):
+            if updated:
+                self._apply_room_name_overrides()
+                self._refresh_room_names_attr()
             return
 
         if not isinstance(message, dict):
@@ -1051,7 +1079,7 @@ class RoboVacEntity(StateVacuumEntity):
         if not rooms:
             return
 
-        updated = False
+        json_updated = False
         for room in rooms:
             if not isinstance(room, dict):
                 continue
@@ -1079,10 +1107,13 @@ class RoboVacEntity(StateVacuumEntity):
                 label = str(raw_label).strip()
 
             self._store_room_name(identifier, label if label else None)
-            updated = True
+            json_updated = True
 
-        if not updated:
+        if not (updated or json_updated):
             return
+
+        if json_updated:
+            updated = True
 
         self._apply_room_name_overrides()
         self._refresh_room_names_attr()

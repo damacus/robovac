@@ -270,19 +270,17 @@ async def test_room_name_overrides_take_precedence(mock_robovac, mock_vacuum_dat
 
 
 @pytest.mark.asyncio
-async def test_extra_state_attributes_include_room_names(
-    mock_robovac, mock_vacuum_data
-) -> None:
-    """Room metadata is exposed via extra state attributes for other platforms."""
+async def test_known_room_payload_mapping(mock_robovac, mock_vacuum_data):
+    """Non-JSON room payloads map to known room labels when recognised."""
 
     mock_robovac.getDpsCodes.return_value = {"ROOM_CLEAN": "168"}
+    mock_robovac._dps = {
+        "168": "KAomCgIIZBIDCI4CGgMIjgIiAghkKgIIZDIDCJ4BoAG4x7Lu/9HAuhg=",
+    }
 
     with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
         entity = RoboVacEntity(mock_vacuum_data)
+        entity.update_entity_values()
 
-    entity._room_name_registry["1"] = {"id": 1, "label": "Living Room"}
-    entity._refresh_room_names_attr()
-
-    attributes = entity.extra_state_attributes
-    assert "room_names" in attributes
-    assert attributes["room_names"]["1"]["label"] == "Living Room"
+    assert entity._attr_room_names is not None
+    assert entity._attr_room_names["100"]["label"] == "Living Room"
