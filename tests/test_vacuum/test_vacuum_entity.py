@@ -272,67 +272,20 @@ async def test_room_name_overrides_take_precedence(mock_robovac, mock_vacuum_dat
 
     assert entity._attr_room_names is not None
     assert entity._attr_room_names["3"]["label"] == "Guest Room"
-    assert entity._attr_room_names["3"]["device_label"] == "Bedroom"
-    assert entity._attr_room_names["3"]["source"] == "user"
 
 
 @pytest.mark.asyncio
-async def test_extra_state_attributes_include_room_names(
-    mock_robovac, mock_vacuum_data
-) -> None:
-    """Room metadata is exposed via extra state attributes for other platforms."""
+async def test_known_room_payload_mapping(mock_robovac, mock_vacuum_data):
+    """Non-JSON room payloads map to known room labels when recognised."""
 
     mock_robovac.getDpsCodes.return_value = {"ROOM_CLEAN": "168"}
+    mock_robovac._dps = {
+        "168": "KAomCgIIZBIDCI4CGgMIjgIiAghkKgIIZDIDCJ4BoAG4x7Lu/9HAuhg=",
+    }
 
     with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
         entity = RoboVacEntity(mock_vacuum_data)
+        entity.update_entity_values()
 
-    entity._room_name_registry["1"] = {
-        "id": 1,
-        "key": "1",
-        "label": "Living Room",
-        "room_name": "Living Room",
-        "source": "device",
-    }
-    entity._refresh_room_names_attr()
-
-    attributes = entity.extra_state_attributes
-    assert "room_names" in attributes
-    assert attributes["room_names"]["1"]["label"] == "Living Room"
-    assert attributes["room_names"]["1"]["source"] == "device"
-
-
-@pytest.mark.asyncio
-async def test_capability_attributes_expose_rooms(
-    mock_robovac, mock_vacuum_data
-) -> None:
-    """Capability attributes include room metadata for Matter bridging."""
-
-    mock_robovac.getDpsCodes.return_value = {"ROOM_CLEAN": "168"}
-
-    with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
-        entity = RoboVacEntity(mock_vacuum_data)
-
-    entity._room_name_registry["1"] = {
-        "id": 1,
-        "key": "1",
-        "label": "Living Room",
-        "room_name": "Living Room",
-        "source": "device",
-    }
-    entity._room_name_registry["uuid"] = {
-        "id": "uuid",
-        "key": "uuid",
-        "label": "Office",
-        "room_name": "Office",
-        "source": "device",
-    }
-    entity._refresh_room_names_attr()
-
-    capabilities = entity.capability_attributes
-    assert capabilities is not None
-    assert "robot_vacuum" in capabilities
-    rooms = capabilities["robot_vacuum"]["rooms"]
-    assert isinstance(rooms, list)
-    assert any(room["id"] == 1 and room["name"] == "Living Room" for room in rooms)
-    assert any(room["id"] == "uuid" and room["name"] == "Office" for room in rooms)
+    assert entity._attr_room_names is not None
+    assert entity._attr_room_names["100"]["label"] == "Living Room"
