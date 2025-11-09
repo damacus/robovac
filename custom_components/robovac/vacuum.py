@@ -1226,35 +1226,30 @@ class RoboVacEntity(RestoreEntity, StateVacuumEntity):
             finalize_if_updated()
             return
 
-        json_updated = False
-        for room in rooms:
-            if not isinstance(room, dict):
-                continue
+            try:
+                decoded = base64.b64decode(payload)
+            except (binascii.Error, ValueError):
+                if updated:
+                    self._apply_room_name_overrides()
+                    self._refresh_room_names_attr()
+                return
 
-            identifier = (
-                room.get("roomId")
-                or room.get("roomID")
-                or room.get("id")
-                or room.get("mapRoomId")
-                or room.get("room_id")
-            )
-            if identifier is None:
-                continue
+            binary_updated = False
 
-            raw_label = (
-                room.get("roomName")
-                or room.get("name")
-                or room.get("label")
-                or room.get("room_name")
-            )
-            label = None
-            if isinstance(raw_label, str):
-                label = raw_label.strip()
-            elif raw_label is not None:
-                label = str(raw_label).strip()
+            def finalize_if_updated() -> None:
+                if updated or binary_updated:
+                    try:
+                        self._apply_room_name_overrides()
+                        self._refresh_room_names_attr()
+                    except Exception:  # pragma: no cover - defensive guard
+                        _LOGGER.exception("Failed to finalize room name update")
 
-            self._store_room_name(identifier, label if label else None)
-            json_updated = True
+            try:
+                decoded_text = decoded.decode("utf-8")
+            except UnicodeDecodeError:
+                binary_updated = self._decode_binary_room_payload(decoded)
+                finalize_if_updated()
+                return
 
         if json_updated:
             updated = True
