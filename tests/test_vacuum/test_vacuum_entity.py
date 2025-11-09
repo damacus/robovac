@@ -4,9 +4,10 @@ import base64
 import json
 
 import pytest
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 from homeassistant.components.vacuum import VacuumActivity
+from homeassistant.core import State
 from custom_components.robovac.const import CONF_ROOM_NAMES
 from custom_components.robovac.vacuum import RoboVacEntity
 from custom_components.robovac.vacuums.base import TuyaCodes
@@ -300,6 +301,8 @@ async def test_extra_state_attributes_include_room_names(
     assert "room_names" in attributes
     assert attributes["room_names"]["1"]["label"] == "Living Room"
     assert attributes["room_names"]["1"]["source"] == "device"
+    rooms = attributes["robot_vacuum"]["rooms"]
+    assert any(room["id"] == 1 and room["name"] == "Living Room" for room in rooms)
 
 
 @pytest.mark.asyncio
@@ -336,3 +339,44 @@ async def test_capability_attributes_expose_rooms(
     assert isinstance(rooms, list)
     assert any(room["id"] == 1 and room["name"] == "Living Room" for room in rooms)
     assert any(room["id"] == "uuid" and room["name"] == "Office" for room in rooms)
+
+
+@pytest.mark.asyncio
+async def test_async_added_to_hass_restores_room_cache(
+    hass, mock_robovac, mock_vacuum_data
+) -> None:
+    """Persisted room metadata is restored when the entity is added."""
+
+    mock_robovac.getDpsCodes.return_value = {"ROOM_CLEAN": "168"}
+
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
+        entity = RoboVacEntity(mock_vacuum_data)
+
+    entity.hass = hass
+    entity.entity_id = "vacuum.test_robovac_id"
+    entity._attr_tuya_state = "docked"
+    entity._attr_fan_speed = "Standard"
+    entity._attr_battery_level = 100
+
+    restored_state = State(
+        entity.entity_id,
+        "docked",
+        {
+            "robot_vacuum": {
+                "rooms": [
+                    {"id": 5, "name": "Living Room", "source": "device"},
+                    {"id": "uuid", "name": "Office", "source": "device"},
+                ]
+            }
+        },
+    )
+
+    with patch.object(entity, "async_get_last_state", return_value=restored_state), patch.object(
+        entity, "async_update", AsyncMock()
+    ):
+        await entity.async_added_to_hass()
+
+    assert entity._attr_room_names is not None
+    assert entity._attr_room_names["5"]["label"] == "Living Room"
+    assert entity._attr_room_names["5"]["source"] == "device"
+    assert entity._attr_room_names["uuid"]["label"] == "Office"

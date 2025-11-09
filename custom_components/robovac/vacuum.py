@@ -47,6 +47,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.restore_state import RestoreEntity
 
 from .const import CONF_ROOM_NAMES, CONF_VACS, DOMAIN, PING_RATE, REFRESH_RATE, TIMEOUT
 from .errors import getErrorMessage
@@ -96,7 +97,7 @@ async def async_setup_entry(
         async_add_entities([entity])
 
 
-class RoboVacEntity(StateVacuumEntity):
+class RoboVacEntity(RestoreEntity, StateVacuumEntity):
     """Home Assistant vacuum entity for Tuya-based robotic vacuum cleaners.
 
     This class implements the Home Assistant VacuumEntity interface for controlling
@@ -420,6 +421,9 @@ class RoboVacEntity(StateVacuumEntity):
             data["room_names"] = {
                 key: dict(value) for key, value in self._attr_room_names.items()
             }
+        robot_capabilities = self._robot_vacuum_capabilities()
+        if robot_capabilities:
+            data["robot_vacuum"] = robot_capabilities
         if self.mode:
             data[ATTR_MODE] = self.mode
         return data
@@ -555,6 +559,10 @@ class RoboVacEntity(StateVacuumEntity):
 
         Trigger an immediate state fetch to avoid prolonged initial Unknown state.
         """
+        await super().async_added_to_hass()
+
+        await self._restore_cached_room_names()
+
         try:
             # First attempt at fetching state
             await self.async_update()
@@ -920,6 +928,62 @@ class RoboVacEntity(StateVacuumEntity):
                                 "Failed to decode consumable data: %s", str(e)
                             )
 
+    def _deserialize_room_cache_entry(
+        self, key: Any, value: Any
+    ) -> tuple[str, dict[str, Any]] | None:
+        """Convert persisted room cache values into registry entries."""
+
+        if not isinstance(value, dict):
+            return None
+
+        identifier = value.get("id", key)
+        key_value: Any = value.get("key")
+        if identifier is None:
+            identifier = key_value if key_value is not None else key
+        if identifier is None:
+            return None
+
+        if key_value is None:
+            key_value = identifier
+        if key_value is None:
+            return None
+
+        key_str = str(key_value)
+
+        entry: dict[str, Any] = {
+            "id": self._coerce_room_identifier(identifier),
+            "key": key_str,
+        }
+
+        label = value.get("label") or value.get("room_name") or value.get("name")
+        if isinstance(label, str):
+            label = label.strip()
+        elif label is not None:
+            label = str(label).strip()
+
+        if label:
+            entry["label"] = label
+            entry["room_name"] = label
+
+        device_label = value.get("device_label")
+        if isinstance(device_label, str):
+            device_label = device_label.strip()
+        elif device_label is not None:
+            device_label = str(device_label).strip()
+
+        if device_label:
+            entry["device_label"] = device_label
+        elif label:
+            entry["device_label"] = label
+
+        source = value.get("source")
+        if source in (ROOM_NAME_SOURCE_DEVICE, ROOM_NAME_SOURCE_USER):
+            entry["source"] = source
+        elif label:
+            entry["source"] = ROOM_NAME_SOURCE_DEVICE
+
+        return key_str, entry
+
     @staticmethod
     def _coerce_room_identifier(identifier: Any) -> Any:
         """Convert a room identifier to int when possible."""
@@ -1013,6 +1077,61 @@ class RoboVacEntity(StateVacuumEntity):
             self._notify_room_name_listeners()
             if self.hass is not None:
                 self.async_write_ha_state()
+
+    async def _restore_cached_room_names(self) -> None:
+        """Restore cached room metadata from the previous state."""
+
+        if self.hass is None:
+            return
+
+        last_state = await self.async_get_last_state()
+        if last_state is None:
+            return
+
+        restored_entries: dict[str, dict[str, Any]] = {}
+
+        stored_room_names = last_state.attributes.get("room_names")
+        if isinstance(stored_room_names, dict):
+            for key, value in stored_room_names.items():
+                normalized = self._deserialize_room_cache_entry(key, value)
+                if normalized is None:
+                    continue
+                entry_key, entry = normalized
+                restored_entries[entry_key] = entry
+
+        robot_metadata = last_state.attributes.get("robot_vacuum")
+        if isinstance(robot_metadata, dict):
+            rooms = robot_metadata.get("rooms")
+            if isinstance(rooms, list):
+                for value in rooms:
+                    normalized = self._deserialize_room_cache_entry(
+                        value.get("key", value.get("id")), value
+                    )
+                    if normalized is None:
+                        continue
+                    entry_key, entry = normalized
+                    restored_entries.setdefault(entry_key, entry)
+
+        if not restored_entries:
+            return
+
+        updated = False
+        for key, entry in restored_entries.items():
+            existing = self._room_name_registry.get(key)
+            if existing and existing.get("source") == ROOM_NAME_SOURCE_USER:
+                continue
+
+            combined = dict(existing) if isinstance(existing, dict) else {}
+            combined.update(entry)
+            if combined != existing:
+                self._room_name_registry[key] = combined
+                updated = True
+
+        if not updated:
+            return
+
+        self._apply_room_name_overrides()
+        self._refresh_room_names_attr()
 
     def _robot_vacuum_capabilities(self) -> dict[str, Any] | None:
         """Build capability metadata describing discovered rooms."""
