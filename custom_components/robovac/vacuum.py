@@ -26,7 +26,7 @@ from enum import StrEnum
 import json
 import logging
 import time
-from typing import Any
+from typing import Any, Callable
 
 from homeassistant.components.vacuum import (
     StateVacuumEntity,
@@ -413,6 +413,10 @@ class RoboVacEntity(StateVacuumEntity):
             and self.consumables
         ):
             data[ATTR_CONSUMABLES] = self.consumables
+        if self._attr_room_names:
+            data["room_names"] = {
+                key: dict(value) for key, value in self._attr_room_names.items()
+            }
         if self.mode:
             data[ATTR_MODE] = self.mode
         return data
@@ -449,6 +453,7 @@ class RoboVacEntity(StateVacuumEntity):
         self._last_return_ts: float | None = None
         self._room_name_registry: dict[str, dict[str, Any]] = {}
         self._room_name_overrides: dict[str, str] = {}
+        self._room_name_listeners: list[Callable[[], None]] = []
         self._attr_room_names: dict[str, dict[str, Any]] | None = None
 
         # Initialize the RoboVac connection
@@ -951,15 +956,46 @@ class RoboVacEntity(StateVacuumEntity):
             entry["label"] = label
             entry["room_name"] = label
 
+    def add_room_name_listener(self, listener: Callable[[], None]) -> Callable[[], None]:
+        """Register a callback that fires when room metadata changes."""
+
+        self._room_name_listeners.append(listener)
+
+        def _remove_listener() -> None:
+            try:
+                self._room_name_listeners.remove(listener)
+            except ValueError:
+                pass
+
+        return _remove_listener
+
+    def _notify_room_name_listeners(self) -> None:
+        """Notify listeners that room metadata has been refreshed."""
+
+        if not self._room_name_listeners:
+            return
+
+        listeners = list(self._room_name_listeners)
+        if self.hass is not None:
+            for callback in listeners:
+                self.hass.loop.call_soon(callback)
+        else:
+            for callback in listeners:
+                callback()
+
     def _refresh_room_names_attr(self) -> None:
         """Expose the current room name registry via the entity attribute."""
 
+        previous = self._attr_room_names
         if self._room_name_registry:
             self._attr_room_names = {
                 key: dict(value) for key, value in self._room_name_registry.items()
             }
         else:
             self._attr_room_names = None
+
+        if previous != self._attr_room_names:
+            self._notify_room_name_listeners()
 
     def _update_room_names(self) -> None:
         """Decode any room metadata embedded in the room clean DPS payload."""
