@@ -1,3 +1,11 @@
+"""eufy Clean X8 Pro SES (T2276)
+
+WARNING: This model has known communication issues.
+Users report "Incomplete read" errors and empty data points.
+See docs/ISSUE_42_T2276_INVESTIGATION.md for details.
+
+If you have this model, please help by providing device data via GitHub Issue #42.
+"""
 from homeassistant.components.vacuum import VacuumEntityFeature
 from .base import RoboVacEntityFeature, RobovacCommand, RobovacModelDetails
 
