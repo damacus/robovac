@@ -6,13 +6,13 @@ The RoboVac integration now supports Tuya protocol versions 3.4 and 3.5, which u
 
 ## Protocol Versions
 
-| Version | Authentication | Encoding | Notes |
-|---------|---------------|----------|-------|
-| 3.1 | CRC32 (payload only) | Base64 | Legacy protocol |
-| 3.2 | CRC32 (payload only) | Base64 | Same as 3.1 with type_0d |
-| 3.3 | CRC32 (header + payload) | Raw | Most common |
-| 3.4 | HMAC-SHA256 | Raw | Newer devices |
-| 3.5 | HMAC-SHA256 | Raw | Latest protocol |
+| Version | Authentication           | Encoding | Notes                    |
+|---------|--------------------------|----------|--------------------------|
+| 3.1     | CRC32 (payload only)     | Base64   | Legacy protocol          |
+| 3.2     | CRC32 (payload only)     | Base64   | Same as 3.1 with type_0d |
+| 3.3     | CRC32 (header + payload) | Raw      | Most common              |
+| 3.4     | HMAC-SHA256              | Raw      | Newer devices            |
+| 3.5     | HMAC-SHA256              | Raw      | Latest protocol          |
 
 ## Implementation Details
 

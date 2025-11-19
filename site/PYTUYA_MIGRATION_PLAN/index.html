@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        <meta name="author" content="RoboVac Contributors">
+        <link rel="canonical" href="https://damacus.github.io/robovac/PYTUYA_MIGRATION_PLAN/">
+        <link rel="shortcut icon" href="../img/favicon.ico">
+        <title>PyTuya Migration Plan - RoboVac Documentation</title>
+        <link href="../css/bootstrap.min.css" rel="stylesheet">
+        <link href="../css/fontawesome.min.css" rel="stylesheet">
+        <link href="../css/brands.min.css" rel="stylesheet">
+        <link href="../css/solid.min.css" rel="stylesheet">
+        <link href="../css/v4-font-face.min.css" rel="stylesheet">
+        <link href="../css/base.css" rel="stylesheet">
+        <link id="hljs-light" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" >
+        <link id="hljs-dark" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github-dark.min.css" disabled>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+        <script>hljs.highlightAll();</script> 
+    </head>
+
+    <body>
+        <div class="navbar fixed-top navbar-expand-lg navbar-dark bg-primary">
+            <div class="container">
+                <a class="navbar-brand" href="..">RoboVac Documentation</a>
+                <!-- Expander button -->
+                <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar-collapse" aria-controls="navbar-collapse" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <!-- Expanded navigation -->
+                <div id="navbar-collapse" class="navbar-collapse collapse">
+                        <!-- Main navigation -->
+                        <ul class="nav navbar-nav">
+                            <li class="nav-item">
+                                <a href=".." class="nav-link">Home</a>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown"  aria-expanded="false">Guides</a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../dps_codes/" class="dropdown-item">Getting DPS Codes</a>
+</li>
+                                    
+<li>
+    <a href="../troubleshooting/" class="dropdown-item">Troubleshooting</a>
+</li>
+                                    
+<li>
+    <a href="../development/" class="dropdown-item">Development Workflow</a>
+</li>
+                                </ul>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown"  aria-expanded="false">Reference</a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../PROTOCOL_35_SUPPORT/" class="dropdown-item">Protocol 3.5 Support</a>
+</li>
+                                </ul>
+                            </li>
+                        </ul>
+
+                    <ul class="nav navbar-nav ms-md-auto">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" data-bs-toggle="modal" data-bs-target="#mkdocs_search_modal">
+                                <i class="fa fa-search"></i> Search
+                            </a>
+                        </li>
+                            <li class="nav-item">
+                                <a href="https://github.com/damacus/robovac/edit/master/docs/PYTUYA_MIGRATION_PLAN.md" class="nav-link"><i class="fa-brands fa-github"></i> Edit on GitHub</a>
+                            </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="row">
+                    <div class="col-md-3"><div class="navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
+    <div class="navbar-header">
+        <button type="button" class="navbar-toggler collapsed" data-bs-toggle="collapse" data-bs-target="#toc-collapse" title="Table of Contents">
+            <span class="fa fa-angle-down"></span>
+        </button>
+    </div>
+
+    
+    <div id="toc-collapse" class="navbar-collapse collapse card bg-body-tertiary">
+        <ul class="nav flex-column">
+            
+            <li class="nav-item" data-bs-level="1"><a href="#pytuya-migration-plan" class="nav-link">PyTuya Migration Plan</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-bs-level="2"><a href="#goal" class="nav-link">Goal</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#why-migrate" class="nav-link">Why Migrate?</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#source" class="nav-link">Source</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#migration-steps" class="nav-link">Migration Steps</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#api-mapping" class="nav-link">API Mapping</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#key-differences" class="nav-link">Key Differences</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#rollback-plan" class="nav-link">Rollback Plan</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#success-criteria" class="nav-link">Success Criteria</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#timeline" class="nav-link">Timeline</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#risk-assessment" class="nav-link">Risk Assessment</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#notes" class="nav-link">Notes</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#references" class="nav-link">References</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+              </ul>
+            </li>
+        </ul>
+    </div>
+</div></div>
+                    <div class="col-md-9" role="main">
+
+<h1 id="pytuya-migration-plan">PyTuya Migration Plan<a class="headerlink" href="#pytuya-migration-plan" title="Permanent link">&para;</a></h1>
+<h2 id="goal">Goal<a class="headerlink" href="#goal" title="Permanent link">&para;</a></h2>
+<p>Replace custom <code>tuyalocalapi.py</code> implementation with LocalTuya's battle-tested <code>pytuya</code> module to support Tuya protocol versions 3.1-3.5.</p>
+<h2 id="why-migrate">Why Migrate?<a class="headerlink" href="#why-migrate" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>T2276 (X8 Pro SES) requires protocol 3.5</strong> - current implementation only supports 3.1</li>
+<li><strong>Future-proof</strong> - supports all protocol versions as Tuya evolves</li>
+<li><strong>Community maintained</strong> - actively developed by LocalTuya team</li>
+<li><strong>Production proven</strong> - used by thousands of users</li>
+<li><strong>Better maintenance</strong> - we don't have to maintain protocol implementation</li>
+</ul>
+<h2 id="source">Source<a class="headerlink" href="#source" title="Permanent link">&para;</a></h2>
+<p>LocalTuya PyTuya: <a href="https://github.com/rospogrigio/localtuya/tree/master/custom_components/localtuya/pytuya">https://github.com/rospogrigio/localtuya/tree/master/custom_components/localtuya/pytuya</a></p>
+<h2 id="migration-steps">Migration Steps<a class="headerlink" href="#migration-steps" title="Permanent link">&para;</a></h2>
+<h3 id="phase-1-integration-low-risk">Phase 1: Integration (Low Risk)<a class="headerlink" href="#phase-1-integration-low-risk" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Download PyTuya module</strong></li>
+<li>Copy <code>pytuya/__init__.py</code> from LocalTuya</li>
+<li>Place in <code>custom_components/robovac/pytuya/</code></li>
+<li>
+<p>Maintain as separate module initially</p>
+</li>
+<li>
+<p><strong>Update dependencies</strong></p>
+</li>
+<li>Already have <code>cryptography</code> - no new dependencies needed</li>
+<li>
+<p>Verify version compatibility</p>
+</li>
+<li>
+<p><strong>Create wrapper/adapter layer</strong></p>
+</li>
+<li>Map our API to PyTuya API</li>
+<li>Minimize changes to existing code initially</li>
+</ol>
+<h3 id="phase-2-gradual-migration-medium-risk">Phase 2: Gradual Migration (Medium Risk)<a class="headerlink" href="#phase-2-gradual-migration-medium-risk" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Update <code>robovac.py</code></strong></li>
+<li>Replace <code>TuyaDevice</code> imports with PyTuya</li>
+<li>Update initialization to use PyTuya API</li>
+<li>
+<p>Set protocol version per model</p>
+</li>
+<li>
+<p><strong>Update model configurations</strong></p>
+</li>
+<li>Add <code>protocol_version</code> attribute to models</li>
+<li>Default to 3.1 for existing models</li>
+<li>
+<p>Set 3.5 for T2276</p>
+</li>
+<li>
+<p><strong>Update <code>vacuum.py</code></strong></p>
+</li>
+<li>Adjust for any API differences</li>
+<li>Update status polling logic</li>
+<li>Update command sending logic</li>
+</ol>
+<h3 id="phase-3-testing-critical">Phase 3: Testing (Critical)<a class="headerlink" href="#phase-3-testing-critical" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Test T2276 specifically</strong></li>
+<li>Verify protocol 3.5 communication works</li>
+<li>Confirm "Incomplete read" errors are resolved</li>
+<li>
+<p>Test all commands (start, stop, return home, etc.)</p>
+</li>
+<li>
+<p><strong>Regression test existing models</strong></p>
+</li>
+<li>Test at least 3 different model types</li>
+<li>Verify protocol 3.1 still works</li>
+<li>
+<p>Ensure no breaking changes</p>
+</li>
+<li>
+<p><strong>Run full test suite</strong></p>
+</li>
+<li>All 196 tests must pass</li>
+<li>Add new tests for protocol version selection</li>
+<li>Test error handling</li>
+</ol>
+<h3 id="phase-4-cleanup-low-risk">Phase 4: Cleanup (Low Risk)<a class="headerlink" href="#phase-4-cleanup-low-risk" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Remove old implementation</strong></li>
+<li>Delete <code>tuyalocalapi.py</code> if fully replaced</li>
+<li>Or keep as fallback initially</li>
+<li>
+<p>Clean up unused code</p>
+</li>
+<li>
+<p><strong>Update documentation</strong></p>
+</li>
+<li>Update README with PyTuya attribution</li>
+<li>Update DEVELOPMENT.md</li>
+<li>
+<p>Document protocol version configuration</p>
+</li>
+<li>
+<p><strong>Final verification</strong></p>
+</li>
+<li>Lint and type-check pass</li>
+<li>All tests pass</li>
+<li>Documentation complete</li>
+</ol>
+<h2 id="api-mapping">API Mapping<a class="headerlink" href="#api-mapping" title="Permanent link">&para;</a></h2>
+<h3 id="current-api-tuyadevice">Current API (TuyaDevice)<a class="headerlink" href="#current-api-tuyadevice" title="Permanent link">&para;</a></h3>
+<pre class="codehilite"><code class="language-python">device = TuyaDevice(dev_id, address, local_key, version=3.1)
+await device.status()
+await device.set_dp(value, dp_index)
+</code></pre>
+
+<h3 id="pytuya-api">PyTuya API<a class="headerlink" href="#pytuya-api" title="Permanent link">&para;</a></h3>
+<pre class="codehilite"><code class="language-python">device = TuyaInterface(dev_id, address, local_key)
+device.set_version(3.5)  # New capability!
+status = await device.status()
+await device.set_dp(value, dp_index)
+</code></pre>
+
+<h2 id="key-differences">Key Differences<a class="headerlink" href="#key-differences" title="Permanent link">&para;</a></h2>
+<ol>
+<li><strong>Protocol version setting</strong>:</li>
+<li>Old: Fixed at initialization</li>
+<li>
+<p>New: Can be set with <code>set_version()</code></p>
+</li>
+<li>
+<p><strong>Error handling</strong>:</p>
+</li>
+<li>PyTuya has more detailed error codes</li>
+<li>
+<p>Need to map to our error handling</p>
+</li>
+<li>
+<p><strong>Async handling</strong>:</p>
+</li>
+<li>PyTuya is fully async</li>
+<li>Should integrate smoothly with our async code</li>
+</ol>
+<h2 id="rollback-plan">Rollback Plan<a class="headerlink" href="#rollback-plan" title="Permanent link">&para;</a></h2>
+<p>If migration fails:</p>
+<ol>
+<li>Revert to previous commit</li>
+<li>Keep T2276 marked as unsupported</li>
+<li>Document issues encountered</li>
+<li>Consider hybrid approach (PyTuya only for T2276)</li>
+</ol>
+<h2 id="success-criteria">Success Criteria<a class="headerlink" href="#success-criteria" title="Permanent link">&para;</a></h2>
+<ul>
+<li>✅ T2276 works without "Incomplete read" errors</li>
+<li>✅ All existing models continue working</li>
+<li>✅ All 196 tests pass</li>
+<li>✅ No regressions in functionality</li>
+<li>✅ Code quality maintained (lint, type-check)</li>
+</ul>
+<h2 id="timeline">Timeline<a class="headerlink" href="#timeline" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Phase 1</strong>: 2-3 hours (integration)</li>
+<li><strong>Phase 2</strong>: 3-4 hours (migration)</li>
+<li><strong>Phase 3</strong>: 2-3 hours (testing)</li>
+<li><strong>Phase 4</strong>: 1-2 hours (cleanup)</li>
+</ul>
+<p><strong>Total</strong>: 8-12 hours of work</p>
+<h2 id="risk-assessment">Risk Assessment<a class="headerlink" href="#risk-assessment" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Risk</th>
+<th>Probability</th>
+<th>Impact</th>
+<th>Mitigation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Breaking existing models</td>
+<td>Medium</td>
+<td>High</td>
+<td>Thorough testing, gradual rollout</td>
+</tr>
+<tr>
+<td>API incompatibility</td>
+<td>Low</td>
+<td>Medium</td>
+<td>Adapter layer, careful mapping</td>
+</tr>
+<tr>
+<td>Performance issues</td>
+<td>Low</td>
+<td>Low</td>
+<td>PyTuya is proven in production</td>
+</tr>
+<tr>
+<td>New bugs</td>
+<td>Medium</td>
+<td>Medium</td>
+<td>Comprehensive test coverage</td>
+</tr>
+</tbody>
+</table>
+<h2 id="notes">Notes<a class="headerlink" href="#notes" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Keep existing implementation initially as fallback</li>
+<li>Test with real devices if possible (ask users)</li>
+<li>Monitor GitHub issues for similar migrations</li>
+<li>Consider releasing as beta first</li>
+</ul>
+<h2 id="references">References<a class="headerlink" href="#references" title="Permanent link">&para;</a></h2>
+<ul>
+<li>LocalTuya: <a href="https://github.com/rospogrigio/localtuya">https://github.com/rospogrigio/localtuya</a></li>
+<li>PyTuya module: <a href="https://github.com/rospogrigio/localtuya/tree/master/custom_components/localtuya/pytuya">https://github.com/rospogrigio/localtuya/tree/master/custom_components/localtuya/pytuya</a></li>
+<li>Kevin's fork (working T2276): <a href="https://github.com/kevinbird15/robovac-ha-integration/blob/purgatory">https://github.com/kevinbird15/robovac-ha-integration/blob/purgatory</a></li>
+<li>Issue #42: <a href="https://github.com/damacus/robovac/issues/42">https://github.com/damacus/robovac/issues/42</a></li>
+</ul></div>
+            </div>
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+            <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+        <script src="../js/bootstrap.bundle.min.js"></script>
+        <script>
+            var base_url = "..",
+                shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
+        </script>
+        <script src="../js/base.js"></script>
+        <script src="../search/main.js"></script>
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="searchModalLabel">Search</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>From here you can search these documents. Enter your search terms below.</p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" placeholder="Search..." id="mkdocs-search-query" title="Type search term here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results" data-no-results-text="No results found"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div><div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="keyboardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="keyboardModalLabel">Keyboard Shortcuts</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width: 20%;">Keys</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="help shortcut"><kbd>?</kbd></td>
+                    <td>Open this help</td>
+                  </tr>
+                  <tr>
+                    <td class="next shortcut"><kbd>n</kbd></td>
+                    <td>Next page</td>
+                  </tr>
+                  <tr>
+                    <td class="prev shortcut"><kbd>p</kbd></td>
+                    <td>Previous page</td>
+                  </tr>
+                  <tr>
+                    <td class="search shortcut"><kbd>s</kbd></td>
+                    <td>Search</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+
+    </body>
+</html>

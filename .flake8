@@ -10,8 +10,6 @@ ignore =
     D107,
     # D400: First line should end with a period
     D400,
-    # E203: Whitespace before ':' (conflicts with slice notation in pytuya)
-    E203,
     # E402: Module level import not at top of file (sometimes needed in test fixtures)
     E402,
     # F401: Module imported but unused (sometimes needed for type hints or fixtures)

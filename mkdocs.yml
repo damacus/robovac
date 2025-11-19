@@ -1,0 +1,28 @@
+site_name: RoboVac Documentation
+site_description: Unified documentation for the RoboVac Home Assistant integration
+site_author: RoboVac Contributors
+repo_url: https://github.com/damacus/robovac
+site_url: https://damacus.github.io/robovac/
+
+nav:
+  - Home: index.md
+  - Guides:
+      - Getting DPS Codes: dps_codes.md
+      - Troubleshooting: troubleshooting.md
+      - Development Workflow: development.md
+  - Reference:
+      - Protocol 3.5 Support: PROTOCOL_35_SUPPORT.md
+
+theme:
+  name: mkdocs
+
+plugins:
+  - search
+
+markdown_extensions:
+  - attr_list
+  - admonition
+  - codehilite
+  - footnotes
+  - toc:
+      permalink: true
