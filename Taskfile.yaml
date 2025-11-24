@@ -61,12 +61,32 @@ tasks:
   docs-docker-build:
     desc: Build MkDocs documentation in Docker
     cmds:
-      - docker run --rm -v "$PWD":/docs -w /docs python:3.11-slim /bin/sh -c "pip install mkdocs && mkdocs build --strict"
+      - docker run --rm -v "$PWD":/docs -w /docs python:3.11-slim /bin/sh -c "pip install mkdocs mkdocs-material && mkdocs build --strict"
 
   docs-docker-serve:
-    desc: Serve MkDocs documentation in Docker
+    desc: Serve MkDocs documentation in Docker (one-off)
     cmds:
-      - docker run --rm -v "$PWD":/docs -w /docs -p 8000:8000 python:3.11-slim /bin/sh -c "pip install mkdocs && mkdocs serve --dev-addr=0.0.0.0:8000"
+      - docker run --rm -v "$PWD":/docs -w /docs -p 8000:8000 python:3.11-slim /bin/sh -c "pip install mkdocs mkdocs-material && mkdocs serve --dev-addr=0.0.0.0:8000"
+
+  docs-up:
+    desc: Start MkDocs documentation server with docker-compose
+    cmds:
+      - docker-compose up -d
+
+  docs-down:
+    desc: Stop MkDocs documentation server
+    cmds:
+      - docker-compose down
+
+  docs-logs:
+    desc: View MkDocs documentation server logs
+    cmds:
+      - docker-compose logs -f mkdocs
+
+  docs-restart:
+    desc: Restart MkDocs documentation server
+    cmds:
+      - docker-compose restart
 
   ha-start:
     desc: Start Home assistant, run from dev container

@@ -1,133 +1,1241 @@
-<!DOCTYPE html>
-<html lang="en" data-bs-theme="light">
-    <head>
-        <meta charset="utf-8">
-        <meta http-equiv="X-UA-Compatible" content="IE=edge">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Unified documentation for the RoboVac Home Assistant integration">
+      
+      
         <meta name="author" content="RoboVac Contributors">
+      
+      
         <link rel="canonical" href="https://damacus.github.io/robovac/archive/pr171/IMPLEMENTATION_PLAN_PR171/">
-        <link rel="shortcut icon" href="../../../img/favicon.ico">
-        <title>Implementation Plan: PR #171 - Battery Deprecation &amp; Model Validation - RoboVac Documentation</title>
-        <link href="../../../css/bootstrap.min.css" rel="stylesheet">
-        <link href="../../../css/fontawesome.min.css" rel="stylesheet">
-        <link href="../../../css/brands.min.css" rel="stylesheet">
-        <link href="../../../css/solid.min.css" rel="stylesheet">
-        <link href="../../../css/v4-font-face.min.css" rel="stylesheet">
-        <link href="../../../css/base.css" rel="stylesheet">
-        <link id="hljs-light" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" >
-        <link id="hljs-dark" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github-dark.min.css" disabled>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
-        <script>hljs.highlightAll();</script> 
-    </head>
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.0">
+    
+    
+      
+        <title>Implementation Plan: PR #171 - Battery Deprecation & Model Validation - RoboVac Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.618322db.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
 
-    <body>
-        <div class="navbar fixed-top navbar-expand-lg navbar-dark bg-primary">
-            <div class="container">
-                <a class="navbar-brand" href="../../..">RoboVac Documentation</a>
-                <!-- Expander button -->
-                <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar-collapse" aria-controls="navbar-collapse" aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-
-                <!-- Expanded navigation -->
-                <div id="navbar-collapse" class="navbar-collapse collapse">
-                        <!-- Main navigation -->
-                        <ul class="nav navbar-nav">
-                            <li class="nav-item">
-                                <a href="../../.." class="nav-link">Home</a>
-                            </li>
-                            <li class="nav-item dropdown">
-                                <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown"  aria-expanded="false">Guides</a>
-                                <ul class="dropdown-menu">
-                                    
-<li>
-    <a href="../../../dps_codes/" class="dropdown-item">Getting DPS Codes</a>
-</li>
-                                    
-<li>
-    <a href="../../../troubleshooting/" class="dropdown-item">Troubleshooting</a>
-</li>
-                                    
-<li>
-    <a href="../../../development/" class="dropdown-item">Development Workflow</a>
-</li>
-                                </ul>
-                            </li>
-                            <li class="nav-item dropdown">
-                                <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown"  aria-expanded="false">Reference</a>
-                                <ul class="dropdown-menu">
-                                    
-<li>
-    <a href="../../../PROTOCOL_35_SUPPORT/" class="dropdown-item">Protocol 3.5 Support</a>
-</li>
-                                </ul>
-                            </li>
-                        </ul>
-
-                    <ul class="nav navbar-nav ms-md-auto">
-                        <li class="nav-item">
-                            <a href="#" class="nav-link" data-bs-toggle="modal" data-bs-target="#mkdocs_search_modal">
-                                <i class="fa fa-search"></i> Search
-                            </a>
-                        </li>
-                            <li class="nav-item">
-                                <a href="https://github.com/damacus/robovac/edit/master/docs/archive/pr171/IMPLEMENTATION_PLAN_PR171.md" class="nav-link"><i class="fa-brands fa-github"></i> Edit on GitHub</a>
-                            </li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-
-        <div class="container">
-            <div class="row">
-                    <div class="col-md-3"><div class="navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
-    <div class="navbar-header">
-        <button type="button" class="navbar-toggler collapsed" data-bs-toggle="collapse" data-bs-target="#toc-collapse" title="Table of Contents">
-            <span class="fa fa-angle-down"></span>
-        </button>
-    </div>
 
     
-    <div id="toc-collapse" class="navbar-collapse collapse card bg-body-tertiary">
-        <ul class="nav flex-column">
-            
-            <li class="nav-item" data-bs-level="1"><a href="#implementation-plan-pr-171-battery-deprecation-model-validation" class="nav-link">Implementation Plan: PR #171 - Battery Deprecation &amp; Model Validation</a>
-              <ul class="nav flex-column">
-            <li class="nav-item" data-bs-level="2"><a href="#pr-review-summary" class="nav-link">PR Review Summary</a>
-              <ul class="nav flex-column">
-              </ul>
-            </li>
-            <li class="nav-item" data-bs-level="2"><a href="#implementation-plan" class="nav-link">Implementation Plan</a>
-              <ul class="nav flex-column">
-              </ul>
-            </li>
-            <li class="nav-item" data-bs-level="2"><a href="#execution-notes-for-llm" class="nav-link">Execution Notes for LLM</a>
-              <ul class="nav flex-column">
-              </ul>
-            </li>
-            <li class="nav-item" data-bs-level="2"><a href="#success-criteria" class="nav-link">Success Criteria</a>
-              <ul class="nav flex-column">
-              </ul>
-            </li>
-            <li class="nav-item" data-bs-level="2"><a href="#timeline-estimate" class="nav-link">Timeline Estimate</a>
-              <ul class="nav flex-column">
-              </ul>
-            </li>
-            <li class="nav-item" data-bs-level="2"><a href="#questionsclarifications-needed" class="nav-link">Questions/Clarifications Needed</a>
-              <ul class="nav flex-column">
-              </ul>
-            </li>
-            <li class="nav-item" data-bs-level="2"><a href="#references" class="nav-link">References</a>
-              <ul class="nav flex-column">
-              </ul>
-            </li>
-              </ul>
-            </li>
-        </ul>
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#implementation-plan-pr-171-battery-deprecation-model-validation" class="md-skip">
+          Skip to content
+        </a>
+      
     </div>
-</div></div>
-                    <div class="col-md-9" role="main">
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="RoboVac Documentation" class="md-header__button md-logo" aria-label="RoboVac Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            RoboVac Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Implementation Plan: PR #171 - Battery Deprecation &amp; Model Validation
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m14.3 16-.7-2h-3.2l-.7 2H7.8L11 7h2l3.2 9zM20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12zm-9.15 3.96h2.3L12 9z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
+    
+      <label class="md-header__button md-icon" title="Switch to system preference" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/damacus/robovac" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../dps_codes/" class="md-tabs__link">
+          
+  
+  
+  Guides
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../PROTOCOL_35_SUPPORT/" class="md-tabs__link">
+          
+  
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="RoboVac Documentation" class="md-nav__button md-logo" aria-label="RoboVac Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    RoboVac Documentation
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/damacus/robovac" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../dps_codes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting DPS Codes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../development/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development Workflow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../PROTOCOL_35_SUPPORT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Protocol 3.5 Support
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#pr-review-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PR Review Summary
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="PR Review Summary">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#changes-from-pr-171" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changes from PR #171
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#code-review-findings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Code Review Findings
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#implementation-plan" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Implementation Plan
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Implementation Plan">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#phase-1-battery-deprecation-test-first" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 1: Battery Deprecation (Test-First)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Phase 1: Battery Deprecation (Test-First)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#step-11-write-failing-tests-for-battery-feature-removal" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 1.1: Write Failing Tests for Battery Feature Removal
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-12-remove-battery-feature-from-vacuum-models" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 1.2: Remove Battery Feature from Vacuum Models
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-13-remove-_attr_battery_level-from-vacuumentity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 1.3: Remove _attr_battery_level from VacuumEntity
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-14-commit-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 1.4: Commit Changes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-2-error-message-improvements-test-first" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 2: Error Message Improvements (Test-First)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Phase 2: Error Message Improvements (Test-First)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#step-21-write-failing-tests-for-error-messages" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 2.1: Write Failing Tests for Error Messages
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-22-fix-typo-in-error_messages" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 2.2: Fix Typo in ERROR_MESSAGES
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-23-implement-geterrormessagewithcontext" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 2.3: Implement getErrorMessageWithContext()
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-24-add-type-hints-and-documentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 2.4: Add Type Hints and Documentation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-25-commit-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 2.5: Commit Changes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-3-model-validator-library-test-first" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 3: Model Validator Library (Test-First)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Phase 3: Model Validator Library (Test-First)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#step-31-write-failing-tests-for-model-validator" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 3.1: Write Failing Tests for Model Validator
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-32-create-model-validator-module" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 3.2: Create Model Validator Module
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-33-add-type-hints-and-linting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 3.3: Add Type Hints and Linting
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-34-commit-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 3.4: Commit Changes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-4-model-validator-cli-tool-test-first" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 4: Model Validator CLI Tool (Test-First)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Phase 4: Model Validator CLI Tool (Test-First)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#step-41-write-tests-for-cli-tool" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 4.1: Write Tests for CLI Tool
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-42-create-cli-tool" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 4.2: Create CLI Tool
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-43-add-documentation-and-make-executable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 4.3: Add Documentation and Make Executable
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-44-commit-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 4.4: Commit Changes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-5-integration-and-documentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 5: Integration and Documentation
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Phase 5: Integration and Documentation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#step-51-integration-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 5.1: Integration Tests
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-52-update-documentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 5.2: Update Documentation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-53-full-test-suite" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 5.3: Full Test Suite
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-54-final-commit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 5.4: Final Commit
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-6-review-and-cleanup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 6: Review and Cleanup
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Phase 6: Review and Cleanup">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#step-61-code-review-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 6.1: Code Review Checklist
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-62-create-summary-document" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 6.2: Create Summary Document
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-63-final-validation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 6.3: Final Validation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#execution-notes-for-llm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Execution Notes for LLM
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Execution Notes for LLM">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#tdd-workflow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TDD Workflow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#code-quality-standards" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Code Quality Standards
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#testing-commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Testing Commands
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#commit-message-format" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Commit Message Format
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#file-modification-strategy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        File Modification Strategy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#error-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Error Handling
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dependencies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dependencies
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#success-criteria" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Success Criteria
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Success Criteria">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#must-have" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Must Have
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#should-have" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Should Have
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#nice-to-have" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Nice to Have
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#timeline-estimate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Timeline Estimate
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#questionsclarifications-needed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Questions/Clarifications Needed
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#references" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        References
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
 
 <h1 id="implementation-plan-pr-171-battery-deprecation-model-validation">Implementation Plan: PR #171 - Battery Deprecation &amp; Model Validation<a class="headerlink" href="#implementation-plan-pr-171-battery-deprecation-model-validation" title="Permanent link">&para;</a></h1>
 <h2 id="pr-review-summary">PR Review Summary<a class="headerlink" href="#pr-review-summary" title="Permanent link">&para;</a></h2>
@@ -188,12 +1296,11 @@
 <p><strong>Task:</strong> Create test file for battery feature validation</p>
 <p><strong>File:</strong> <code>tests/test_vacuum/test_battery_feature_removal.py</code></p>
 <p><strong>Test Cases:</strong></p>
-<pre class="codehilite"><code class="language-python"># Test 1: Verify VacuumEntityFeature.BATTERY is NOT in homeassistant_features for all models
-# Test 2: Verify battery command mappings still exist (backward compatibility)
-# Test 3: Verify battery level property is removed from vacuum entity
-# Test 4: Verify battery sensor still works independently
-</code></pre>
-
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># Test 1: Verify VacuumEntityFeature.BATTERY is NOT in homeassistant_features for all models</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="c1"># Test 2: Verify battery command mappings still exist (backward compatibility)</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="c1"># Test 3: Verify battery level property is removed from vacuum entity</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="c1"># Test 4: Verify battery sensor still works independently</span>
+</span></code></pre></div>
 <p><strong>Implementation Details:</strong></p>
 <ul>
 <li>Import all vacuum models from <code>custom_components/robovac/vacuums</code></li>
@@ -203,27 +1310,25 @@
 <li>Verify vacuum entity does not have <code>_attr_battery_level</code> attribute</li>
 </ul>
 <p><strong>Run tests (should fail):</strong></p>
-<pre class="codehilite"><code class="language-bash">task test tests/test_vacuum/test_battery_feature_removal.py
-</code></pre>
-
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>task<span class="w"> </span><span class="nb">test</span><span class="w"> </span>tests/test_vacuum/test_battery_feature_removal.py
+</span></code></pre></div>
 <h4 id="step-12-remove-battery-feature-from-vacuum-models">Step 1.2: Remove Battery Feature from Vacuum Models<a class="headerlink" href="#step-12-remove-battery-feature-from-vacuum-models" title="Permanent link">&para;</a></h4>
 <p><strong>Task:</strong> Remove <code>VacuumEntityFeature.BATTERY</code> from all 35 vacuum model files</p>
 <p><strong>Files to modify:</strong> All vacuum models in <code>custom_components/robovac/vacuums/T2*.py</code></p>
 <p><strong>Pattern to apply:</strong></p>
-<pre class="codehilite"><code class="language-python"># BEFORE:
-homeassistant_features = (
-    VacuumEntityFeature.BATTERY
-    | VacuumEntityFeature.FAN_SPEED
-    | ...
-)
-
-# AFTER:
-homeassistant_features = (
-    VacuumEntityFeature.FAN_SPEED
-    | ...
-)
-</code></pre>
-
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># BEFORE:</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="n">homeassistant_features</span> <span class="o">=</span> <span class="p">(</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    <span class="n">VacuumEntityFeature</span><span class="o">.</span><span class="n">BATTERY</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="o">|</span> <span class="n">VacuumEntityFeature</span><span class="o">.</span><span class="n">FAN_SPEED</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="o">|</span> <span class="o">...</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="p">)</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="c1"># AFTER:</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="n">homeassistant_features</span> <span class="o">=</span> <span class="p">(</span>
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>    <span class="n">VacuumEntityFeature</span><span class="o">.</span><span class="n">FAN_SPEED</span>
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>    <span class="o">|</span> <span class="o">...</span>
+</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="p">)</span>
+</span></code></pre></div>
 <p><strong>Models to update:</strong> (35 files)</p>
 <ul>
 <li>T2080, T2103, T2117, T2118, T2119, T2120, T2123, T2128, T2130, T2132</li>
@@ -238,9 +1343,8 @@ homeassistant_features = (
 <li>Maintain code formatting and structure</li>
 </ul>
 <p><strong>Run tests (should pass):</strong></p>
-<pre class="codehilite"><code class="language-bash">task test tests/test_vacuum/test_battery_feature_removal.py
-</code></pre>
-
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>task<span class="w"> </span><span class="nb">test</span><span class="w"> </span>tests/test_vacuum/test_battery_feature_removal.py
+</span></code></pre></div>
 <h4 id="step-13-remove-_attr_battery_level-from-vacuumentity">Step 1.3: Remove _attr_battery_level from VacuumEntity<a class="headerlink" href="#step-13-remove-_attr_battery_level-from-vacuumentity" title="Permanent link">&para;</a></h4>
 <p><strong>Task:</strong> Remove deprecated battery level attribute from vacuum.py</p>
 <p><strong>File:</strong> <code>custom_components/robovac/vacuum.py</code></p>
@@ -263,38 +1367,35 @@ homeassistant_features = (
 <li>Verify no regressions</li>
 </ul>
 <p><strong>Run tests:</strong></p>
-<pre class="codehilite"><code class="language-bash">task test
-</code></pre>
-
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>task<span class="w"> </span><span class="nb">test</span>
+</span></code></pre></div>
 <h4 id="step-14-commit-changes">Step 1.4: Commit Changes<a class="headerlink" href="#step-14-commit-changes" title="Permanent link">&para;</a></h4>
 <p><strong>Commit message:</strong></p>
-<pre class="codehilite"><code class="language-text">fix: remove deprecated battery feature from vacuum models
-
-Remove VacuumEntityFeature.BATTERY from all 35 vacuum models
-to prepare for Home Assistant 2026.8 compatibility.
-
-- Remove battery feature flag from homeassistant_features
-- Maintain battery command mappings for backward compatibility
-- Battery reporting continues via dedicated battery sensor
-- No breaking changes for existing users
-
-Refs: #171
-</code></pre>
-
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>fix: remove deprecated battery feature from vacuum models
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>Remove VacuumEntityFeature.BATTERY from all 35 vacuum models
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>to prepare for Home Assistant 2026.8 compatibility.
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>- Remove battery feature flag from homeassistant_features
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>- Maintain battery command mappings for backward compatibility
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>- Battery reporting continues via dedicated battery sensor
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>- No breaking changes for existing users
+</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>
+</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>Refs: #171
+</span></code></pre></div>
 <hr />
 <h3 id="phase-2-error-message-improvements-test-first">Phase 2: Error Message Improvements (Test-First)<a class="headerlink" href="#phase-2-error-message-improvements-test-first" title="Permanent link">&para;</a></h3>
 <h4 id="step-21-write-failing-tests-for-error-messages">Step 2.1: Write Failing Tests for Error Messages<a class="headerlink" href="#step-21-write-failing-tests-for-error-messages" title="Permanent link">&para;</a></h4>
 <p><strong>Task:</strong> Create test file for error message enhancements</p>
 <p><strong>File:</strong> <code>tests/test_errors.py</code></p>
 <p><strong>Test Cases:</strong></p>
-<pre class="codehilite"><code class="language-python"># Test 1: Verify typo fix - &quot;Laser sensor stuck&quot; not &quot;Laser sesor stuck&quot;
-# Test 2: Test getErrorMessage() returns correct messages
-# Test 3: Test getErrorMessageWithContext() returns message + context
-# Test 4: Test context includes troubleshooting steps
-# Test 5: Test context includes series-specific guidance
-# Test 6: Test unknown error codes return gracefully
-</code></pre>
-
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># Test 1: Verify typo fix - &quot;Laser sensor stuck&quot; not &quot;Laser sesor stuck&quot;</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="c1"># Test 2: Test getErrorMessage() returns correct messages</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="c1"># Test 3: Test getErrorMessageWithContext() returns message + context</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="c1"># Test 4: Test context includes troubleshooting steps</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="c1"># Test 5: Test context includes series-specific guidance</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="c1"># Test 6: Test unknown error codes return gracefully</span>
+</span></code></pre></div>
 <p><strong>Implementation Details:</strong></p>
 <ul>
 <li>Test error code 19 returns "Laser sensor stuck"</li>
@@ -303,48 +1404,44 @@ Refs: #171
 <li>Test function handles None, str, and int error codes</li>
 </ul>
 <p><strong>Run tests (should fail):</strong></p>
-<pre class="codehilite"><code class="language-bash">task test tests/test_errors.py
-</code></pre>
-
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>task<span class="w"> </span><span class="nb">test</span><span class="w"> </span>tests/test_errors.py
+</span></code></pre></div>
 <h4 id="step-22-fix-typo-in-error_messages">Step 2.2: Fix Typo in ERROR_MESSAGES<a class="headerlink" href="#step-22-fix-typo-in-error_messages" title="Permanent link">&para;</a></h4>
 <p><strong>Task:</strong> Fix "sesor" → "sensor" typo</p>
 <p><strong>File:</strong> <code>custom_components/robovac/errors.py</code></p>
 <p><strong>Change:</strong></p>
-<pre class="codehilite"><code class="language-python"># Line 20
-# BEFORE:
-19: &quot;Laser sesor stuck&quot;,
-
-# AFTER:
-19: &quot;Laser sensor stuck&quot;,
-</code></pre>
-
+<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="c1"># Line 20</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="c1"># BEFORE:</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="mi">19</span><span class="p">:</span> <span class="s2">&quot;Laser sesor stuck&quot;</span><span class="p">,</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="c1"># AFTER:</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="mi">19</span><span class="p">:</span> <span class="s2">&quot;Laser sensor stuck&quot;</span><span class="p">,</span>
+</span></code></pre></div>
 <p><strong>Run tests (should pass typo test):</strong></p>
-<pre class="codehilite"><code class="language-bash">task test tests/test_errors.py::test_laser_sensor_typo_fixed
-</code></pre>
-
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>task<span class="w"> </span><span class="nb">test</span><span class="w"> </span>tests/test_errors.py::test_laser_sensor_typo_fixed
+</span></code></pre></div>
 <h4 id="step-23-implement-geterrormessagewithcontext">Step 2.3: Implement getErrorMessageWithContext()<a class="headerlink" href="#step-23-implement-geterrormessagewithcontext" title="Permanent link">&para;</a></h4>
 <p><strong>Task:</strong> Add enhanced error messaging function</p>
 <p><strong>File:</strong> <code>custom_components/robovac/errors.py</code></p>
 <p><strong>Function signature:</strong></p>
-<pre class="codehilite"><code class="language-python">def getErrorMessageWithContext(
-    code: str | int,
-    model_code: str | None = None
-) -&gt; dict[str, str | list[str]]:
-    &quot;&quot;&quot;Get error message with troubleshooting context.
-
-    Args:
-        code: The error code to look up
-        model_code: Optional model code for model-specific guidance
-
-    Returns:
-        Dictionary containing:
-        - message: The error message
-        - troubleshooting: List of troubleshooting steps
-        - common_causes: List of common causes
-        - series_info: Model series-specific information (if applicable)
-    &quot;&quot;&quot;
-</code></pre>
-
+<div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">getErrorMessageWithContext</span><span class="p">(</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>    <span class="n">code</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">int</span><span class="p">,</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>    <span class="n">model_code</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Get error message with troubleshooting context.</span>
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="sd">    Args:</span>
+</span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="sd">        code: The error code to look up</span>
+</span><span id="__span-10-9"><a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a><span class="sd">        model_code: Optional model code for model-specific guidance</span>
+</span><span id="__span-10-10"><a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a>
+</span><span id="__span-10-11"><a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a><span class="sd">    Returns:</span>
+</span><span id="__span-10-12"><a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a><span class="sd">        Dictionary containing:</span>
+</span><span id="__span-10-13"><a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a><span class="sd">        - message: The error message</span>
+</span><span id="__span-10-14"><a id="__codelineno-10-14" name="__codelineno-10-14" href="#__codelineno-10-14"></a><span class="sd">        - troubleshooting: List of troubleshooting steps</span>
+</span><span id="__span-10-15"><a id="__codelineno-10-15" name="__codelineno-10-15" href="#__codelineno-10-15"></a><span class="sd">        - common_causes: List of common causes</span>
+</span><span id="__span-10-16"><a id="__codelineno-10-16" name="__codelineno-10-16" href="#__codelineno-10-16"></a><span class="sd">        - series_info: Model series-specific information (if applicable)</span>
+</span><span id="__span-10-17"><a id="__codelineno-10-17" name="__codelineno-10-17" href="#__codelineno-10-17"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span></code></pre></div>
 <p><strong>Implementation Details:</strong></p>
 <ul>
 <li>Build on existing ERROR_MESSAGES dict</li>
@@ -354,40 +1451,38 @@ Refs: #171
 <li>Handle missing/unknown codes gracefully</li>
 </ul>
 <p><strong>Error context examples:</strong></p>
-<pre class="codehilite"><code class="language-python">TROUBLESHOOTING_CONTEXT = {
-    1: {  # Front bumper stuck
-        &quot;troubleshooting&quot;: [
-            &quot;Check front bumper for obstructions&quot;,
-            &quot;Clean bumper sensors&quot;,
-            &quot;Ensure bumper moves freely&quot;
-        ],
-        &quot;common_causes&quot;: [
-            &quot;Hair or debris blocking bumper&quot;,
-            &quot;Damaged bumper spring&quot;,
-            &quot;Sensor misalignment&quot;
-        ]
-    },
-    19: {  # Laser sensor stuck
-        &quot;troubleshooting&quot;: [
-            &quot;Remove any stickers or tape from laser sensor&quot;,
-            &quot;Clean laser sensor cover&quot;,
-            &quot;Check for physical damage to sensor&quot;,
-            &quot;Restart vacuum&quot;
-        ],
-        &quot;common_causes&quot;: [
-            &quot;Protective film not removed&quot;,
-            &quot;Dust or debris on sensor&quot;,
-            &quot;Physical damage to sensor cover&quot;
-        ]
-    },
-    # ... add for other common errors
-}
-</code></pre>
-
+<div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="n">TROUBLESHOOTING_CONTEXT</span> <span class="o">=</span> <span class="p">{</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>    <span class="mi">1</span><span class="p">:</span> <span class="p">{</span>  <span class="c1"># Front bumper stuck</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>        <span class="s2">&quot;troubleshooting&quot;</span><span class="p">:</span> <span class="p">[</span>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>            <span class="s2">&quot;Check front bumper for obstructions&quot;</span><span class="p">,</span>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>            <span class="s2">&quot;Clean bumper sensors&quot;</span><span class="p">,</span>
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>            <span class="s2">&quot;Ensure bumper moves freely&quot;</span>
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>        <span class="p">],</span>
+</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>        <span class="s2">&quot;common_causes&quot;</span><span class="p">:</span> <span class="p">[</span>
+</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a>            <span class="s2">&quot;Hair or debris blocking bumper&quot;</span><span class="p">,</span>
+</span><span id="__span-11-10"><a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a>            <span class="s2">&quot;Damaged bumper spring&quot;</span><span class="p">,</span>
+</span><span id="__span-11-11"><a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a>            <span class="s2">&quot;Sensor misalignment&quot;</span>
+</span><span id="__span-11-12"><a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a>        <span class="p">]</span>
+</span><span id="__span-11-13"><a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a>    <span class="p">},</span>
+</span><span id="__span-11-14"><a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a>    <span class="mi">19</span><span class="p">:</span> <span class="p">{</span>  <span class="c1"># Laser sensor stuck</span>
+</span><span id="__span-11-15"><a id="__codelineno-11-15" name="__codelineno-11-15" href="#__codelineno-11-15"></a>        <span class="s2">&quot;troubleshooting&quot;</span><span class="p">:</span> <span class="p">[</span>
+</span><span id="__span-11-16"><a id="__codelineno-11-16" name="__codelineno-11-16" href="#__codelineno-11-16"></a>            <span class="s2">&quot;Remove any stickers or tape from laser sensor&quot;</span><span class="p">,</span>
+</span><span id="__span-11-17"><a id="__codelineno-11-17" name="__codelineno-11-17" href="#__codelineno-11-17"></a>            <span class="s2">&quot;Clean laser sensor cover&quot;</span><span class="p">,</span>
+</span><span id="__span-11-18"><a id="__codelineno-11-18" name="__codelineno-11-18" href="#__codelineno-11-18"></a>            <span class="s2">&quot;Check for physical damage to sensor&quot;</span><span class="p">,</span>
+</span><span id="__span-11-19"><a id="__codelineno-11-19" name="__codelineno-11-19" href="#__codelineno-11-19"></a>            <span class="s2">&quot;Restart vacuum&quot;</span>
+</span><span id="__span-11-20"><a id="__codelineno-11-20" name="__codelineno-11-20" href="#__codelineno-11-20"></a>        <span class="p">],</span>
+</span><span id="__span-11-21"><a id="__codelineno-11-21" name="__codelineno-11-21" href="#__codelineno-11-21"></a>        <span class="s2">&quot;common_causes&quot;</span><span class="p">:</span> <span class="p">[</span>
+</span><span id="__span-11-22"><a id="__codelineno-11-22" name="__codelineno-11-22" href="#__codelineno-11-22"></a>            <span class="s2">&quot;Protective film not removed&quot;</span><span class="p">,</span>
+</span><span id="__span-11-23"><a id="__codelineno-11-23" name="__codelineno-11-23" href="#__codelineno-11-23"></a>            <span class="s2">&quot;Dust or debris on sensor&quot;</span><span class="p">,</span>
+</span><span id="__span-11-24"><a id="__codelineno-11-24" name="__codelineno-11-24" href="#__codelineno-11-24"></a>            <span class="s2">&quot;Physical damage to sensor cover&quot;</span>
+</span><span id="__span-11-25"><a id="__codelineno-11-25" name="__codelineno-11-25" href="#__codelineno-11-25"></a>        <span class="p">]</span>
+</span><span id="__span-11-26"><a id="__codelineno-11-26" name="__codelineno-11-26" href="#__codelineno-11-26"></a>    <span class="p">},</span>
+</span><span id="__span-11-27"><a id="__codelineno-11-27" name="__codelineno-11-27" href="#__codelineno-11-27"></a>    <span class="c1"># ... add for other common errors</span>
+</span><span id="__span-11-28"><a id="__codelineno-11-28" name="__codelineno-11-28" href="#__codelineno-11-28"></a><span class="p">}</span>
+</span></code></pre></div>
 <p><strong>Run tests (should pass):</strong></p>
-<pre class="codehilite"><code class="language-bash">task test tests/test_errors.py
-</code></pre>
-
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>task<span class="w"> </span><span class="nb">test</span><span class="w"> </span>tests/test_errors.py
+</span></code></pre></div>
 <h4 id="step-24-add-type-hints-and-documentation">Step 2.4: Add Type Hints and Documentation<a class="headerlink" href="#step-24-add-type-hints-and-documentation" title="Permanent link">&para;</a></h4>
 <p><strong>Task:</strong> Ensure all error functions have proper typing</p>
 <p><strong>Files:</strong></p>
@@ -402,55 +1497,52 @@ Refs: #171
 <li>Add examples in docstrings</li>
 </ul>
 <p><strong>Run type check:</strong></p>
-<pre class="codehilite"><code class="language-bash">task type-check
-</code></pre>
-
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>task<span class="w"> </span>type-check
+</span></code></pre></div>
 <h4 id="step-25-commit-changes">Step 2.5: Commit Changes<a class="headerlink" href="#step-25-commit-changes" title="Permanent link">&para;</a></h4>
 <p><strong>Commit message:</strong></p>
-<pre class="codehilite"><code class="language-text">feat: enhance error messages with troubleshooting context
-
-Add getErrorMessageWithContext() function to provide users with
-actionable troubleshooting steps and common causes for error codes.
-
-- Fix typo: &quot;Laser sesor stuck&quot; → &quot;Laser sensor stuck&quot;
-- Add TROUBLESHOOTING_CONTEXT with detailed guidance
-- Support model series-specific troubleshooting
-- Maintain backward compatibility with getErrorMessage()
-
-Refs: #171
-</code></pre>
-
+<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>feat: enhance error messages with troubleshooting context
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>Add getErrorMessageWithContext() function to provide users with
+</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a>actionable troubleshooting steps and common causes for error codes.
+</span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>
+</span><span id="__span-14-6"><a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a>- Fix typo: &quot;Laser sesor stuck&quot; → &quot;Laser sensor stuck&quot;
+</span><span id="__span-14-7"><a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a>- Add TROUBLESHOOTING_CONTEXT with detailed guidance
+</span><span id="__span-14-8"><a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a>- Support model series-specific troubleshooting
+</span><span id="__span-14-9"><a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a>- Maintain backward compatibility with getErrorMessage()
+</span><span id="__span-14-10"><a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a>
+</span><span id="__span-14-11"><a id="__codelineno-14-11" name="__codelineno-14-11" href="#__codelineno-14-11"></a>Refs: #171
+</span></code></pre></div>
 <hr />
 <h3 id="phase-3-model-validator-library-test-first">Phase 3: Model Validator Library (Test-First)<a class="headerlink" href="#phase-3-model-validator-library-test-first" title="Permanent link">&para;</a></h3>
 <h4 id="step-31-write-failing-tests-for-model-validator">Step 3.1: Write Failing Tests for Model Validator<a class="headerlink" href="#step-31-write-failing-tests-for-model-validator" title="Permanent link">&para;</a></h4>
 <p><strong>Task:</strong> Create comprehensive test file for model validator</p>
 <p><strong>File:</strong> <code>tests/test_model_validator.py</code></p>
 <p><strong>Test Cases:</strong></p>
-<pre class="codehilite"><code class="language-python"># Series Detection Tests
-# Test 1: Detect C series (RoboVac C models)
-# Test 2: Detect G series (RoboVac G series)
-# Test 3: Detect L series (Clean L series)
-# Test 4: Detect X series (RoboVac X series)
-# Test 5: Handle unknown series
-# Test 6: Handle None/invalid model codes
-
-# Model Validation Tests
-# Test 7: Validate supported models return True
-# Test 8: Validate unsupported models return False
-# Test 9: Get model list
-# Test 10: Get supported model for device code (T2278 → T2278)
-
-# Suggestion Tests
-# Test 11: Suggest similar models for unsupported model
-# Test 12: Suggest series alternatives
-# Test 13: Handle edge cases (empty suggestions)
-
-# Troubleshooting Tests
-# Test 14: Get series-specific troubleshooting guide
-# Test 15: Get general troubleshooting guide
-# Test 16: Validate troubleshooting content is helpful
-</code></pre>
-
+<div class="language-python highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="c1"># Series Detection Tests</span>
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="c1"># Test 1: Detect C series (RoboVac C models)</span>
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="c1"># Test 2: Detect G series (RoboVac G series)</span>
+</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a><span class="c1"># Test 3: Detect L series (Clean L series)</span>
+</span><span id="__span-15-5"><a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a><span class="c1"># Test 4: Detect X series (RoboVac X series)</span>
+</span><span id="__span-15-6"><a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a><span class="c1"># Test 5: Handle unknown series</span>
+</span><span id="__span-15-7"><a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a><span class="c1"># Test 6: Handle None/invalid model codes</span>
+</span><span id="__span-15-8"><a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a>
+</span><span id="__span-15-9"><a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a><span class="c1"># Model Validation Tests</span>
+</span><span id="__span-15-10"><a id="__codelineno-15-10" name="__codelineno-15-10" href="#__codelineno-15-10"></a><span class="c1"># Test 7: Validate supported models return True</span>
+</span><span id="__span-15-11"><a id="__codelineno-15-11" name="__codelineno-15-11" href="#__codelineno-15-11"></a><span class="c1"># Test 8: Validate unsupported models return False</span>
+</span><span id="__span-15-12"><a id="__codelineno-15-12" name="__codelineno-15-12" href="#__codelineno-15-12"></a><span class="c1"># Test 9: Get model list</span>
+</span><span id="__span-15-13"><a id="__codelineno-15-13" name="__codelineno-15-13" href="#__codelineno-15-13"></a><span class="c1"># Test 10: Get supported model for device code (T2278 → T2278)</span>
+</span><span id="__span-15-14"><a id="__codelineno-15-14" name="__codelineno-15-14" href="#__codelineno-15-14"></a>
+</span><span id="__span-15-15"><a id="__codelineno-15-15" name="__codelineno-15-15" href="#__codelineno-15-15"></a><span class="c1"># Suggestion Tests</span>
+</span><span id="__span-15-16"><a id="__codelineno-15-16" name="__codelineno-15-16" href="#__codelineno-15-16"></a><span class="c1"># Test 11: Suggest similar models for unsupported model</span>
+</span><span id="__span-15-17"><a id="__codelineno-15-17" name="__codelineno-15-17" href="#__codelineno-15-17"></a><span class="c1"># Test 12: Suggest series alternatives</span>
+</span><span id="__span-15-18"><a id="__codelineno-15-18" name="__codelineno-15-18" href="#__codelineno-15-18"></a><span class="c1"># Test 13: Handle edge cases (empty suggestions)</span>
+</span><span id="__span-15-19"><a id="__codelineno-15-19" name="__codelineno-15-19" href="#__codelineno-15-19"></a>
+</span><span id="__span-15-20"><a id="__codelineno-15-20" name="__codelineno-15-20" href="#__codelineno-15-20"></a><span class="c1"># Troubleshooting Tests</span>
+</span><span id="__span-15-21"><a id="__codelineno-15-21" name="__codelineno-15-21" href="#__codelineno-15-21"></a><span class="c1"># Test 14: Get series-specific troubleshooting guide</span>
+</span><span id="__span-15-22"><a id="__codelineno-15-22" name="__codelineno-15-22" href="#__codelineno-15-22"></a><span class="c1"># Test 15: Get general troubleshooting guide</span>
+</span><span id="__span-15-23"><a id="__codelineno-15-23" name="__codelineno-15-23" href="#__codelineno-15-23"></a><span class="c1"># Test 16: Validate troubleshooting content is helpful</span>
+</span></code></pre></div>
 <p><strong>Implementation Details:</strong></p>
 <ul>
 <li>Test all public functions</li>
@@ -460,47 +1552,45 @@ Refs: #171
 <li>Validate suggestion algorithm</li>
 </ul>
 <p><strong>Run tests (should fail):</strong></p>
-<pre class="codehilite"><code class="language-bash">task test tests/test_model_validator.py
-</code></pre>
-
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>task<span class="w"> </span><span class="nb">test</span><span class="w"> </span>tests/test_model_validator.py
+</span></code></pre></div>
 <h4 id="step-32-create-model-validator-module">Step 3.2: Create Model Validator Module<a class="headerlink" href="#step-32-create-model-validator-module" title="Permanent link">&para;</a></h4>
 <p><strong>Task:</strong> Implement model validator library</p>
 <p><strong>File:</strong> <code>custom_components/robovac/model_validator.py</code></p>
 <p><strong>Module structure:</strong></p>
-<pre class="codehilite"><code class="language-python">&quot;&quot;&quot;Model validation and series detection for RoboVac devices.
-
-This module provides utilities for validating RoboVac model codes,
-detecting model series (C, G, L, X), and providing troubleshooting
-guidance for unsupported models.
-&quot;&quot;&quot;
-
-from typing import Dict, List, Optional, Tuple
-import re
-
-# Series detection patterns
-SERIES_PATTERNS = {
-    'C': r'^T2(103|123)$',  # RoboVac C series
-    'G': r'^T2(150|261)$',  # RoboVac G series
-    'L': r'^T2(2[67][0-9]|278|320)$',  # Clean L series
-    'X': r'^T2(080|117|118|119|120|128|130|132|181|190|192|193|194|25[0-9]|262)$',  # RoboVac X series
-}
-
-def detect_series(model_code: str) -&gt; Optional[str]:
-    &quot;&quot;&quot;Detect the series of a RoboVac model.&quot;&quot;&quot;
-
-def is_supported_model(model_code: str) -&gt; bool:
-    &quot;&quot;&quot;Check if a model code is supported.&quot;&quot;&quot;
-
-def get_supported_models() -&gt; List[str]:
-    &quot;&quot;&quot;Get list of all supported model codes.&quot;&quot;&quot;
-
-def suggest_similar_models(model_code: str, max_suggestions: int = 5) -&gt; List[Tuple[str, str]]:
-    &quot;&quot;&quot;Suggest similar supported models for an unsupported model.&quot;&quot;&quot;
-
-def get_troubleshooting_guide(model_code: str) -&gt; Dict[str, str | List[str]]:
-    &quot;&quot;&quot;Get series-specific troubleshooting guide.&quot;&quot;&quot;
-</code></pre>
-
+<div class="language-python highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="sd">&quot;&quot;&quot;Model validation and series detection for RoboVac devices.</span>
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>
+</span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a><span class="sd">This module provides utilities for validating RoboVac model codes,</span>
+</span><span id="__span-17-4"><a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a><span class="sd">detecting model series (C, G, L, X), and providing troubleshooting</span>
+</span><span id="__span-17-5"><a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a><span class="sd">guidance for unsupported models.</span>
+</span><span id="__span-17-6"><a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="__span-17-7"><a id="__codelineno-17-7" name="__codelineno-17-7" href="#__codelineno-17-7"></a>
+</span><span id="__span-17-8"><a id="__codelineno-17-8" name="__codelineno-17-8" href="#__codelineno-17-8"></a><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
+</span><span id="__span-17-9"><a id="__codelineno-17-9" name="__codelineno-17-9" href="#__codelineno-17-9"></a><span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+</span><span id="__span-17-10"><a id="__codelineno-17-10" name="__codelineno-17-10" href="#__codelineno-17-10"></a>
+</span><span id="__span-17-11"><a id="__codelineno-17-11" name="__codelineno-17-11" href="#__codelineno-17-11"></a><span class="c1"># Series detection patterns</span>
+</span><span id="__span-17-12"><a id="__codelineno-17-12" name="__codelineno-17-12" href="#__codelineno-17-12"></a><span class="n">SERIES_PATTERNS</span> <span class="o">=</span> <span class="p">{</span>
+</span><span id="__span-17-13"><a id="__codelineno-17-13" name="__codelineno-17-13" href="#__codelineno-17-13"></a>    <span class="s1">&#39;C&#39;</span><span class="p">:</span> <span class="sa">r</span><span class="s1">&#39;^T2(103|123)$&#39;</span><span class="p">,</span>  <span class="c1"># RoboVac C series</span>
+</span><span id="__span-17-14"><a id="__codelineno-17-14" name="__codelineno-17-14" href="#__codelineno-17-14"></a>    <span class="s1">&#39;G&#39;</span><span class="p">:</span> <span class="sa">r</span><span class="s1">&#39;^T2(150|261)$&#39;</span><span class="p">,</span>  <span class="c1"># RoboVac G series</span>
+</span><span id="__span-17-15"><a id="__codelineno-17-15" name="__codelineno-17-15" href="#__codelineno-17-15"></a>    <span class="s1">&#39;L&#39;</span><span class="p">:</span> <span class="sa">r</span><span class="s1">&#39;^T2(2[67][0-9]|278|320)$&#39;</span><span class="p">,</span>  <span class="c1"># Clean L series</span>
+</span><span id="__span-17-16"><a id="__codelineno-17-16" name="__codelineno-17-16" href="#__codelineno-17-16"></a>    <span class="s1">&#39;X&#39;</span><span class="p">:</span> <span class="sa">r</span><span class="s1">&#39;^T2(080|117|118|119|120|128|130|132|181|190|192|193|194|25[0-9]|262)$&#39;</span><span class="p">,</span>  <span class="c1"># RoboVac X series</span>
+</span><span id="__span-17-17"><a id="__codelineno-17-17" name="__codelineno-17-17" href="#__codelineno-17-17"></a><span class="p">}</span>
+</span><span id="__span-17-18"><a id="__codelineno-17-18" name="__codelineno-17-18" href="#__codelineno-17-18"></a>
+</span><span id="__span-17-19"><a id="__codelineno-17-19" name="__codelineno-17-19" href="#__codelineno-17-19"></a><span class="k">def</span><span class="w"> </span><span class="nf">detect_series</span><span class="p">(</span><span class="n">model_code</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+</span><span id="__span-17-20"><a id="__codelineno-17-20" name="__codelineno-17-20" href="#__codelineno-17-20"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Detect the series of a RoboVac model.&quot;&quot;&quot;</span>
+</span><span id="__span-17-21"><a id="__codelineno-17-21" name="__codelineno-17-21" href="#__codelineno-17-21"></a>
+</span><span id="__span-17-22"><a id="__codelineno-17-22" name="__codelineno-17-22" href="#__codelineno-17-22"></a><span class="k">def</span><span class="w"> </span><span class="nf">is_supported_model</span><span class="p">(</span><span class="n">model_code</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span id="__span-17-23"><a id="__codelineno-17-23" name="__codelineno-17-23" href="#__codelineno-17-23"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Check if a model code is supported.&quot;&quot;&quot;</span>
+</span><span id="__span-17-24"><a id="__codelineno-17-24" name="__codelineno-17-24" href="#__codelineno-17-24"></a>
+</span><span id="__span-17-25"><a id="__codelineno-17-25" name="__codelineno-17-25" href="#__codelineno-17-25"></a><span class="k">def</span><span class="w"> </span><span class="nf">get_supported_models</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+</span><span id="__span-17-26"><a id="__codelineno-17-26" name="__codelineno-17-26" href="#__codelineno-17-26"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Get list of all supported model codes.&quot;&quot;&quot;</span>
+</span><span id="__span-17-27"><a id="__codelineno-17-27" name="__codelineno-17-27" href="#__codelineno-17-27"></a>
+</span><span id="__span-17-28"><a id="__codelineno-17-28" name="__codelineno-17-28" href="#__codelineno-17-28"></a><span class="k">def</span><span class="w"> </span><span class="nf">suggest_similar_models</span><span class="p">(</span><span class="n">model_code</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">max_suggestions</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]:</span>
+</span><span id="__span-17-29"><a id="__codelineno-17-29" name="__codelineno-17-29" href="#__codelineno-17-29"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Suggest similar supported models for an unsupported model.&quot;&quot;&quot;</span>
+</span><span id="__span-17-30"><a id="__codelineno-17-30" name="__codelineno-17-30" href="#__codelineno-17-30"></a>
+</span><span id="__span-17-31"><a id="__codelineno-17-31" name="__codelineno-17-31" href="#__codelineno-17-31"></a><span class="k">def</span><span class="w"> </span><span class="nf">get_troubleshooting_guide</span><span class="p">(</span><span class="n">model_code</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+</span><span id="__span-17-32"><a id="__codelineno-17-32" name="__codelineno-17-32" href="#__codelineno-17-32"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Get series-specific troubleshooting guide.&quot;&quot;&quot;</span>
+</span></code></pre></div>
 <p><strong>Implementation Requirements:</strong></p>
 <ul>
 <li>Import ROBOVAC_MODELS from vacuums.<strong>init</strong></li>
@@ -512,9 +1602,8 @@ def get_troubleshooting_guide(model_code: str) -&gt; Dict[str, str | List[str]]:
 <li>Add comprehensive docstrings</li>
 </ul>
 <p><strong>Run tests (should pass):</strong></p>
-<pre class="codehilite"><code class="language-bash">task test tests/test_model_validator.py
-</code></pre>
-
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>task<span class="w"> </span><span class="nb">test</span><span class="w"> </span>tests/test_model_validator.py
+</span></code></pre></div>
 <h4 id="step-33-add-type-hints-and-linting">Step 3.3: Add Type Hints and Linting<a class="headerlink" href="#step-33-add-type-hints-and-linting" title="Permanent link">&para;</a></h4>
 <p><strong>Task:</strong> Ensure code quality standards</p>
 <p><strong>Files:</strong></p>
@@ -530,46 +1619,43 @@ def get_troubleshooting_guide(model_code: str) -&gt; Dict[str, str | List[str]]:
 <li>Ensure all functions have docstrings</li>
 </ul>
 <p><strong>Run quality checks:</strong></p>
-<pre class="codehilite"><code class="language-bash">task lint
-task type-check
-</code></pre>
-
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>task<span class="w"> </span>lint
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>task<span class="w"> </span>type-check
+</span></code></pre></div>
 <h4 id="step-34-commit-changes">Step 3.4: Commit Changes<a class="headerlink" href="#step-34-commit-changes" title="Permanent link">&para;</a></h4>
 <p><strong>Commit message:</strong></p>
-<pre class="codehilite"><code class="language-text">feat: add model validator library with series detection
-
-Add model_validator.py module to provide:
-- Automatic model series identification (C, G, L, X)
-- Model validation against supported models
-- Smart suggestions for unsupported models
-- Series-specific troubleshooting guides
-
-Refs: #171
-</code></pre>
-
+<div class="language-text highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>feat: add model validator library with series detection
+</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>
+</span><span id="__span-20-3"><a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a>Add model_validator.py module to provide:
+</span><span id="__span-20-4"><a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a>- Automatic model series identification (C, G, L, X)
+</span><span id="__span-20-5"><a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a>- Model validation against supported models
+</span><span id="__span-20-6"><a id="__codelineno-20-6" name="__codelineno-20-6" href="#__codelineno-20-6"></a>- Smart suggestions for unsupported models
+</span><span id="__span-20-7"><a id="__codelineno-20-7" name="__codelineno-20-7" href="#__codelineno-20-7"></a>- Series-specific troubleshooting guides
+</span><span id="__span-20-8"><a id="__codelineno-20-8" name="__codelineno-20-8" href="#__codelineno-20-8"></a>
+</span><span id="__span-20-9"><a id="__codelineno-20-9" name="__codelineno-20-9" href="#__codelineno-20-9"></a>Refs: #171
+</span></code></pre></div>
 <hr />
 <h3 id="phase-4-model-validator-cli-tool-test-first">Phase 4: Model Validator CLI Tool (Test-First)<a class="headerlink" href="#phase-4-model-validator-cli-tool-test-first" title="Permanent link">&para;</a></h3>
 <h4 id="step-41-write-tests-for-cli-tool">Step 4.1: Write Tests for CLI Tool<a class="headerlink" href="#step-41-write-tests-for-cli-tool" title="Permanent link">&para;</a></h4>
 <p><strong>Task:</strong> Create test file for CLI functionality</p>
 <p><strong>File:</strong> <code>tests/test_model_validator_cli.py</code></p>
 <p><strong>Test Cases:</strong></p>
-<pre class="codehilite"><code class="language-python"># Argument Parsing Tests
-# Test 1: Parse model code argument
-# Test 2: Parse --list flag
-# Test 3: Parse --help flag
-# Test 4: Handle missing arguments
-
-# Output Tests
-# Test 5: Supported model shows success message
-# Test 6: Unsupported model shows suggestions
-# Test 7: List mode shows all models
-# Test 8: Output format is user-friendly
-
-# Integration Tests
-# Test 9: Standalone mode works without imports
-# Test 10: Integrated mode uses actual ROBOVAC_MODELS
-</code></pre>
-
+<div class="language-python highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="c1"># Argument Parsing Tests</span>
+</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a><span class="c1"># Test 1: Parse model code argument</span>
+</span><span id="__span-21-3"><a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a><span class="c1"># Test 2: Parse --list flag</span>
+</span><span id="__span-21-4"><a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a><span class="c1"># Test 3: Parse --help flag</span>
+</span><span id="__span-21-5"><a id="__codelineno-21-5" name="__codelineno-21-5" href="#__codelineno-21-5"></a><span class="c1"># Test 4: Handle missing arguments</span>
+</span><span id="__span-21-6"><a id="__codelineno-21-6" name="__codelineno-21-6" href="#__codelineno-21-6"></a>
+</span><span id="__span-21-7"><a id="__codelineno-21-7" name="__codelineno-21-7" href="#__codelineno-21-7"></a><span class="c1"># Output Tests</span>
+</span><span id="__span-21-8"><a id="__codelineno-21-8" name="__codelineno-21-8" href="#__codelineno-21-8"></a><span class="c1"># Test 5: Supported model shows success message</span>
+</span><span id="__span-21-9"><a id="__codelineno-21-9" name="__codelineno-21-9" href="#__codelineno-21-9"></a><span class="c1"># Test 6: Unsupported model shows suggestions</span>
+</span><span id="__span-21-10"><a id="__codelineno-21-10" name="__codelineno-21-10" href="#__codelineno-21-10"></a><span class="c1"># Test 7: List mode shows all models</span>
+</span><span id="__span-21-11"><a id="__codelineno-21-11" name="__codelineno-21-11" href="#__codelineno-21-11"></a><span class="c1"># Test 8: Output format is user-friendly</span>
+</span><span id="__span-21-12"><a id="__codelineno-21-12" name="__codelineno-21-12" href="#__codelineno-21-12"></a>
+</span><span id="__span-21-13"><a id="__codelineno-21-13" name="__codelineno-21-13" href="#__codelineno-21-13"></a><span class="c1"># Integration Tests</span>
+</span><span id="__span-21-14"><a id="__codelineno-21-14" name="__codelineno-21-14" href="#__codelineno-21-14"></a><span class="c1"># Test 9: Standalone mode works without imports</span>
+</span><span id="__span-21-15"><a id="__codelineno-21-15" name="__codelineno-21-15" href="#__codelineno-21-15"></a><span class="c1"># Test 10: Integrated mode uses actual ROBOVAC_MODELS</span>
+</span></code></pre></div>
 <p><strong>Implementation Details:</strong></p>
 <ul>
 <li>Use unittest.mock for subprocess testing</li>
@@ -578,65 +1664,63 @@ Refs: #171
 <li>Test CLI exit codes (0 = success, 1 = error)</li>
 </ul>
 <p><strong>Run tests (should fail):</strong></p>
-<pre class="codehilite"><code class="language-bash">task test tests/test_model_validator_cli.py
-</code></pre>
-
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>task<span class="w"> </span><span class="nb">test</span><span class="w"> </span>tests/test_model_validator_cli.py
+</span></code></pre></div>
 <h4 id="step-42-create-cli-tool">Step 4.2: Create CLI Tool<a class="headerlink" href="#step-42-create-cli-tool" title="Permanent link">&para;</a></h4>
 <p><strong>Task:</strong> Implement standalone CLI tool</p>
 <p><strong>File:</strong> <code>custom_components/robovac/model_validator_cli.py</code></p>
 <p><strong>Module structure:</strong></p>
-<pre class="codehilite"><code class="language-python">#!/usr/bin/env python3
-&quot;&quot;&quot;Standalone CLI tool for RoboVac model validation.
-
-This tool can be used independently to validate RoboVac model compatibility
-and get suggestions for unsupported models.
-
-Usage:
-    python model_validator_cli.py T2278
-    python model_validator_cli.py --list
-&quot;&quot;&quot;
-
-import argparse
-import sys
-from typing import Optional
-
-try:
-    from .model_validator import (
-        is_supported_model,
-        get_supported_models,
-        suggest_similar_models,
-        get_troubleshooting_guide,
-        detect_series
-    )
-    STANDALONE = False
-except ImportError:
-    # Fallback for standalone usage
-    STANDALONE = True
-    # Minimal implementation with hardcoded model list
-
-def main():
-    &quot;&quot;&quot;Main CLI entry point.&quot;&quot;&quot;
-    parser = argparse.ArgumentParser(
-        description=&quot;Validate RoboVac model compatibility&quot;
-    )
-    parser.add_argument(
-        &quot;model&quot;,
-        nargs=&quot;?&quot;,
-        help=&quot;Model code to validate (e.g., T2278)&quot;
-    )
-    parser.add_argument(
-        &quot;--list&quot;,
-        action=&quot;store_true&quot;,
-        help=&quot;List all supported models&quot;
-    )
-    args = parser.parse_args()
-
-    # Implementation
-
-if __name__ == &quot;__main__&quot;:
-    sys.exit(main())
-</code></pre>
-
+<div class="language-python highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="ch">#!/usr/bin/env python3</span>
+</span><span id="__span-23-2"><a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a><span class="sd">&quot;&quot;&quot;Standalone CLI tool for RoboVac model validation.</span>
+</span><span id="__span-23-3"><a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a>
+</span><span id="__span-23-4"><a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a><span class="sd">This tool can be used independently to validate RoboVac model compatibility</span>
+</span><span id="__span-23-5"><a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a><span class="sd">and get suggestions for unsupported models.</span>
+</span><span id="__span-23-6"><a id="__codelineno-23-6" name="__codelineno-23-6" href="#__codelineno-23-6"></a>
+</span><span id="__span-23-7"><a id="__codelineno-23-7" name="__codelineno-23-7" href="#__codelineno-23-7"></a><span class="sd">Usage:</span>
+</span><span id="__span-23-8"><a id="__codelineno-23-8" name="__codelineno-23-8" href="#__codelineno-23-8"></a><span class="sd">    python model_validator_cli.py T2278</span>
+</span><span id="__span-23-9"><a id="__codelineno-23-9" name="__codelineno-23-9" href="#__codelineno-23-9"></a><span class="sd">    python model_validator_cli.py --list</span>
+</span><span id="__span-23-10"><a id="__codelineno-23-10" name="__codelineno-23-10" href="#__codelineno-23-10"></a><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="__span-23-11"><a id="__codelineno-23-11" name="__codelineno-23-11" href="#__codelineno-23-11"></a>
+</span><span id="__span-23-12"><a id="__codelineno-23-12" name="__codelineno-23-12" href="#__codelineno-23-12"></a><span class="kn">import</span><span class="w"> </span><span class="nn">argparse</span>
+</span><span id="__span-23-13"><a id="__codelineno-23-13" name="__codelineno-23-13" href="#__codelineno-23-13"></a><span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+</span><span id="__span-23-14"><a id="__codelineno-23-14" name="__codelineno-23-14" href="#__codelineno-23-14"></a><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span>
+</span><span id="__span-23-15"><a id="__codelineno-23-15" name="__codelineno-23-15" href="#__codelineno-23-15"></a>
+</span><span id="__span-23-16"><a id="__codelineno-23-16" name="__codelineno-23-16" href="#__codelineno-23-16"></a><span class="k">try</span><span class="p">:</span>
+</span><span id="__span-23-17"><a id="__codelineno-23-17" name="__codelineno-23-17" href="#__codelineno-23-17"></a>    <span class="kn">from</span><span class="w"> </span><span class="nn">.model_validator</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+</span><span id="__span-23-18"><a id="__codelineno-23-18" name="__codelineno-23-18" href="#__codelineno-23-18"></a>        <span class="n">is_supported_model</span><span class="p">,</span>
+</span><span id="__span-23-19"><a id="__codelineno-23-19" name="__codelineno-23-19" href="#__codelineno-23-19"></a>        <span class="n">get_supported_models</span><span class="p">,</span>
+</span><span id="__span-23-20"><a id="__codelineno-23-20" name="__codelineno-23-20" href="#__codelineno-23-20"></a>        <span class="n">suggest_similar_models</span><span class="p">,</span>
+</span><span id="__span-23-21"><a id="__codelineno-23-21" name="__codelineno-23-21" href="#__codelineno-23-21"></a>        <span class="n">get_troubleshooting_guide</span><span class="p">,</span>
+</span><span id="__span-23-22"><a id="__codelineno-23-22" name="__codelineno-23-22" href="#__codelineno-23-22"></a>        <span class="n">detect_series</span>
+</span><span id="__span-23-23"><a id="__codelineno-23-23" name="__codelineno-23-23" href="#__codelineno-23-23"></a>    <span class="p">)</span>
+</span><span id="__span-23-24"><a id="__codelineno-23-24" name="__codelineno-23-24" href="#__codelineno-23-24"></a>    <span class="n">STANDALONE</span> <span class="o">=</span> <span class="kc">False</span>
+</span><span id="__span-23-25"><a id="__codelineno-23-25" name="__codelineno-23-25" href="#__codelineno-23-25"></a><span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+</span><span id="__span-23-26"><a id="__codelineno-23-26" name="__codelineno-23-26" href="#__codelineno-23-26"></a>    <span class="c1"># Fallback for standalone usage</span>
+</span><span id="__span-23-27"><a id="__codelineno-23-27" name="__codelineno-23-27" href="#__codelineno-23-27"></a>    <span class="n">STANDALONE</span> <span class="o">=</span> <span class="kc">True</span>
+</span><span id="__span-23-28"><a id="__codelineno-23-28" name="__codelineno-23-28" href="#__codelineno-23-28"></a>    <span class="c1"># Minimal implementation with hardcoded model list</span>
+</span><span id="__span-23-29"><a id="__codelineno-23-29" name="__codelineno-23-29" href="#__codelineno-23-29"></a>
+</span><span id="__span-23-30"><a id="__codelineno-23-30" name="__codelineno-23-30" href="#__codelineno-23-30"></a><span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">():</span>
+</span><span id="__span-23-31"><a id="__codelineno-23-31" name="__codelineno-23-31" href="#__codelineno-23-31"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Main CLI entry point.&quot;&quot;&quot;</span>
+</span><span id="__span-23-32"><a id="__codelineno-23-32" name="__codelineno-23-32" href="#__codelineno-23-32"></a>    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span>
+</span><span id="__span-23-33"><a id="__codelineno-23-33" name="__codelineno-23-33" href="#__codelineno-23-33"></a>        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Validate RoboVac model compatibility&quot;</span>
+</span><span id="__span-23-34"><a id="__codelineno-23-34" name="__codelineno-23-34" href="#__codelineno-23-34"></a>    <span class="p">)</span>
+</span><span id="__span-23-35"><a id="__codelineno-23-35" name="__codelineno-23-35" href="#__codelineno-23-35"></a>    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+</span><span id="__span-23-36"><a id="__codelineno-23-36" name="__codelineno-23-36" href="#__codelineno-23-36"></a>        <span class="s2">&quot;model&quot;</span><span class="p">,</span>
+</span><span id="__span-23-37"><a id="__codelineno-23-37" name="__codelineno-23-37" href="#__codelineno-23-37"></a>        <span class="n">nargs</span><span class="o">=</span><span class="s2">&quot;?&quot;</span><span class="p">,</span>
+</span><span id="__span-23-38"><a id="__codelineno-23-38" name="__codelineno-23-38" href="#__codelineno-23-38"></a>        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Model code to validate (e.g., T2278)&quot;</span>
+</span><span id="__span-23-39"><a id="__codelineno-23-39" name="__codelineno-23-39" href="#__codelineno-23-39"></a>    <span class="p">)</span>
+</span><span id="__span-23-40"><a id="__codelineno-23-40" name="__codelineno-23-40" href="#__codelineno-23-40"></a>    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+</span><span id="__span-23-41"><a id="__codelineno-23-41" name="__codelineno-23-41" href="#__codelineno-23-41"></a>        <span class="s2">&quot;--list&quot;</span><span class="p">,</span>
+</span><span id="__span-23-42"><a id="__codelineno-23-42" name="__codelineno-23-42" href="#__codelineno-23-42"></a>        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+</span><span id="__span-23-43"><a id="__codelineno-23-43" name="__codelineno-23-43" href="#__codelineno-23-43"></a>        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;List all supported models&quot;</span>
+</span><span id="__span-23-44"><a id="__codelineno-23-44" name="__codelineno-23-44" href="#__codelineno-23-44"></a>    <span class="p">)</span>
+</span><span id="__span-23-45"><a id="__codelineno-23-45" name="__codelineno-23-45" href="#__codelineno-23-45"></a>    <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+</span><span id="__span-23-46"><a id="__codelineno-23-46" name="__codelineno-23-46" href="#__codelineno-23-46"></a>
+</span><span id="__span-23-47"><a id="__codelineno-23-47" name="__codelineno-23-47" href="#__codelineno-23-47"></a>    <span class="c1"># Implementation</span>
+</span><span id="__span-23-48"><a id="__codelineno-23-48" name="__codelineno-23-48" href="#__codelineno-23-48"></a>
+</span><span id="__span-23-49"><a id="__codelineno-23-49" name="__codelineno-23-49" href="#__codelineno-23-49"></a><span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+</span><span id="__span-23-50"><a id="__codelineno-23-50" name="__codelineno-23-50" href="#__codelineno-23-50"></a>    <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="n">main</span><span class="p">())</span>
+</span></code></pre></div>
 <p><strong>Implementation Requirements:</strong></p>
 <ul>
 <li>Use argparse for CLI arguments</li>
@@ -648,9 +1732,8 @@ if __name__ == &quot;__main__&quot;:
 <li>Exit with appropriate codes (0 = success, 1 = error, 2 = validation failure)</li>
 </ul>
 <p><strong>Run tests (should pass):</strong></p>
-<pre class="codehilite"><code class="language-bash">task test tests/test_model_validator_cli.py
-</code></pre>
-
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>task<span class="w"> </span><span class="nb">test</span><span class="w"> </span>tests/test_model_validator_cli.py
+</span></code></pre></div>
 <h4 id="step-43-add-documentation-and-make-executable">Step 4.3: Add Documentation and Make Executable<a class="headerlink" href="#step-43-add-documentation-and-make-executable" title="Permanent link">&para;</a></h4>
 <p><strong>Task:</strong> Finalize CLI tool</p>
 <p><strong>Files:</strong></p>
@@ -666,44 +1749,40 @@ if __name__ == &quot;__main__&quot;:
 <li>Test manually: <code>python custom_components/robovac/model_validator_cli.py T2278</code></li>
 </ul>
 <p><strong>Run lint:</strong></p>
-<pre class="codehilite"><code class="language-bash">task lint
-</code></pre>
-
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>task<span class="w"> </span>lint
+</span></code></pre></div>
 <h4 id="step-44-commit-changes">Step 4.4: Commit Changes<a class="headerlink" href="#step-44-commit-changes" title="Permanent link">&para;</a></h4>
 <p><strong>Commit message:</strong></p>
-<pre class="codehilite"><code class="language-text">feat: add standalone CLI tool for model validation
-
-Add model_validator_cli.py tool for users to validate
-RoboVac model compatibility before setting up integration.
-
-- Supports standalone usage without integration installed
-- Shows model validation status
-- Suggests similar models for unsupported devices
-- Lists all supported models with --list flag
-- Provides troubleshooting guidance
-
-Usage: python model_validator_cli.py T2278
-
-Refs: #171
-</code></pre>
-
+<div class="language-text highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>feat: add standalone CLI tool for model validation
+</span><span id="__span-26-2"><a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a>
+</span><span id="__span-26-3"><a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a>Add model_validator_cli.py tool for users to validate
+</span><span id="__span-26-4"><a id="__codelineno-26-4" name="__codelineno-26-4" href="#__codelineno-26-4"></a>RoboVac model compatibility before setting up integration.
+</span><span id="__span-26-5"><a id="__codelineno-26-5" name="__codelineno-26-5" href="#__codelineno-26-5"></a>
+</span><span id="__span-26-6"><a id="__codelineno-26-6" name="__codelineno-26-6" href="#__codelineno-26-6"></a>- Supports standalone usage without integration installed
+</span><span id="__span-26-7"><a id="__codelineno-26-7" name="__codelineno-26-7" href="#__codelineno-26-7"></a>- Shows model validation status
+</span><span id="__span-26-8"><a id="__codelineno-26-8" name="__codelineno-26-8" href="#__codelineno-26-8"></a>- Suggests similar models for unsupported devices
+</span><span id="__span-26-9"><a id="__codelineno-26-9" name="__codelineno-26-9" href="#__codelineno-26-9"></a>- Lists all supported models with --list flag
+</span><span id="__span-26-10"><a id="__codelineno-26-10" name="__codelineno-26-10" href="#__codelineno-26-10"></a>- Provides troubleshooting guidance
+</span><span id="__span-26-11"><a id="__codelineno-26-11" name="__codelineno-26-11" href="#__codelineno-26-11"></a>
+</span><span id="__span-26-12"><a id="__codelineno-26-12" name="__codelineno-26-12" href="#__codelineno-26-12"></a>Usage: python model_validator_cli.py T2278
+</span><span id="__span-26-13"><a id="__codelineno-26-13" name="__codelineno-26-13" href="#__codelineno-26-13"></a>
+</span><span id="__span-26-14"><a id="__codelineno-26-14" name="__codelineno-26-14" href="#__codelineno-26-14"></a>Refs: #171
+</span></code></pre></div>
 <hr />
 <h3 id="phase-5-integration-and-documentation">Phase 5: Integration and Documentation<a class="headerlink" href="#phase-5-integration-and-documentation" title="Permanent link">&para;</a></h3>
 <h4 id="step-51-integration-tests">Step 5.1: Integration Tests<a class="headerlink" href="#step-51-integration-tests" title="Permanent link">&para;</a></h4>
 <p><strong>Task:</strong> Create end-to-end integration tests</p>
 <p><strong>File:</strong> <code>tests/test_integration_pr171.py</code></p>
 <p><strong>Test Cases:</strong></p>
-<pre class="codehilite"><code class="language-python"># Test 1: Vacuum entity initializes without battery feature
-# Test 2: Battery sensor still reports battery level
-# Test 3: Error messages include context when displayed
-# Test 4: Model validator works with actual vacuum models
-# Test 5: CLI tool works with integration
-</code></pre>
-
+<div class="language-python highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="c1"># Test 1: Vacuum entity initializes without battery feature</span>
+</span><span id="__span-27-2"><a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a><span class="c1"># Test 2: Battery sensor still reports battery level</span>
+</span><span id="__span-27-3"><a id="__codelineno-27-3" name="__codelineno-27-3" href="#__codelineno-27-3"></a><span class="c1"># Test 3: Error messages include context when displayed</span>
+</span><span id="__span-27-4"><a id="__codelineno-27-4" name="__codelineno-27-4" href="#__codelineno-27-4"></a><span class="c1"># Test 4: Model validator works with actual vacuum models</span>
+</span><span id="__span-27-5"><a id="__codelineno-27-5" name="__codelineno-27-5" href="#__codelineno-27-5"></a><span class="c1"># Test 5: CLI tool works with integration</span>
+</span></code></pre></div>
 <p><strong>Run tests:</strong></p>
-<pre class="codehilite"><code class="language-bash">task test tests/test_integration_pr171.py
-</code></pre>
-
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a>task<span class="w"> </span><span class="nb">test</span><span class="w"> </span>tests/test_integration_pr171.py
+</span></code></pre></div>
 <h4 id="step-52-update-documentation">Step 5.2: Update Documentation<a class="headerlink" href="#step-52-update-documentation" title="Permanent link">&para;</a></h4>
 <p><strong>Task:</strong> Update project documentation</p>
 <p><strong>Files to update:</strong></p>
@@ -713,30 +1792,26 @@ Refs: #171
 <li><code>CHANGELOG.md</code>: Add entry for this feature set</li>
 </ul>
 <p><strong>README.md additions:</strong></p>
-<pre class="codehilite"><code class="language-markdown">## Model Validation
-
-Before setting up the integration, you can validate if your RoboVac model is supported:
-
-```bash
-python custom_components/robovac/model_validator_cli.py T2278
-</code></pre>
-
+<div class="language-markdown highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a><span class="gu">## Model Validation</span>
+</span><span id="__span-29-2"><a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a>
+</span><span id="__span-29-3"><a id="__codelineno-29-3" name="__codelineno-29-3" href="#__codelineno-29-3"></a>Before setting up the integration, you can validate if your RoboVac model is supported:
+</span><span id="__span-29-4"><a id="__codelineno-29-4" name="__codelineno-29-4" href="#__codelineno-29-4"></a>
+</span><span id="__span-29-5"><a id="__codelineno-29-5" name="__codelineno-29-5" href="#__codelineno-29-5"></a>```bash
+</span><span id="__span-29-6"><a id="__codelineno-29-6" name="__codelineno-29-6" href="#__codelineno-29-6"></a>python custom_components/robovac/model_validator_cli.py T2278
+</span></code></pre></div>
 <p>To see all supported models:</p>
-<pre class="codehilite"><code class="language-bash">python custom_components/robovac/model_validator_cli.py --list
-</code></pre>
-
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a>python<span class="w"> </span>custom_components/robovac/model_validator_cli.py<span class="w"> </span>--list
+</span></code></pre></div>
 <p><strong>Run markdown lint:</strong></p>
-<pre class="codehilite"><code class="language-bash">npx markdownlint-cli2 &quot;**/*.md&quot;
-</code></pre>
-
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a>npx<span class="w"> </span>markdownlint-cli2<span class="w"> </span><span class="s2">&quot;**/*.md&quot;</span>
+</span></code></pre></div>
 <h4 id="step-53-full-test-suite">Step 5.3: Full Test Suite<a class="headerlink" href="#step-53-full-test-suite" title="Permanent link">&para;</a></h4>
 <p><strong>Task:</strong> Run complete test suite</p>
 <p><strong>Commands:</strong></p>
-<pre class="codehilite"><code class="language-bash">task lint
-task type-check
-task test
-</code></pre>
-
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a>task<span class="w"> </span>lint
+</span><span id="__span-32-2"><a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a>task<span class="w"> </span>type-check
+</span><span id="__span-32-3"><a id="__codelineno-32-3" name="__codelineno-32-3" href="#__codelineno-32-3"></a>task<span class="w"> </span><span class="nb">test</span>
+</span></code></pre></div>
 <p><strong>Validation:</strong></p>
 <ul>
 <li>All tests pass</li>
@@ -747,17 +1822,16 @@ task test
 </ul>
 <h4 id="step-54-final-commit">Step 5.4: Final Commit<a class="headerlink" href="#step-54-final-commit" title="Permanent link">&para;</a></h4>
 <p><strong>Commit message:</strong></p>
-<pre class="codehilite"><code class="language-text">docs: update documentation for PR #171 features
-
-Add documentation for:
-- Model validator CLI tool usage
-- Error message improvements
-- Battery deprecation changes
-- Integration guide updates
-
-Refs: #171
-</code></pre>
-
+<div class="language-text highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a>docs: update documentation for PR #171 features
+</span><span id="__span-33-2"><a id="__codelineno-33-2" name="__codelineno-33-2" href="#__codelineno-33-2"></a>
+</span><span id="__span-33-3"><a id="__codelineno-33-3" name="__codelineno-33-3" href="#__codelineno-33-3"></a>Add documentation for:
+</span><span id="__span-33-4"><a id="__codelineno-33-4" name="__codelineno-33-4" href="#__codelineno-33-4"></a>- Model validator CLI tool usage
+</span><span id="__span-33-5"><a id="__codelineno-33-5" name="__codelineno-33-5" href="#__codelineno-33-5"></a>- Error message improvements
+</span><span id="__span-33-6"><a id="__codelineno-33-6" name="__codelineno-33-6" href="#__codelineno-33-6"></a>- Battery deprecation changes
+</span><span id="__span-33-7"><a id="__codelineno-33-7" name="__codelineno-33-7" href="#__codelineno-33-7"></a>- Integration guide updates
+</span><span id="__span-33-8"><a id="__codelineno-33-8" name="__codelineno-33-8" href="#__codelineno-33-8"></a>
+</span><span id="__span-33-9"><a id="__codelineno-33-9" name="__codelineno-33-9" href="#__codelineno-33-9"></a>Refs: #171
+</span></code></pre></div>
 <hr />
 <h3 id="phase-6-review-and-cleanup">Phase 6: Review and Cleanup<a class="headerlink" href="#phase-6-review-and-cleanup" title="Permanent link">&para;</a></h3>
 <h4 id="step-61-code-review-checklist">Step 6.1: Code Review Checklist<a class="headerlink" href="#step-61-code-review-checklist" title="Permanent link">&para;</a></h4>
@@ -787,22 +1861,21 @@ Refs: #171
 </ul>
 <h4 id="step-63-final-validation">Step 6.3: Final Validation<a class="headerlink" href="#step-63-final-validation" title="Permanent link">&para;</a></h4>
 <p><strong>Task:</strong> Run full validation suite</p>
-<pre class="codehilite"><code class="language-bash"># Run all tests
-task test
-
-# Check code quality
-task lint
-task type-check
-
-# Verify documentation
-npx markdownlint-cli2 &quot;**/*.md&quot;
-
-# Manual testing
-python custom_components/robovac/model_validator_cli.py T2278
-python custom_components/robovac/model_validator_cli.py T9999
-python custom_components/robovac/model_validator_cli.py --list
-</code></pre>
-
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a><span class="c1"># Run all tests</span>
+</span><span id="__span-34-2"><a id="__codelineno-34-2" name="__codelineno-34-2" href="#__codelineno-34-2"></a>task<span class="w"> </span><span class="nb">test</span>
+</span><span id="__span-34-3"><a id="__codelineno-34-3" name="__codelineno-34-3" href="#__codelineno-34-3"></a>
+</span><span id="__span-34-4"><a id="__codelineno-34-4" name="__codelineno-34-4" href="#__codelineno-34-4"></a><span class="c1"># Check code quality</span>
+</span><span id="__span-34-5"><a id="__codelineno-34-5" name="__codelineno-34-5" href="#__codelineno-34-5"></a>task<span class="w"> </span>lint
+</span><span id="__span-34-6"><a id="__codelineno-34-6" name="__codelineno-34-6" href="#__codelineno-34-6"></a>task<span class="w"> </span>type-check
+</span><span id="__span-34-7"><a id="__codelineno-34-7" name="__codelineno-34-7" href="#__codelineno-34-7"></a>
+</span><span id="__span-34-8"><a id="__codelineno-34-8" name="__codelineno-34-8" href="#__codelineno-34-8"></a><span class="c1"># Verify documentation</span>
+</span><span id="__span-34-9"><a id="__codelineno-34-9" name="__codelineno-34-9" href="#__codelineno-34-9"></a>npx<span class="w"> </span>markdownlint-cli2<span class="w"> </span><span class="s2">&quot;**/*.md&quot;</span>
+</span><span id="__span-34-10"><a id="__codelineno-34-10" name="__codelineno-34-10" href="#__codelineno-34-10"></a>
+</span><span id="__span-34-11"><a id="__codelineno-34-11" name="__codelineno-34-11" href="#__codelineno-34-11"></a><span class="c1"># Manual testing</span>
+</span><span id="__span-34-12"><a id="__codelineno-34-12" name="__codelineno-34-12" href="#__codelineno-34-12"></a>python<span class="w"> </span>custom_components/robovac/model_validator_cli.py<span class="w"> </span>T2278
+</span><span id="__span-34-13"><a id="__codelineno-34-13" name="__codelineno-34-13" href="#__codelineno-34-13"></a>python<span class="w"> </span>custom_components/robovac/model_validator_cli.py<span class="w"> </span>T9999
+</span><span id="__span-34-14"><a id="__codelineno-34-14" name="__codelineno-34-14" href="#__codelineno-34-14"></a>python<span class="w"> </span>custom_components/robovac/model_validator_cli.py<span class="w"> </span>--list
+</span></code></pre></div>
 <hr />
 <h2 id="execution-notes-for-llm">Execution Notes for LLM<a class="headerlink" href="#execution-notes-for-llm" title="Permanent link">&para;</a></h2>
 <h3 id="tdd-workflow">TDD Workflow<a class="headerlink" href="#tdd-workflow" title="Permanent link">&para;</a></h3>
@@ -823,28 +1896,26 @@ python custom_components/robovac/model_validator_cli.py --list
 <li><strong>Testing:</strong> Run <code>task test</code> after each phase</li>
 </ul>
 <h3 id="testing-commands">Testing Commands<a class="headerlink" href="#testing-commands" title="Permanent link">&para;</a></h3>
-<pre class="codehilite"><code class="language-bash"># Run specific test file
-task test tests/test_model_validator.py
-
-# Run specific test function
-task test tests/test_model_validator.py::test_detect_c_series
-
-# Run all tests
-task test
-
-# Run with coverage
-```bash
-task test --cov
-</code></pre>
-
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a><span class="c1"># Run specific test file</span>
+</span><span id="__span-35-2"><a id="__codelineno-35-2" name="__codelineno-35-2" href="#__codelineno-35-2"></a>task<span class="w"> </span><span class="nb">test</span><span class="w"> </span>tests/test_model_validator.py
+</span><span id="__span-35-3"><a id="__codelineno-35-3" name="__codelineno-35-3" href="#__codelineno-35-3"></a>
+</span><span id="__span-35-4"><a id="__codelineno-35-4" name="__codelineno-35-4" href="#__codelineno-35-4"></a><span class="c1"># Run specific test function</span>
+</span><span id="__span-35-5"><a id="__codelineno-35-5" name="__codelineno-35-5" href="#__codelineno-35-5"></a>task<span class="w"> </span><span class="nb">test</span><span class="w"> </span>tests/test_model_validator.py::test_detect_c_series
+</span><span id="__span-35-6"><a id="__codelineno-35-6" name="__codelineno-35-6" href="#__codelineno-35-6"></a>
+</span><span id="__span-35-7"><a id="__codelineno-35-7" name="__codelineno-35-7" href="#__codelineno-35-7"></a><span class="c1"># Run all tests</span>
+</span><span id="__span-35-8"><a id="__codelineno-35-8" name="__codelineno-35-8" href="#__codelineno-35-8"></a>task<span class="w"> </span><span class="nb">test</span>
+</span><span id="__span-35-9"><a id="__codelineno-35-9" name="__codelineno-35-9" href="#__codelineno-35-9"></a>
+</span><span id="__span-35-10"><a id="__codelineno-35-10" name="__codelineno-35-10" href="#__codelineno-35-10"></a><span class="c1"># Run with coverage</span>
+</span><span id="__span-35-11"><a id="__codelineno-35-11" name="__codelineno-35-11" href="#__codelineno-35-11"></a><span class="sb">```</span>bash
+</span><span id="__span-35-12"><a id="__codelineno-35-12" name="__codelineno-35-12" href="#__codelineno-35-12"></a>task<span class="w"> </span><span class="nb">test</span><span class="w"> </span>--cov
+</span></code></pre></div>
 <h3 id="commit-message-format">Commit Message Format<a class="headerlink" href="#commit-message-format" title="Permanent link">&para;</a></h3>
-<pre class="codehilite"><code class="language-text">&lt;type&gt;: &lt;description&gt;
-
-&lt;body&gt;
-
-Refs: #171
-</code></pre>
-
+<div class="language-text highlight"><pre><span></span><code><span id="__span-36-1"><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a>&lt;type&gt;: &lt;description&gt;
+</span><span id="__span-36-2"><a id="__codelineno-36-2" name="__codelineno-36-2" href="#__codelineno-36-2"></a>
+</span><span id="__span-36-3"><a id="__codelineno-36-3" name="__codelineno-36-3" href="#__codelineno-36-3"></a>&lt;body&gt;
+</span><span id="__span-36-4"><a id="__codelineno-36-4" name="__codelineno-36-4" href="#__codelineno-36-4"></a>
+</span><span id="__span-36-5"><a id="__codelineno-36-5" name="__codelineno-36-5" href="#__codelineno-36-5"></a>Refs: #171
+</span></code></pre></div>
 <p>Types: <code>feat</code>, <code>fix</code>, <code>refactor</code>, <code>test</code>, <code>docs</code>, <code>chore</code></p>
 <h3 id="file-modification-strategy">File Modification Strategy<a class="headerlink" href="#file-modification-strategy" title="Permanent link">&para;</a></h3>
 <ol>
@@ -923,82 +1994,67 @@ Refs: #171
 <li>Home Assistant 2026.8 Deprecations</li>
 <li>Project coding standards: <code>.windsurf/rules/</code></li>
 <li>Test patterns: <code>tests/test_vacuum/test_t2278_command_mappings.py</code></li>
-</ul></div>
-            </div>
-        </div>
+</ul>
 
-        <footer class="col-md-12">
-            <hr>
-            <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
-        </footer>
-        <script src="../../../js/bootstrap.bundle.min.js"></script>
-        <script>
-            var base_url = "../../..",
-                shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
-        </script>
-        <script src="../../../js/base.js"></script>
-        <script src="../../../search/main.js"></script>
 
-        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title" id="searchModalLabel">Search</h4>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
             </div>
-            <div class="modal-body">
-                <p>From here you can search these documents. Enter your search terms below.</p>
-                <form>
-                    <div class="form-group">
-                        <input type="search" class="form-control" placeholder="Search..." id="mkdocs-search-query" title="Type search term here">
-                    </div>
-                </form>
-                <div id="mkdocs-search-results" data-no-results-text="No results found"></div>
-            </div>
-            <div class="modal-footer">
-            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
         </div>
-    </div>
-</div><div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="keyboardModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title" id="keyboardModalLabel">Keyboard Shortcuts</h4>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-              <table class="table">
-                <thead>
-                  <tr>
-                    <th style="width: 20%;">Keys</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td class="help shortcut"><kbd>?</kbd></td>
-                    <td>Open this help</td>
-                  </tr>
-                  <tr>
-                    <td class="next shortcut"><kbd>n</kbd></td>
-                    <td>Next page</td>
-                  </tr>
-                  <tr>
-                    <td class="prev shortcut"><kbd>p</kbd></td>
-                    <td>Previous page</td>
-                  </tr>
-                  <tr>
-                    <td class="search shortcut"><kbd>s</kbd></td>
-                    <td>Search</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-            <div class="modal-footer">
-            </div>
-        </div>
-    </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
 </div>
-
-    </body>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate"], "search": "../../../assets/javascripts/workers/search.7a47a382.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.e71a0d61.min.js"></script>
+      
+    
+  </body>
 </html>

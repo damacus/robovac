@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  mkdocs:
+    image: python:3.11-slim
+    container_name: robovac-docs
+    working_dir: /docs
+    volumes:
+      - .:/docs
+    ports:
+      - "8000:8000"
+    command: >
+      sh -c "pip install --quiet mkdocs mkdocs-material &&
+             mkdocs serve --dev-addr=0.0.0.0:8000"
+    restart: unless-stopped
