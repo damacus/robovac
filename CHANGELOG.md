@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.1](https://github.com/damacus/robovac/compare/v1.5.0...v1.5.1) (2025-12-06)
+
+
+### Documentation
+
+* Document T2276 communication issues and investigation ([#238](https://github.com/damacus/robovac/issues/238)) ([933ed71](https://github.com/damacus/robovac/commit/933ed710eb6e0d1583acd873dfd4cb4a48c450a4)), closes [#42](https://github.com/damacus/robovac/issues/42)
+
 ## [1.5.0](https://github.com/damacus/robovac/compare/v1.4.0...v1.5.0) (2025-10-22)
 
 
