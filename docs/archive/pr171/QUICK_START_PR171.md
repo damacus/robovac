@@ -65,7 +65,7 @@ task test
 ## Phase Overview
 
 | Phase | Task | Time | Status |
-|-------|------|------|--------|
+| ----- | ---- | ---- | ------ |
 | 1 | Battery Deprecation | 2-3h | ⬜ Not Started |
 | 2 | Error Messages | 2-3h | ⬜ Not Started |
 | 3 | Model Validator | 3-4h | ⬜ Not Started |

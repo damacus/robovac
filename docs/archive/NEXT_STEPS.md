@@ -60,7 +60,7 @@ task type-check     # Verify type hints
 ## Files Changed in Branch
 
 | File | Change | Tests Needed |
-|------|--------|--------------|
+| ---- | ------ | ------------ |
 | `robovac.py` | Case-insensitive matching | ✅ Done |
 | `vacuum.py` | Error check includes "No error" | ⚠️ Integration test needed |
 | `T2250.py` - `T2262.py` (8 files) | Error mappings + bidirectional | ❌ No tests |

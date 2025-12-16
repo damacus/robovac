@@ -131,7 +131,7 @@ Comprehensive implementation plan including:
 ## Current Status
 
 | Phase | Status | Blocker |
-|-------|--------|---------|
+| ----- | ------ | ------- |
 | Data Collection | ⏸️ **Waiting** | Need user input |
 | Implementation | ⏸️ Blocked | Waiting on data |
 | Testing | ⏸️ Blocked | Waiting on implementation |
