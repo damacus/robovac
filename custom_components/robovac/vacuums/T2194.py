@@ -5,7 +5,8 @@ from .base import RoboVacEntityFeature, RobovacCommand, RobovacModelDetails
 
 class T2194(RobovacModelDetails):
     homeassistant_features = (
-        VacuumEntityFeature.CLEAN_SPOT
+        VacuumEntityFeature.BATTERY
+        | VacuumEntityFeature.CLEAN_SPOT
         | VacuumEntityFeature.FAN_SPEED
         | VacuumEntityFeature.LOCATE
         | VacuumEntityFeature.PAUSE
@@ -52,6 +53,12 @@ class T2194(RobovacModelDetails):
         },
         RobovacCommand.STATUS: {
             "code": 15,
+            "values": {
+                "Running": "Running",
+                "Recharge": "Returning to Dock",
+                "standby": "Standby",
+                "Sleeping": "Sleeping",
+            },
         },
         RobovacCommand.RETURN_HOME: {
             "code": 101,
@@ -73,5 +80,8 @@ class T2194(RobovacModelDetails):
         },
         RobovacCommand.ERROR: {
             "code": 106,
+            "values": {
+                "0": "No error",
+            },
         },
     }
