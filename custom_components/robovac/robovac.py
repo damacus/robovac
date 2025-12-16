@@ -5,7 +5,7 @@ from homeassistant.components.vacuum import VacuumActivity
 from .case_insensitive_lookup import case_insensitive_lookup
 from .tuyalocalapi import TuyaDevice
 from .vacuums import ROBOVAC_MODELS
-from .vacuums.base import RobovacCommand, RobovacModelDetails
+from .vacuums.base import RobovacModelDetails, RobovacCommand
 
 import logging
 
@@ -46,6 +46,36 @@ class RoboVac(TuyaDevice):
                 f"Model {model_code} is not supported"
             )
         current_model_details = ROBOVAC_MODELS[model_code]
+
+        # Determine protocol version: prefer model-defined, else default to (3, 3)
+        def _coerce_version(v: Any) -> tuple[int, int]:
+            try:
+                # Already a tuple[int,int]
+                if isinstance(v, tuple) and len(v) == 2:
+                    major, minor = v
+                    return (int(major), int(minor))
+                # Float like 3.4 or 3.5
+                if isinstance(v, float) or isinstance(v, int):
+                    major = int(v)
+                    minor = int(round((float(v) - major) * 10))
+                    return (major, minor)
+                # String like "3.5"
+                if isinstance(v, str):
+                    parts = v.split(".")
+                    if len(parts) >= 2:
+                        return (int(parts[0]), int(parts[1]))
+                    return (int(parts[0]), 0)
+            except Exception:
+                pass
+            # Fallback default
+            return (3, 3)
+
+        # Only honor protocol_version if explicitly set on the model class.
+        # Using __dict__ avoids inheriting the Protocol's typed default (3.1).
+        model_version: Any = current_model_details.__dict__.get("protocol_version", None)
+        coerced_version = _coerce_version(model_version) if model_version is not None else (3, 3)
+        if "version" not in kwargs:
+            kwargs["version"] = coerced_version
 
         super().__init__(current_model_details, *args, **kwargs)
 

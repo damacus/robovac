@@ -83,6 +83,10 @@ This integration follows best practices for code quality and maintainability:
 - **Type Hints**: Full type annotations throughout the codebase for improved IDE support and type checking.
 - **Test Coverage**: Dedicated tests for each vacuum model with full coverage.
 
+### Documentation
+
+For more detailed information, please visit our [MkDocs documentation site](https://damacus.github.io/robovac/).
+
 ### Running Tests
 
 ```bash

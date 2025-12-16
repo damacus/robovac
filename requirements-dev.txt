@@ -12,3 +12,6 @@ lefthook>=1.6.0 # Git hooks manager
 
 # Type checking
 types-requests>=2.31.0
+
+# Documentation
+mkdocs>=1.6.0

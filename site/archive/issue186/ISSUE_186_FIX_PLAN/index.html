@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        <meta name="author" content="RoboVac Contributors">
+        <link rel="canonical" href="https://damacus.github.io/robovac/archive/issue186/ISSUE_186_FIX_PLAN/">
+        <link rel="shortcut icon" href="../../../img/favicon.ico">
+        <title>Fix Plan for Issue #186: T2262 Missing STATUS Value Mappings - RoboVac Documentation</title>
+        <link href="../../../css/bootstrap.min.css" rel="stylesheet">
+        <link href="../../../css/fontawesome.min.css" rel="stylesheet">
+        <link href="../../../css/brands.min.css" rel="stylesheet">
+        <link href="../../../css/solid.min.css" rel="stylesheet">
+        <link href="../../../css/v4-font-face.min.css" rel="stylesheet">
+        <link href="../../../css/base.css" rel="stylesheet">
+        <link id="hljs-light" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" >
+        <link id="hljs-dark" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github-dark.min.css" disabled>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+        <script>hljs.highlightAll();</script> 
+    </head>
+
+    <body>
+        <div class="navbar fixed-top navbar-expand-lg navbar-dark bg-primary">
+            <div class="container">
+                <a class="navbar-brand" href="../../..">RoboVac Documentation</a>
+                <!-- Expander button -->
+                <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar-collapse" aria-controls="navbar-collapse" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <!-- Expanded navigation -->
+                <div id="navbar-collapse" class="navbar-collapse collapse">
+                        <!-- Main navigation -->
+                        <ul class="nav navbar-nav">
+                            <li class="nav-item">
+                                <a href="../../.." class="nav-link">Home</a>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown"  aria-expanded="false">Guides</a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../../../dps_codes/" class="dropdown-item">Getting DPS Codes</a>
+</li>
+                                    
+<li>
+    <a href="../../../troubleshooting/" class="dropdown-item">Troubleshooting</a>
+</li>
+                                    
+<li>
+    <a href="../../../development/" class="dropdown-item">Development Workflow</a>
+</li>
+                                </ul>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown"  aria-expanded="false">Reference</a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../../../PROTOCOL_35_SUPPORT/" class="dropdown-item">Protocol 3.5 Support</a>
+</li>
+                                </ul>
+                            </li>
+                        </ul>
+
+                    <ul class="nav navbar-nav ms-md-auto">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" data-bs-toggle="modal" data-bs-target="#mkdocs_search_modal">
+                                <i class="fa fa-search"></i> Search
+                            </a>
+                        </li>
+                            <li class="nav-item">
+                                <a href="https://github.com/damacus/robovac/edit/master/docs/archive/issue186/ISSUE_186_FIX_PLAN.md" class="nav-link"><i class="fa-brands fa-github"></i> Edit on GitHub</a>
+                            </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="row">
+                    <div class="col-md-3"><div class="navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
+    <div class="navbar-header">
+        <button type="button" class="navbar-toggler collapsed" data-bs-toggle="collapse" data-bs-target="#toc-collapse" title="Table of Contents">
+            <span class="fa fa-angle-down"></span>
+        </button>
+    </div>
+
+    
+    <div id="toc-collapse" class="navbar-collapse collapse card bg-body-tertiary">
+        <ul class="nav flex-column">
+            
+            <li class="nav-item" data-bs-level="1"><a href="#fix-plan-for-issue-186-t2262-missing-status-value-mappings" class="nav-link">Fix Plan for Issue #186: T2262 Missing STATUS Value Mappings</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-bs-level="2"><a href="#issue-summary" class="nav-link">Issue Summary</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#current-state-analysis" class="nav-link">Current State Analysis</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#solution-strategy" class="nav-link">Solution Strategy</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#testing-strategy" class="nav-link">Testing Strategy</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#implementation-notes-for-llm" class="nav-link">Implementation Notes for LLM</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#risk-assessment" class="nav-link">Risk Assessment</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#success-criteria" class="nav-link">Success Criteria</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#questions-for-user-if-blocked" class="nav-link">Questions for User (if blocked)</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#estimated-effort" class="nav-link">Estimated Effort</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#references" class="nav-link">References</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+              </ul>
+            </li>
+        </ul>
+    </div>
+</div></div>
+                    <div class="col-md-9" role="main">
+
+<h1 id="fix-plan-for-issue-186-t2262-missing-status-value-mappings">Fix Plan for Issue #186: T2262 Missing STATUS Value Mappings<a class="headerlink" href="#fix-plan-for-issue-186-t2262-missing-status-value-mappings" title="Permanent link">&para;</a></h1>
+<h2 id="issue-summary">Issue Summary<a class="headerlink" href="#issue-summary" title="Permanent link">&para;</a></h2>
+<p><strong>Title:</strong> T2262: Missing command mapping for status value "Charging"</p>
+<p><strong>Problem:</strong> T2262 vacuum model has STATUS command defined (code 15) but lacks value mappings. When the device sends status updates like "Charging", "Sleeping", or "completed", they cannot be translated to human-readable values, resulting in debug logs and potentially confusing status displays.</p>
+<p><strong>Affected Users:</strong> Multiple users (SGXander, JBenson74, dxmnkd316) reported this issue.</p>
+<p><strong>Related Models:</strong> T2253 also has the same issue (STATUS code 15, no values defined).</p>
+<h2 id="current-state-analysis">Current State Analysis<a class="headerlink" href="#current-state-analysis" title="Permanent link">&para;</a></h2>
+<h3 id="what-we-know">What We Know<a class="headerlink" href="#what-we-know" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>T2262 Current Implementation</strong> (<code>custom_components/robovac/vacuums/T2262.py</code>):</li>
+</ol>
+<p><code>python
+   RobovacCommand.STATUS: {
+       "code": 15,
+   },</code></p>
+<ul>
+<li>Has STATUS command defined</li>
+<li>Code is 15</li>
+<li>
+<p>No <code>values</code> dict defined</p>
+</li>
+<li>
+<p><strong>Missing Status Values (reported by users):</strong></p>
+</li>
+<li>"Charging"</li>
+<li>"Sleeping"</li>
+<li>"completed"</li>
+<li>
+<p>Error value "0" (already handled in ERROR command)</p>
+</li>
+<li>
+<p><strong>Similar Working Model (T2277)</strong> - Uses different code (153):</p>
+</li>
+</ul>
+<p><code>python
+   RobovacCommand.STATUS: {
+       "code": 153,
+       "values": {
+           "Charging": "BBADGgA=",
+           "Sleeping": "AhAB",
+           "completed": "BhADGgIIAQ==",
+           "Standby": "AA==",
+           "Paused": "CAoAEAUyAggB",
+           # ... bidirectional mappings
+       },
+   }</code></p>
+<ol>
+<li><strong>Current Behavior:</strong></li>
+<li>When device sends unmapped status, <code>getRoboVacHumanReadableValue()</code> returns the original value</li>
+<li>Logs debug message (changed from WARNING in previous fix)</li>
+<li>Status may display as raw value instead of human-readable string</li>
+</ol>
+<h3 id="what-we-dont-know">What We Don't Know<a class="headerlink" href="#what-we-dont-know" title="Permanent link">&para;</a></h3>
+<p><strong>CRITICAL:</strong> We lack actual T2262 device data showing:</p>
+<ul>
+<li>What exact values the device sends for STATUS code 15</li>
+<li>Whether values are base64-encoded strings or plain text</li>
+<li>Bidirectional mapping requirements</li>
+</ul>
+<p><strong>Why This Matters:</strong> STATUS code 15 (T2262) likely uses different encoding than code 153 (T2277). Cannot safely copy mappings between models.</p>
+<h2 id="solution-strategy">Solution Strategy<a class="headerlink" href="#solution-strategy" title="Permanent link">&para;</a></h2>
+<h3 id="phase-1-data-collection-prerequisite">Phase 1: Data Collection (PREREQUISITE)<a class="headerlink" href="#phase-1-data-collection-prerequisite" title="Permanent link">&para;</a></h3>
+<p><strong>Objective:</strong> Gather actual T2262 device data from users.</p>
+<p><strong>Action Items:</strong></p>
+<ol>
+<li><strong>Contact affected users</strong> via GitHub issue #186</li>
+<li><strong>Request device data collection</strong> using Home Assistant debug logs:</li>
+</ol>
+<p><code>yaml
+   logger:
+     default: info
+     logs:
+       custom_components.robovac: debug</code></p>
+<ol>
+<li><strong>Data needed for each status:</strong></li>
+<li>Raw value received from device</li>
+<li>What Eufy app displayed at that time</li>
+<li>
+<p>Example statuses: Charging, Sleeping, Completed, Standby, Paused, Cleaning, etc.</p>
+</li>
+<li>
+<p><strong>Document findings</strong> in issue comments before proceeding to implementation.</p>
+</li>
+</ol>
+<h3 id="phase-2-implementation-tdd-approach">Phase 2: Implementation (TDD Approach)<a class="headerlink" href="#phase-2-implementation-tdd-approach" title="Permanent link">&para;</a></h3>
+<p><strong>Prerequisites:</strong></p>
+<ul>
+<li>✅ Phase 1 data collection complete</li>
+<li>✅ Verify at least 5-7 status mappings available</li>
+<li>✅ Confirm with user that test data matches their observations</li>
+</ul>
+<h4 id="step-1-write-failing-tests-first">Step 1: Write Failing Tests FIRST<a class="headerlink" href="#step-1-write-failing-tests-first" title="Permanent link">&para;</a></h4>
+<p><strong>File:</strong> <code>tests/test_vacuum/test_t2262_command_mappings.py</code></p>
+<p>Add comprehensive STATUS value tests:</p>
+<pre class="codehilite"><code class="language-python">def test_t2262_status_human_readable_values(mock_t2262_robovac) -&gt; None:
+    &quot;&quot;&quot;Test T2262 STATUS command translates device values to human-readable strings.&quot;&quot;&quot;
+    # TODO: Replace with ACTUAL device values from Phase 1
+    # Example structure (DO NOT USE without real data):
+    # assert mock_t2262_robovac.getRoboVacHumanReadableValue(
+    #     RobovacCommand.STATUS, &quot;DEVICE_VALUE_HERE&quot;
+    # ) == &quot;Charging&quot;
+
+    # Add tests for ALL collected status values:
+    # - Charging
+    # - Sleeping
+    # - Completed
+    # - Standby
+    # - Paused
+    # - Cleaning/Auto
+    # - Returning home
+    # - etc.
+    pass  # Remove after adding real tests
+
+
+def test_t2262_status_case_insensitive(mock_t2262_robovac) -&gt; None:
+    &quot;&quot;&quot;Test T2262 STATUS values work with case-insensitive lookup.&quot;&quot;&quot;
+    # Test that case variations of device values still match
+    pass  # Implement with real data
+
+
+def test_t2262_status_bidirectional_mapping(mock_t2262_robovac) -&gt; None:
+    &quot;&quot;&quot;Test T2262 STATUS supports bidirectional lookups if needed.&quot;&quot;&quot;
+    # Only if device uses bidirectional mapping (check T2277 pattern)
+    pass  # Implement if needed
+</code></pre>
+
+<p><strong>Run tests to verify they fail:</strong></p>
+<pre class="codehilite"><code class="language-bash">task test
+</code></pre>
+
+<p>Expected: New tests fail because T2262.py lacks STATUS values.</p>
+<h4 id="step-2-implement-status-values">Step 2: Implement Status Values<a class="headerlink" href="#step-2-implement-status-values" title="Permanent link">&para;</a></h4>
+<p><strong>File:</strong> <code>custom_components/robovac/vacuums/T2262.py</code></p>
+<p>Update STATUS command with collected data:</p>
+<pre class="codehilite"><code class="language-python">RobovacCommand.STATUS: {
+    &quot;code&quot;: 15,
+    &quot;values&quot;: {
+        # TODO: Add mappings from Phase 1 data collection
+        # Follow this pattern based on actual device data:
+        # &quot;device_value&quot;: &quot;HumanReadable&quot;,
+        # &quot;HumanReadable&quot;: &quot;device_value&quot;,  # If bidirectional needed
+
+        # EXAMPLE ONLY - Replace with real data:
+        # &quot;charging&quot;: &quot;Charging&quot;,
+        # &quot;Charging&quot;: &quot;charging&quot;,
+        # &quot;sleeping&quot;: &quot;Sleeping&quot;, 
+        # &quot;Sleeping&quot;: &quot;sleeping&quot;,
+        # &quot;completed&quot;: &quot;Completed&quot;,
+        # etc.
+    },
+},
+</code></pre>
+
+<p><strong>Important Notes:</strong></p>
+<ul>
+<li>Maintain consistency with existing models' capitalization patterns</li>
+<li>Add bidirectional mappings if device requires reverse lookups</li>
+<li>Include comments noting source of mappings (user data, firmware version, etc.)</li>
+</ul>
+<h4 id="step-3-verify-tests-pass">Step 3: Verify Tests Pass<a class="headerlink" href="#step-3-verify-tests-pass" title="Permanent link">&para;</a></h4>
+<pre class="codehilite"><code class="language-bash">task test
+</code></pre>
+
+<p>Expected: All new STATUS tests pass.</p>
+<h4 id="step-4-run-full-test-suite">Step 4: Run Full Test Suite<a class="headerlink" href="#step-4-run-full-test-suite" title="Permanent link">&para;</a></h4>
+<pre class="codehilite"><code class="language-bash">task test
+</code></pre>
+
+<p>Expected: All existing tests still pass (no regressions).</p>
+<h4 id="step-5-code-quality-checks">Step 5: Code Quality Checks<a class="headerlink" href="#step-5-code-quality-checks" title="Permanent link">&para;</a></h4>
+<pre class="codehilite"><code class="language-bash">task lint
+task type-check
+</code></pre>
+
+<p>Expected: No linting or type errors.</p>
+<h3 id="phase-3-documentation-validation">Phase 3: Documentation &amp; Validation<a class="headerlink" href="#phase-3-documentation-validation" title="Permanent link">&para;</a></h3>
+<h4 id="update-documentation">Update Documentation<a class="headerlink" href="#update-documentation" title="Permanent link">&para;</a></h4>
+<ol>
+<li><strong>Add comment in T2262.py</strong> noting data source:</li>
+</ol>
+<p><code>python
+   RobovacCommand.STATUS: {
+       "code": 15,
+       # Mappings confirmed by users: @SGXander, @dxmnkd316
+       # Firmware version: [if known]
+       # Date verified: 2025-10-22
+       "values": {
+           # ...
+       },
+   },</code></p>
+<ol>
+<li>
+<p><strong>Update DEVELOPMENT.md</strong> if new patterns introduced</p>
+</li>
+<li>
+<p><strong>Add to CODE_COVERAGE_TODO.md</strong> if other models need similar fixes</p>
+</li>
+</ol>
+<h4 id="user-validation">User Validation<a class="headerlink" href="#user-validation" title="Permanent link">&para;</a></h4>
+<ol>
+<li><strong>Create test branch</strong> with changes</li>
+<li><strong>Share with affected users</strong> via GitHub issue</li>
+<li><strong>Request testing</strong> on actual devices</li>
+<li><strong>Gather feedback</strong> before merging</li>
+</ol>
+<h3 id="phase-4-related-models-optional">Phase 4: Related Models (Optional)<a class="headerlink" href="#phase-4-related-models-optional" title="Permanent link">&para;</a></h3>
+<p><strong>Check if other models need similar fixes:</strong></p>
+<p>Models with STATUS code 15 and no values:</p>
+<ul>
+<li>T2253 (mentioned in issue comments)</li>
+<li>T2250, T2251, T2252, T2254, T2255, T2259, T2268, T2270, T2272, T2273</li>
+</ul>
+<p><strong>Decision:</strong> Fix T2262 first, then evaluate if pattern applies to others.</p>
+<h2 id="testing-strategy">Testing Strategy<a class="headerlink" href="#testing-strategy" title="Permanent link">&para;</a></h2>
+<h3 id="test-coverage-requirements">Test Coverage Requirements<a class="headerlink" href="#test-coverage-requirements" title="Permanent link">&para;</a></h3>
+<p>All tests must pass before merging:</p>
+<ol>
+<li>✅ STATUS value translations work</li>
+<li>✅ Case-insensitive lookup works</li>
+<li>✅ Bidirectional mapping works (if applicable)</li>
+<li>✅ Unknown values return as-is (existing behavior)</li>
+<li>✅ No regressions in other commands</li>
+<li>✅ Full test suite passes</li>
+<li>✅ Linting passes</li>
+<li>✅ Type checking passes</li>
+</ol>
+<h3 id="manual-testing-checklist">Manual Testing Checklist<a class="headerlink" href="#manual-testing-checklist" title="Permanent link">&para;</a></h3>
+<p>Before marking issue as resolved:</p>
+<ul>
+<li>[ ] User confirms status displays correctly in Home Assistant</li>
+<li>[ ] "Charging" shows as "Charging" (not raw value)</li>
+<li>[ ] "Sleeping" shows correctly</li>
+<li>[ ] "Completed" shows correctly</li>
+<li>[ ] No debug logs for mapped values</li>
+<li>[ ] Device commands still work</li>
+<li>[ ] State transitions work correctly</li>
+</ul>
+<h2 id="implementation-notes-for-llm">Implementation Notes for LLM<a class="headerlink" href="#implementation-notes-for-llm" title="Permanent link">&para;</a></h2>
+<h3 id="do-not-proceed-without-data">DO NOT Proceed Without Data<a class="headerlink" href="#do-not-proceed-without-data" title="Permanent link">&para;</a></h3>
+<p><strong>STOP if:</strong></p>
+<ul>
+<li>Phase 1 data collection incomplete</li>
+<li>User data not available</li>
+<li>Uncertain about mappings</li>
+</ul>
+<p><strong>ASK for:</strong></p>
+<ul>
+<li>Actual device logs</li>
+<li>User confirmation</li>
+<li>Additional test cases</li>
+</ul>
+<h3 id="tdd-discipline">TDD Discipline<a class="headerlink" href="#tdd-discipline" title="Permanent link">&para;</a></h3>
+<p><strong>ALWAYS:</strong></p>
+<ol>
+<li>Write test first</li>
+<li>Verify it fails</li>
+<li>Implement feature</li>
+<li>Verify test passes</li>
+<li>Run full suite</li>
+<li>Refactor if needed</li>
+</ol>
+<p><strong>NEVER:</strong></p>
+<ul>
+<li>Skip tests</li>
+<li>Implement without failing test</li>
+<li>Guess at device values</li>
+<li>Copy mappings from different model codes</li>
+</ul>
+<h3 id="code-standards">Code Standards<a class="headerlink" href="#code-standards" title="Permanent link">&para;</a></h3>
+<p><strong>Follow existing patterns:</strong></p>
+<ul>
+<li>Use lowercase snake_case for keys (e.g., "charging")</li>
+<li>Use PascalCase for values (e.g., "Charging")</li>
+<li>Maintain bidirectional mappings if model requires it</li>
+<li>Add type hints</li>
+<li>Include docstrings for new functions</li>
+</ul>
+<h3 id="git-workflow">Git Workflow<a class="headerlink" href="#git-workflow" title="Permanent link">&para;</a></h3>
+<p><strong>Conventional Commits:</strong></p>
+<pre class="codehilite"><code class="language-bash"># After Phase 1
+git checkout -b fix/issue-186-t2262-status-mappings
+
+# After implementation
+git add tests/test_vacuum/test_t2262_command_mappings.py
+git commit -m &quot;test: add T2262 STATUS value mapping tests&quot;
+
+git add custom_components/robovac/vacuums/T2262.py
+git commit -m &quot;fix(T2262): add STATUS command value mappings
+
+- Add Charging, Sleeping, completed status values
+- Fixes #186
+- Confirmed with users @SGXander @dxmnkd316&quot;
+
+# After validation
+git push origin fix/issue-186-t2262-status-mappings
+</code></pre>
+
+<p><strong>PR Description Template:</strong></p>
+<pre class="codehilite"><code class="language-markdown">## Fixes #186
+
+### Changes
+- Added STATUS value mappings for T2262 model
+- Added comprehensive test coverage for STATUS values
+
+### Testing
+- ✅ All tests pass
+- ✅ Lint/type checks pass
+- ✅ User validation: @username confirmed working
+
+### Data Source
+Status mappings provided by users:
+- @SGXander
+- @dxmnkd316
+
+### Notes
+[Any important context about the mappings]
+</code></pre>
+
+<h2 id="risk-assessment">Risk Assessment<a class="headerlink" href="#risk-assessment" title="Permanent link">&para;</a></h2>
+<h3 id="low-risk">Low Risk ✅<a class="headerlink" href="#low-risk" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Adding value mappings to existing command</li>
+<li>Following established patterns</li>
+<li>Comprehensive test coverage</li>
+</ul>
+<h3 id="medium-risk">Medium Risk ⚠️<a class="headerlink" href="#medium-risk" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Status values might change with firmware updates</li>
+<li>Users on different firmware versions may see different values</li>
+</ul>
+<h3 id="mitigation">Mitigation<a class="headerlink" href="#mitigation" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Document firmware version in comments</li>
+<li>Add fallback behavior (return raw value if unmapped)</li>
+<li>Monitor issue for additional reports</li>
+</ul>
+<h2 id="success-criteria">Success Criteria<a class="headerlink" href="#success-criteria" title="Permanent link">&para;</a></h2>
+<p>Issue can be closed when:</p>
+<ol>
+<li>✅ T2262 has STATUS values mapped</li>
+<li>✅ All tests pass</li>
+<li>✅ Users confirm fix works on real devices</li>
+<li>✅ No debug logs for mapped status values</li>
+<li>✅ Documentation updated</li>
+<li>✅ Code merged to main branch</li>
+</ol>
+<h2 id="questions-for-user-if-blocked">Questions for User (if blocked)<a class="headerlink" href="#questions-for-user-if-blocked" title="Permanent link">&para;</a></h2>
+<p>If you need clarification:</p>
+<ol>
+<li>"Can you enable debug logging and share the exact raw values your T2262 sends for STATUS code 15?"</li>
+<li>"What does the Eufy app show when you see the 'Charging' debug message?"</li>
+<li>"Can you test this branch and confirm the status displays correctly?"</li>
+<li>"What firmware version is your T2262 running?"</li>
+</ol>
+<h2 id="estimated-effort">Estimated Effort<a class="headerlink" href="#estimated-effort" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Phase 1 (Data Collection): 2-5 days (waiting on users)</li>
+<li>Phase 2 (Implementation): 30-60 minutes (with data)</li>
+<li>Phase 3 (Documentation): 15 minutes</li>
+<li>Phase 4 (User Validation): 1-3 days</li>
+</ul>
+<p><strong>Total:</strong> ~3-8 days (mostly waiting for user feedback)</p>
+<h2 id="references">References<a class="headerlink" href="#references" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Issue: <a href="https://github.com/damacus/robovac/issues/186">https://github.com/damacus/robovac/issues/186</a></li>
+<li>Related PR (T2277 model): Check for STATUS implementation pattern</li>
+<li>Test pattern: <code>tests/test_vacuum/test_t2278_command_mappings.py</code></li>
+<li>Similar fix: T2252 (see previous memory about mapping fixes)</li>
+</ul>
+<hr />
+<p><strong>Last Updated:</strong> 2025-10-22
+<strong>Status:</strong> Ready for data collection
+<strong>Assigned To:</strong> [LLM or developer name]</p></div>
+            </div>
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+            <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+        <script src="../../../js/bootstrap.bundle.min.js"></script>
+        <script>
+            var base_url = "../../..",
+                shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
+        </script>
+        <script src="../../../js/base.js"></script>
+        <script src="../../../search/main.js"></script>
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="searchModalLabel">Search</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>From here you can search these documents. Enter your search terms below.</p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" placeholder="Search..." id="mkdocs-search-query" title="Type search term here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results" data-no-results-text="No results found"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div><div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="keyboardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="keyboardModalLabel">Keyboard Shortcuts</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width: 20%;">Keys</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="help shortcut"><kbd>?</kbd></td>
+                    <td>Open this help</td>
+                  </tr>
+                  <tr>
+                    <td class="next shortcut"><kbd>n</kbd></td>
+                    <td>Next page</td>
+                  </tr>
+                  <tr>
+                    <td class="prev shortcut"><kbd>p</kbd></td>
+                    <td>Previous page</td>
+                  </tr>
+                  <tr>
+                    <td class="search shortcut"><kbd>s</kbd></td>
+                    <td>Search</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+
+    </body>
+</html>

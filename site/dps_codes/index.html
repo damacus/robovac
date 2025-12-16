@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        <meta name="author" content="RoboVac Contributors">
+        <link rel="canonical" href="https://damacus.github.io/robovac/dps_codes/">
+        <link rel="shortcut icon" href="../img/favicon.ico">
+        <title>Getting DPS Codes - RoboVac Documentation</title>
+        <link href="../css/bootstrap.min.css" rel="stylesheet">
+        <link href="../css/fontawesome.min.css" rel="stylesheet">
+        <link href="../css/brands.min.css" rel="stylesheet">
+        <link href="../css/solid.min.css" rel="stylesheet">
+        <link href="../css/v4-font-face.min.css" rel="stylesheet">
+        <link href="../css/base.css" rel="stylesheet">
+        <link id="hljs-light" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" >
+        <link id="hljs-dark" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github-dark.min.css" disabled>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+        <script>hljs.highlightAll();</script> 
+    </head>
+
+    <body>
+        <div class="navbar fixed-top navbar-expand-lg navbar-dark bg-primary">
+            <div class="container">
+                <a class="navbar-brand" href="..">RoboVac Documentation</a>
+                <!-- Expander button -->
+                <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar-collapse" aria-controls="navbar-collapse" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <!-- Expanded navigation -->
+                <div id="navbar-collapse" class="navbar-collapse collapse">
+                        <!-- Main navigation -->
+                        <ul class="nav navbar-nav">
+                            <li class="nav-item">
+                                <a href=".." class="nav-link">Home</a>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a href="#" class="nav-link dropdown-toggle active" aria-current="page" role="button" data-bs-toggle="dropdown"  aria-expanded="false">Guides</a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="./" class="dropdown-item active" aria-current="page">Getting DPS Codes</a>
+</li>
+                                    
+<li>
+    <a href="../troubleshooting/" class="dropdown-item">Troubleshooting</a>
+</li>
+                                    
+<li>
+    <a href="../development/" class="dropdown-item">Development Workflow</a>
+</li>
+                                </ul>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown"  aria-expanded="false">Reference</a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../PROTOCOL_35_SUPPORT/" class="dropdown-item">Protocol 3.5 Support</a>
+</li>
+                                </ul>
+                            </li>
+                        </ul>
+
+                    <ul class="nav navbar-nav ms-md-auto">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" data-bs-toggle="modal" data-bs-target="#mkdocs_search_modal">
+                                <i class="fa fa-search"></i> Search
+                            </a>
+                        </li>
+                            <li class="nav-item">
+                                <a rel="prev" href=".." class="nav-link">
+                                    <i class="fa fa-arrow-left"></i> Previous
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a rel="next" href="../troubleshooting/" class="nav-link">
+                                    Next <i class="fa fa-arrow-right"></i>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="https://github.com/damacus/robovac/edit/master/docs/dps_codes.md" class="nav-link"><i class="fa-brands fa-github"></i> Edit on GitHub</a>
+                            </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="row">
+                    <div class="col-md-3"><div class="navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
+    <div class="navbar-header">
+        <button type="button" class="navbar-toggler collapsed" data-bs-toggle="collapse" data-bs-target="#toc-collapse" title="Table of Contents">
+            <span class="fa fa-angle-down"></span>
+        </button>
+    </div>
+
+    
+    <div id="toc-collapse" class="navbar-collapse collapse card bg-body-tertiary">
+        <ul class="nav flex-column">
+            
+            <li class="nav-item" data-bs-level="1"><a href="#understanding-and-working-with-dps-codes" class="nav-link">Understanding and Working with DPS Codes</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-bs-level="2"><a href="#what-is-a-dps-code" class="nav-link">What is a DPS Code?</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#how-to-find-dps-codes-for-your-device" class="nav-link">How to Find DPS Codes for Your Device</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#adding-support-for-a-new-device" class="nav-link">Adding Support for a New Device</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+              </ul>
+            </li>
+        </ul>
+    </div>
+</div></div>
+                    <div class="col-md-9" role="main">
+
+<h1 id="understanding-and-working-with-dps-codes">Understanding and Working with DPS Codes<a class="headerlink" href="#understanding-and-working-with-dps-codes" title="Permanent link">&para;</a></h1>
+<h2 id="what-is-a-dps-code">What is a DPS Code?<a class="headerlink" href="#what-is-a-dps-code" title="Permanent link">&para;</a></h2>
+<p>DPS (Data Point Specification) codes are numeric identifiers used in Tuya-based devices like Eufy RoboVacs to control various functions and retrieve device states. Each DPS code maps to a specific function or feature of your vacuum, such as:</p>
+<ul>
+<li>Battery level</li>
+<li>Cleaning mode</li>
+<li>Fan speed</li>
+<li>Error status</li>
+<li>Cleaning area</li>
+<li>Cleaning time</li>
+</ul>
+<p>In the RoboVac integration, these codes are used to communicate with your vacuum via the Tuya local API. Think of them as the language that allows Home Assistant to talk to your vacuum.</p>
+<h2 id="how-to-find-dps-codes-for-your-device">How to Find DPS Codes for Your Device<a class="headerlink" href="#how-to-find-dps-codes-for-your-device" title="Permanent link">&para;</a></h2>
+<p>Finding the correct DPS codes for your vacuum model is essential for adding support for new devices. Here are methods to discover these codes:</p>
+<h3 id="method-1-use-the-model-dps-analysis-tool">Method 1: Use the Model DPS Analysis Tool<a class="headerlink" href="#method-1-use-the-model-dps-analysis-tool" title="Permanent link">&para;</a></h3>
+<p>The repository includes a test that analyzes DPS codes for all supported models:</p>
+<ol>
+<li>Navigate to the <code>tests/test_vacuum/test_model_dps_analysis.py</code> file (or run <code>analyze_model_dps.py</code> in the root directory).</li>
+<li>Run this script to generate a report showing:</li>
+<li>Which models use default codes</li>
+<li>Which models use custom codes</li>
+<li>What specific custom codes are used by each model</li>
+</ol>
+<p>This can help you understand patterns in how different models use DPS codes.</p>
+<h3 id="method-2-enable-debug-logging">Method 2: Enable Debug Logging<a class="headerlink" href="#method-2-enable-debug-logging" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Enable debug logging for the RoboVac component in your Home Assistant configuration:</li>
+</ol>
+<p><code>yaml
+   logger:
+     default: info
+     logs:
+       custom_components.robovac: debug</code></p>
+<ol>
+<li>Restart Home Assistant and monitor the logs while operating your vacuum.</li>
+<li>Look for log entries showing <code>"Updating entity values from data points: ..."</code> which will display all the DPS codes and values being reported by your device.</li>
+</ol>
+<h3 id="method-3-analyze-network-traffic-advanced">Method 3: Analyze Network Traffic (Advanced)<a class="headerlink" href="#method-3-analyze-network-traffic-advanced" title="Permanent link">&para;</a></h3>
+<p>For more advanced users:</p>
+<ol>
+<li>Use a tool like Wireshark to capture traffic between your Home Assistant instance and your vacuum.</li>
+<li>Filter for traffic to/from your vacuum's IP address.</li>
+<li>Look for Tuya protocol messages, which contain DPS code information in their payload.</li>
+<li>Decode these messages to identify which DPS codes your vacuum is using and their functions.</li>
+</ol>
+<h3 id="method-4-external-tools">Method 4: External Tools<a class="headerlink" href="#method-4-external-tools" title="Permanent link">&para;</a></h3>
+<p>If you're comfortable with Python, you can try these tools to capture raw device data:</p>
+<ul>
+<li><a href="https://github.com/markbajaj/eufy-device-id-python">eufy-device-id-python</a> - Gets device info from Eufy servers</li>
+<li><code>tinytuya scan</code> - Scans local network for Tuya devices (after you have credentials)</li>
+</ul>
+<h2 id="adding-support-for-a-new-device">Adding Support for a New Device<a class="headerlink" href="#adding-support-for-a-new-device" title="Permanent link">&para;</a></h2>
+<p>To add support for a new device, you'll need to:</p>
+<ol>
+<li><strong>Determine your model code</strong>: This is typically the first 5 characters of the full model number.</li>
+<li><strong>Identify required DPS codes</strong>: Using the methods above, determine which DPS codes your vacuum uses.</li>
+<li><strong>Create a model-specific class</strong>: If your vacuum uses non-default DPS codes, you'll need to create a model-specific class in the <code>custom_components/robovac/vacuums/</code> directory.</li>
+<li><strong>Map commands to DPS codes</strong>: In your model class, create mappings between RoboVac commands and the DPS codes your vacuum uses.</li>
+</ol>
+<h3 id="example-implementation">Example Implementation<a class="headerlink" href="#example-implementation" title="Permanent link">&para;</a></h3>
+<p>Here's a simplified example of how a model-specific class looks:</p>
+<pre class="codehilite"><code class="language-python">from custom_components.robovac.vacuums.base import RobovacModelDetails, RoboVacEntityFeature, RobovacCommand
+
+class YourModel(RobovacModelDetails):
+    &quot;&quot;&quot;Implementation for Your Specific Model.&quot;&quot;&quot;
+
+    # Define which Home Assistant features this vacuum supports
+    homeassistant_features = (
+        # Add relevant features here
+    )
+
+    # Define which RoboVac features this vacuum supports
+    robovac_features = (
+        # Add relevant features here
+    )
+
+    # Map commands to DPS codes - override any that differ from defaults
+    dps_codes = {
+        &quot;BATTERY_LEVEL&quot;: &quot;104&quot;,  # Example - use actual codes from your device
+        &quot;STATUS&quot;: &quot;15&quot;,
+        # Add other codes as needed
+    }
+
+    # Define available commands
+    commands = {
+        RobovacCommand.START_PAUSE: True,
+        RobovacCommand.BATTERY: True,
+        # Add other commands as appropriate
+    }
+</code></pre></div>
+            </div>
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+            <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+        <script src="../js/bootstrap.bundle.min.js"></script>
+        <script>
+            var base_url = "..",
+                shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
+        </script>
+        <script src="../js/base.js"></script>
+        <script src="../search/main.js"></script>
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="searchModalLabel">Search</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>From here you can search these documents. Enter your search terms below.</p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" placeholder="Search..." id="mkdocs-search-query" title="Type search term here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results" data-no-results-text="No results found"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div><div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="keyboardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="keyboardModalLabel">Keyboard Shortcuts</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width: 20%;">Keys</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="help shortcut"><kbd>?</kbd></td>
+                    <td>Open this help</td>
+                  </tr>
+                  <tr>
+                    <td class="next shortcut"><kbd>n</kbd></td>
+                    <td>Next page</td>
+                  </tr>
+                  <tr>
+                    <td class="prev shortcut"><kbd>p</kbd></td>
+                    <td>Previous page</td>
+                  </tr>
+                  <tr>
+                    <td class="search shortcut"><kbd>s</kbd></td>
+                    <td>Search</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+
+    </body>
+</html>

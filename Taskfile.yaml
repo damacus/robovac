@@ -48,6 +48,26 @@ tasks:
     cmds:
       - markdownlint-cli2 "**/*.md" "!vendor" "!.venv" --fix
 
+  docs-build:
+    desc: Build MkDocs documentation
+    cmds:
+      - uv run mkdocs build --strict
+
+  docs-serve:
+    desc: Serve MkDocs documentation locally
+    cmds:
+      - uv run mkdocs serve --strict --dev-addr=127.0.0.1:8000
+
+  docs-docker-build:
+    desc: Build MkDocs documentation in Docker
+    cmds:
+      - docker run --rm -v "$PWD":/docs -w /docs python:3.11-slim /bin/sh -c "pip install mkdocs && mkdocs build --strict"
+
+  docs-docker-serve:
+    desc: Serve MkDocs documentation in Docker
+    cmds:
+      - docker run --rm -v "$PWD":/docs -w /docs -p 8000:8000 python:3.11-slim /bin/sh -c "pip install mkdocs && mkdocs serve --dev-addr=0.0.0.0:8000"
+
   ha-start:
     desc: Start Home assistant, run from dev container
     cmds:

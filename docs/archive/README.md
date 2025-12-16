@@ -9,4 +9,4 @@ This directory contains historical documentation from completed improvement init
 
 ## Reference
 
-These documents are kept for historical reference and to understand the evolution of the codebase. For current development guidance, see the main [DEVELOPMENT.md](../DEVELOPMENT.md) file in the project root.
+These documents are kept for historical reference and to understand the evolution of the codebase. For current development guidance, see the main [Development Workflow](../development/index.md) section.
