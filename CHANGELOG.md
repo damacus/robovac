@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0](https://github.com/damacus/robovac/compare/v1.5.0...v1.6.0) (2025-12-24)
+
+
+### Features
+
+* add protocol version selection for Tuya devices ([#278](https://github.com/damacus/robovac/issues/278)) ([7b99613](https://github.com/damacus/robovac/commit/7b99613643837dd06056a4178992538174a0621f))
+
+
+### Bug Fixes
+
+* correct markdown table formatting in archive docs ([c79507a](https://github.com/damacus/robovac/commit/c79507a170f73f7320f824005ab7a7cb2c5201ea))
+
+
+### Documentation
+
+* Document T2276 communication issues and investigation ([#238](https://github.com/damacus/robovac/issues/238)) ([933ed71](https://github.com/damacus/robovac/commit/933ed710eb6e0d1583acd873dfd4cb4a48c450a4)), closes [#42](https://github.com/damacus/robovac/issues/42)
+
 ## [1.5.0](https://github.com/damacus/robovac/compare/v1.4.0...v1.5.0) (2025-10-22)
 
 
