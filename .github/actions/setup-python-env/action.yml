@@ -31,7 +31,7 @@ runs:
 
     - name: Install uv
       # Using the specific commit SHA you had, as it might be intentional over a simple vX tag
-      uses: astral-sh/setup-uv@9c12baee9699f1b4f4318d7175fab8635c2b8e45 # From user's ci.yml
+      uses: astral-sh/setup-uv@702b425af1c366e68b4a9449a8de6dd98b63e979 # From user's ci.yml
 
     - name: Install Python dependencies
       shell: bash
