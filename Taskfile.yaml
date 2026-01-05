@@ -1,6 +1,9 @@
 ---
 version: '3'
 
+includes:
+  jq: ./Taskfiles/jq.yml
+
 tasks:
   default:
     desc: List available tasks

@@ -1,0 +1,32 @@
+{
+  "description": "RoboVac Feature List - Test cases organized by functional area",
+  "version": "1.0.0",
+  "updated": "2025-12-16",
+  "areas": [
+    {
+      "name": "vacuum_models",
+      "file": "features/vacuum_models.json",
+      "count": 12
+    },
+    {
+      "name": "core_functionality",
+      "file": "features/core_functionality.json",
+      "count": 5
+    },
+    {
+      "name": "testing",
+      "file": "features/testing.json",
+      "count": 5
+    }
+  ],
+  "summary": {
+    "total_features": 22,
+    "passing": 16,
+    "failing": 6,
+    "pass_rate": "73%",
+    "categories": {
+      "functional": 17,
+      "quality": 5
+    }
+  }
+}
