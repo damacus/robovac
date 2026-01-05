@@ -5,6 +5,29 @@
 
 A Eufy RoboVac integration for Home Assistant that includes a Config Flow to add your RoboVac(s) and the local key and ID required. All you need to do is enter your Eufy app credentials and the Config Flow will look up the details for you. After the initial config use the configuration button on the Integration to enter the RoboVac IP address when prompted.
 
+## ⚠️ Breaking Change in v2.0.0
+
+**Version 2.0.0 includes significant protocol improvements that require you to
+remove and re-add the integration.**
+
+### What Changed
+
+- Added support for Tuya protocol 3.4 (HMAC-SHA256 checksums)
+- Improved encryption/decryption error handling
+- Better detection and messaging for stale local keys
+
+### Upgrade Instructions
+
+1. Go to **Settings** → **Devices & Services**
+2. Find the **Eufy Robovac** integration
+3. Click the three dots menu → **Delete**
+4. Click **Add Integration** → search for **Eufy Robovac**
+5. Enter your Eufy account credentials
+6. Configure the IP address for each vacuum
+
+This re-add process fetches a fresh local key from the Tuya API, which is
+required for the new protocol support.
+
 ## History
 
 This work has evolved from the original work by [Richard Mitchell](https://github.com/mitchellrj) and the countless others who have contributed over the last couple of years. It also builds on the work done by [Andre Borie](https://gitlab.com/Rjevski/eufy-device-id-and-local-key-grabber) to get the required local ID and key.

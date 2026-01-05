@@ -1,5 +1,5 @@
 ---
-version: '3'
+version: "3"
 
 includes:
   jq: ./Taskfiles/jq.yml
@@ -60,3 +60,54 @@ tasks:
     desc: Restart Home assistant, run from dev container
     cmds:
       - ha core restart
+
+  ha-deploy:
+    desc: Deploy robovac to Home Assistant on Kubernetes
+    cmds:
+      - tar --exclude='__pycache__' --exclude='*.pyc' -cvf /tmp/robovac.tar -C custom_components/robovac .
+      - kubectl cp /tmp/robovac.tar home-automation/home-assistant-0:/tmp/robovac.tar
+      - kubectl exec -n home-automation home-assistant-0 -- sh -c "rm -rf /config/custom_components/robovac/* && tar -xvf /tmp/robovac.tar -C /config/custom_components/robovac/ && find /config/custom_components/robovac -name '._*' -delete"
+      - rm /tmp/robovac.tar
+
+  ha-restart-k8s:
+    desc: Restart Home Assistant on Kubernetes
+    cmds:
+      - kubectl rollout restart statefulset/home-assistant -n home-automation
+      - kubectl rollout status statefulset/home-assistant -n home-automation --timeout=120s
+
+  ha-logs:
+    desc: View Home Assistant logs for robovac
+    cmds:
+      - kubectl exec -n home-automation home-assistant-0 -- sh -c "grep -i robovac /config/home-assistant.log | tail -50 || echo 'No robovac logs found'"
+
+  ha-logs-errors:
+    desc: View Home Assistant error logs
+    cmds:
+      - kubectl exec -n home-automation home-assistant-0 -- sh -c "grep -i error /config/home-assistant.log | tail -30"
+
+  ha-logs-tail:
+    desc: Tail Home Assistant logs live (Ctrl+C to stop)
+    cmds:
+      - kubectl exec -n home-automation home-assistant-0 -- tail -f /config/home-assistant.log
+
+  ha-shell:
+    desc: Open shell in Home Assistant pod
+    cmds:
+      - kubectl exec -it -n home-automation home-assistant-0 -- sh
+
+  ha-quick-deploy:
+    desc: Quick deploy without restart (for Python file changes only)
+    cmds:
+      - tar --exclude='__pycache__' --exclude='*.pyc' -cf /tmp/robovac.tar -C custom_components/robovac .
+      - kubectl cp /tmp/robovac.tar home-automation/home-assistant-0:/tmp/robovac.tar
+      - kubectl exec -n home-automation home-assistant-0 -- sh -c "rm -rf /config/custom_components/robovac/* && tar -xf /tmp/robovac.tar -C /config/custom_components/robovac/ && find /config/custom_components/robovac -name '._*' -delete"
+      - rm /tmp/robovac.tar
+      - echo "Deployed! Run 'task ha-restart-k8s' to apply changes"
+
+  ha-deploy-restart:
+    desc: Deploy and restart Home Assistant (full cycle)
+    cmds:
+      - task: ha-deploy
+      - task: ha-restart-k8s
+      - sleep 5
+      - task: ha-logs
