@@ -1,0 +1,62 @@
+[
+  {
+    "id": "DOC-001",
+    "category": "quality",
+    "area": "documentation",
+    "description": "Zensical documentation site is configured",
+    "steps": [
+      "Create zensical.toml configuration file",
+      "Configure site_name, docs_dir, and site_dir",
+      "Verify configuration is valid"
+    ],
+    "passes": true
+  },
+  {
+    "id": "DOC-002",
+    "category": "quality",
+    "area": "documentation",
+    "description": "Documentation index page exists",
+    "steps": [
+      "Create docs/index.md with project overview",
+      "Include installation instructions",
+      "Include quick start guide"
+    ],
+    "passes": true
+  },
+  {
+    "id": "DOC-003",
+    "category": "quality",
+    "area": "documentation",
+    "description": "GitHub Pages deployment workflow exists",
+    "steps": [
+      "Create .github/workflows/docs.yml",
+      "Configure GitHub Actions for Zensical build",
+      "Set up GitHub Pages deployment"
+    ],
+    "passes": true
+  },
+  {
+    "id": "DOC-004",
+    "category": "quality",
+    "area": "documentation",
+    "description": "Documentation builds successfully",
+    "steps": [
+      "Run zensical build --clean",
+      "Verify site directory is created",
+      "Check for build errors"
+    ],
+    "passes": false
+  },
+  {
+    "id": "DOC-005",
+    "category": "quality",
+    "area": "documentation",
+    "description": "Navigation structure is defined",
+    "steps": [
+      "Configure nav in zensical.toml",
+      "Verify all pages are accessible",
+      "Check navigation order"
+    ],
+    "passes": true
+  }
+]
