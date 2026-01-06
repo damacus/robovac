@@ -33,6 +33,8 @@ See the full list in the [Configuration](configuration.md) section.
 - [Installation Guide](installation.md)
 - [Configuration](configuration.md)
 - [Troubleshooting](troubleshooting.md)
+- [Supported Models](supported-models.md)
+- [Adding a New Vacuum](adding-new-vacuum.md)
 - [GitHub Issues](https://github.com/damacus/robovac/issues)
 
 ## History & Credits
