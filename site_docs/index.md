@@ -34,3 +34,9 @@ See the full list in the [Configuration](configuration.md) section.
 - [Configuration](configuration.md)
 - [Troubleshooting](troubleshooting.md)
 - [GitHub Issues](https://github.com/damacus/robovac/issues)
+
+## History & Credits
+
+- This project has evolved from the original work by [Richard Mitchell](https://github.com/mitchellrj) and the many contributors over the years.
+- It also builds on work by [Andre Borie](https://gitlab.com/Rjevski/eufy-device-id-and-local-key-grabber) for obtaining local device IDs and keys.
+- This fork is based on work from [CodeFoodPixels](https://github.com/CodeFoodPixels).
