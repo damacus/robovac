@@ -1,0 +1,62 @@
+[
+  {
+    "id": "CORE-001",
+    "category": "functional",
+    "area": "core",
+    "description": "getRoboVacHumanReadableValue converts machine codes correctly",
+    "steps": [
+      "Test with valid command and value",
+      "Test with invalid command",
+      "Test case-insensitive lookup"
+    ],
+    "passes": true
+  },
+  {
+    "id": "CORE-002",
+    "category": "functional",
+    "area": "core",
+    "description": "getRoboVacActivityMapping returns correct activity mapping",
+    "steps": [
+      "Test with model that has activity_mapping",
+      "Test with model without activity_mapping",
+      "Verify VacuumActivity enum values"
+    ],
+    "passes": true
+  },
+  {
+    "id": "CORE-003",
+    "category": "functional",
+    "area": "core",
+    "description": "Case-insensitive lookup utility works correctly",
+    "steps": [
+      "Test exact match",
+      "Test case-insensitive match",
+      "Test missing key returns default"
+    ],
+    "passes": true
+  },
+  {
+    "id": "CORE-004",
+    "category": "functional",
+    "area": "core",
+    "description": "Config flow validates user input",
+    "steps": [
+      "Test valid configuration",
+      "Test invalid IP address",
+      "Test missing required fields"
+    ],
+    "passes": true
+  },
+  {
+    "id": "CORE-005",
+    "category": "functional",
+    "area": "core",
+    "description": "Error handling provides meaningful messages",
+    "steps": [
+      "Test connection errors",
+      "Test authentication errors",
+      "Test timeout errors"
+    ],
+    "passes": false
+  }
+]

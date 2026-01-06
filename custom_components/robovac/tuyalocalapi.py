@@ -52,8 +52,9 @@ from .vacuums.base import RobovacCommand
 
 from cryptography.hazmat.backends.openssl import backend as openssl_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from cryptography.hazmat.primitives.hashes import Hash, MD5
+from cryptography.hazmat.primitives.hashes import Hash, MD5, SHA256
 from cryptography.hazmat.primitives.padding import PKCS7
+from cryptography.hazmat.primitives import hmac as crypto_hmac
 
 INITIAL_BACKOFF = 5
 INITIAL_QUEUE_TIME = 0.1
@@ -61,6 +62,7 @@ BACKOFF_MULTIPLIER = 1.70224
 _LOGGER = logging.getLogger(__name__)
 MESSAGE_PREFIX_FORMAT = ">IIII"
 MESSAGE_SUFFIX_FORMAT = ">II"
+MESSAGE_SUFFIX_FORMAT_34 = ">32sI"  # 32-byte HMAC + 4-byte suffix for v3.4
 MAGIC_PREFIX = 0x000055AA
 MAGIC_SUFFIX = 0x0000AA55
 MAGIC_SUFFIX_BYTES = struct.pack(">I", MAGIC_SUFFIX)
@@ -371,9 +373,36 @@ class TuyaCipher:
         """Initialize the cipher."""
         self.version = version
         self.key = key
+        self.key_bytes = key.encode("ascii")
         self.cipher = Cipher(
-            algorithms.AES(key.encode("ascii")), modes.ECB(), backend=openssl_backend
+            algorithms.AES(self.key_bytes), modes.ECB(), backend=openssl_backend
         )
+
+    def hmac_sha256(self, data: bytes) -> bytes:
+        """Calculate HMAC-SHA256 for protocol 3.4.
+
+        Args:
+            data: The data to calculate HMAC for.
+
+        Returns:
+            The 32-byte HMAC-SHA256 digest.
+        """
+        h = crypto_hmac.HMAC(self.key_bytes, SHA256(), backend=openssl_backend)
+        h.update(data)
+        return h.finalize()
+
+    def verify_hmac(self, data: bytes, expected_hmac: bytes) -> bool:
+        """Verify HMAC-SHA256 for protocol 3.4.
+
+        Args:
+            data: The data to verify.
+            expected_hmac: The expected HMAC value.
+
+        Returns:
+            True if HMAC matches, False otherwise.
+        """
+        calculated = self.hmac_sha256(data)
+        return calculated == expected_hmac
 
     def get_prefix_size_and_validate(self, command: int, encrypted_data: bytes) -> int:
         """Get the prefix size and validate the encrypted data.
@@ -413,19 +442,42 @@ class TuyaCipher:
         Returns:
             The decrypted data.
         """
+        # For protocol 3.3+, check if data starts with version prefix
         prefix_size = self.get_prefix_size_and_validate(command, data)
-        data = data[prefix_size:]
+
+        # If no valid prefix found, try to decrypt the raw data
+        # This handles cases where device sends data without version prefix
+        data_to_decrypt = data[prefix_size:]
+
+        # Check if data might already be JSON (unencrypted)
+        if data_to_decrypt and data_to_decrypt[0:1] == b'{':
+            return data_to_decrypt
+
+        # Check if data length is valid for AES (must be multiple of 16)
+        if len(data_to_decrypt) % 16 != 0:
+            # Data length not valid for AES - indicates corruption or protocol mismatch
+            raise ValueError(
+                f"Invalid encrypted data length for AES block cipher: "
+                f"{len(data_to_decrypt)} bytes (must be multiple of 16)"
+            )
+
         decryptor = self.cipher.decryptor()
         if self.version < (3, 3):
-            data = base64.b64decode(data)
-        decrypted_data = decryptor.update(data)
-        decrypted_data += decryptor.finalize()
-        unpadder = PKCS7(128).unpadder()
-        unpadded_data = unpadder.update(decrypted_data)
-        unpadded_data += unpadder.finalize()
+            data_to_decrypt = base64.b64decode(data_to_decrypt)
 
-        # Explicitly cast to bytes to satisfy mypy
-        return bytes(unpadded_data)
+        decrypted_data = decryptor.update(data_to_decrypt)
+        decrypted_data += decryptor.finalize()
+
+        # Try to unpad - if it fails, the key might be wrong
+        try:
+            unpadder = PKCS7(128).unpadder()
+            unpadded_data = unpadder.update(decrypted_data)
+            unpadded_data += unpadder.finalize()
+            return bytes(unpadded_data)
+        except ValueError:
+            # PKCS7 unpadding failed - likely wrong key or corrupted data
+            # Return raw decrypted data and let caller handle the error
+            return decrypted_data
 
     def encrypt(self, command: int, data: bytes) -> bytes:
         """Encrypt the data.
@@ -568,7 +620,14 @@ class Message:
         if self.encrypt and self.device is not None:
             payload_data = self.device.cipher.encrypt(self.command, payload_data)
 
-        payload_size = len(payload_data) + struct.calcsize(MESSAGE_SUFFIX_FORMAT)
+        # Determine suffix format based on protocol version
+        is_v34 = self.device is not None and self.device.version >= (3, 4)
+        if is_v34:
+            suffix_format = MESSAGE_SUFFIX_FORMAT_34
+        else:
+            suffix_format = MESSAGE_SUFFIX_FORMAT
+
+        payload_size = len(payload_data) + struct.calcsize(suffix_format)
 
         header = struct.pack(
             MESSAGE_PREFIX_FORMAT,
@@ -577,11 +636,17 @@ class Message:
             self.command,
             payload_size,
         )
-        if self.device and self.device.version >= (3, 3):
+
+        if is_v34 and self.device is not None:
+            # Protocol 3.4 uses HMAC-SHA256 (32 bytes)
+            hmac_data = self.device.cipher.hmac_sha256(header + payload_data)
+            footer = struct.pack(MESSAGE_SUFFIX_FORMAT_34, hmac_data, MAGIC_SUFFIX)
+        elif self.device and self.device.version >= (3, 3):
             checksum = crc(header + payload_data)
+            footer = struct.pack(MESSAGE_SUFFIX_FORMAT, checksum, MAGIC_SUFFIX)
         else:
             checksum = crc(payload_data)
-        footer = struct.pack(MESSAGE_SUFFIX_FORMAT, checksum, MAGIC_SUFFIX)
+            footer = struct.pack(MESSAGE_SUFFIX_FORMAT, checksum, MAGIC_SUFFIX)
         return header + payload_data + footer
 
     def __bytes__(self) -> bytes:
@@ -631,6 +696,15 @@ class Message:
         if prefix != MAGIC_PREFIX:
             raise InvalidMessage("Magic prefix missing from message.")
 
+        # Determine protocol version from cipher
+        is_v34 = cipher is not None and cipher.version >= (3, 4)
+
+        # Calculate suffix size based on protocol version
+        if is_v34:
+            suffix_size = struct.calcsize(MESSAGE_SUFFIX_FORMAT_34)  # 32-byte HMAC + 4-byte suffix
+        else:
+            suffix_size = struct.calcsize(MESSAGE_SUFFIX_FORMAT)  # 4-byte CRC + 4-byte suffix
+
         # check for an optional return code
         header_size = struct.calcsize(MESSAGE_PREFIX_FORMAT)
         try:
@@ -641,7 +715,7 @@ class Message:
             payload_data = data[
                 header_size:header_size
                 + payload_size
-                - struct.calcsize(MESSAGE_SUFFIX_FORMAT)
+                - suffix_size
             ]
             return_code = None
         else:
@@ -649,29 +723,53 @@ class Message:
                 header_size
                 + struct.calcsize(">I"):header_size
                 + payload_size
-                - struct.calcsize(MESSAGE_SUFFIX_FORMAT)
+                - suffix_size
             ]
 
-        try:
-            expected_crc, suffix = struct.unpack_from(
-                MESSAGE_SUFFIX_FORMAT,
-                data,
-                header_size + payload_size - struct.calcsize(MESSAGE_SUFFIX_FORMAT),
+        # Validate checksum based on protocol version
+        if is_v34:
+            # Protocol 3.4 uses HMAC-SHA256 (32 bytes)
+            try:
+                expected_hmac, suffix = struct.unpack_from(
+                    MESSAGE_SUFFIX_FORMAT_34,
+                    data,
+                    header_size + payload_size - suffix_size,
+                )
+            except struct.error as e:
+                raise InvalidMessage("Invalid message suffix format for v3.4.") from e
+            if suffix != MAGIC_SUFFIX:
+                raise InvalidMessage("Magic suffix missing from message")
+
+            # Verify HMAC-SHA256 - cipher is required for v3.4
+            if cipher is None:
+                raise InvalidMessage("Missing cipher for v3.4 message; cannot verify HMAC")
+
+            data_to_verify = data[: header_size + payload_size - suffix_size]
+            if not cipher.verify_hmac(data_to_verify, expected_hmac):
+                device._LOGGER.debug(f"HMAC verification failed. Expected: {expected_hmac.hex()}")
+                raise InvalidMessage("HMAC check failed")
+        else:
+            # Protocol 3.3 and earlier use CRC32
+            try:
+                expected_crc, suffix = struct.unpack_from(
+                    MESSAGE_SUFFIX_FORMAT,
+                    data,
+                    header_size + payload_size - suffix_size,
+                )
+            except struct.error as e:
+                raise InvalidMessage("Invalid message suffix format.") from e
+            if suffix != MAGIC_SUFFIX:
+                raise InvalidMessage("Magic suffix missing from message")
+
+            # Ensure data is not None before indexing
+            if data is None:
+                raise InvalidMessage("Data cannot be None")
+
+            actual_crc = crc(
+                data[: header_size + payload_size - suffix_size]
             )
-        except struct.error as e:
-            raise InvalidMessage("Invalid message suffix format.") from e
-        if suffix != MAGIC_SUFFIX:
-            raise InvalidMessage("Magic suffix missing from message")
-
-        # Ensure data is not None before indexing
-        if data is None:
-            raise InvalidMessage("Data cannot be None")
-
-        actual_crc = crc(
-            data[: header_size + payload_size - struct.calcsize(MESSAGE_SUFFIX_FORMAT)]
-        )
-        if expected_crc != actual_crc:
-            raise InvalidMessage("CRC check failed")
+            if expected_crc != actual_crc:
+                raise InvalidMessage("CRC check failed")
 
         payload = None
         if payload_data:
@@ -684,14 +782,20 @@ class Message:
                 payload_text = payload_data.decode("utf8")
             except UnicodeDecodeError as e:
                 device._LOGGER.debug(payload_data.hex())
-                device._LOGGER.error(e)
+                device._LOGGER.error(
+                    "Decryption failed - the local key may be incorrect or has changed. "
+                    "Try removing and re-adding the integration to refresh the key. "
+                    "Error: %s", e
+                )
                 raise MessageDecodeFailed() from e
             try:
                 payload = json.loads(payload_text)
             except json.decoder.JSONDecodeError as e:
-                # data may be encrypted
                 device._LOGGER.debug(payload_data.hex())
-                device._LOGGER.error(e)
+                device._LOGGER.error(
+                    "Failed to parse decrypted data as JSON - the local key may be "
+                    "incorrect. Try removing and re-adding the integration. Error: %s", e
+                )
                 raise MessageDecodeFailed() from e
 
         return cls(command, payload, sequence)

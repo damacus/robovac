@@ -1,0 +1,143 @@
+[
+  {
+    "id": "VAC-001",
+    "category": "functional",
+    "area": "vacuum_models",
+    "description": "T2080 model has complete command mappings",
+    "steps": [
+      "Verify STATUS command mapping exists",
+      "Verify activity_mapping dictionary exists",
+      "Run model-specific tests"
+    ],
+    "passes": true
+  },
+  {
+    "id": "VAC-002",
+    "category": "functional",
+    "area": "vacuum_models",
+    "description": "T2250 model has complete command mappings",
+    "steps": [
+      "Verify all DPS commands defined",
+      "Verify no duplicate bidirectional mappings",
+      "Run model-specific tests"
+    ],
+    "passes": true
+  },
+  {
+    "id": "VAC-003",
+    "category": "functional",
+    "area": "vacuum_models",
+    "description": "T2251 model has complete command mappings",
+    "steps": [
+      "Verify all DPS commands defined",
+      "Verify no duplicate bidirectional mappings",
+      "Run model-specific tests"
+    ],
+    "passes": true
+  },
+  {
+    "id": "VAC-004",
+    "category": "functional",
+    "area": "vacuum_models",
+    "description": "T2252 model has complete command mappings",
+    "steps": [
+      "Verify all DPS commands defined",
+      "Verify FAN_SPEED keys standardized to lowercase",
+      "Run model-specific tests"
+    ],
+    "passes": true
+  },
+  {
+    "id": "VAC-005",
+    "category": "functional",
+    "area": "vacuum_models",
+    "description": "T2253 model has complete command mappings",
+    "steps": [
+      "Verify all DPS commands defined",
+      "Verify no duplicate bidirectional mappings",
+      "Run model-specific tests"
+    ],
+    "passes": true
+  },
+  {
+    "id": "VAC-006",
+    "category": "functional",
+    "area": "vacuum_models",
+    "description": "T2254 model has complete command mappings",
+    "steps": [
+      "Verify all DPS commands defined",
+      "Verify no duplicate bidirectional mappings",
+      "Run model-specific tests"
+    ],
+    "passes": true
+  },
+  {
+    "id": "VAC-007",
+    "category": "functional",
+    "area": "vacuum_models",
+    "description": "T2255 model has complete command mappings",
+    "steps": [
+      "Verify all DPS commands defined",
+      "Verify no duplicate bidirectional mappings",
+      "Run model-specific tests"
+    ],
+    "passes": true
+  },
+  {
+    "id": "VAC-008",
+    "category": "functional",
+    "area": "vacuum_models",
+    "description": "T2259 model has complete command mappings",
+    "steps": [
+      "Verify all DPS commands defined",
+      "Verify no duplicate bidirectional mappings",
+      "Run model-specific tests"
+    ],
+    "passes": true
+  },
+  {
+    "id": "VAC-009",
+    "category": "functional",
+    "area": "vacuum_models",
+    "description": "T2262 model has complete command mappings",
+    "steps": [
+      "Verify all DPS commands defined",
+      "Verify no duplicate bidirectional mappings",
+      "Run model-specific tests"
+    ],
+    "passes": true
+  },
+  {
+    "id": "VAC-010",
+    "category": "functional",
+    "area": "vacuum_models",
+    "description": "T2277 model has complete command mappings",
+    "steps": [
+      "Verify all DPS commands defined",
+      "Run model-specific tests"
+    ],
+    "passes": false
+  },
+  {
+    "id": "VAC-011",
+    "category": "functional",
+    "area": "vacuum_models",
+    "description": "T2278 model has complete command mappings",
+    "steps": [
+      "Verify all DPS commands defined",
+      "Run model-specific tests"
+    ],
+    "passes": false
+  },
+  {
+    "id": "VAC-012",
+    "category": "functional",
+    "area": "vacuum_models",
+    "description": "T2320 model has complete command mappings",
+    "steps": [
+      "Verify all DPS commands defined",
+      "Run model-specific tests"
+    ],
+    "passes": false
+  }
+]

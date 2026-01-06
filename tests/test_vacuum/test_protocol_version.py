@@ -15,9 +15,9 @@ def common_args() -> dict[str, str]:
 
 
 def test_default_protocol_version_for_old_model(common_args: dict[str, str]) -> None:
-    """Default to protocol (3,3) for models without explicit version (e.g., T2251)."""
+    """Default to protocol (3,3) for models without explicit version (e.g., T2118)."""
     with patch("custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None) as m_init:
-        RoboVac(model_code="T2251", **common_args)
+        RoboVac(model_code="T2118", **common_args)
         # Ensure version kwarg is passed and equals (3,3)
         assert m_init.called
         _, kwargs = m_init.call_args
