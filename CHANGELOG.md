@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0-beta.1](https://github.com/damacus/robovac/compare/v1.5.0...v2.0.0-beta.1) (2026-01-06)
+
+
+### Features
+
+* Add docs site ([#287](https://github.com/damacus/robovac/issues/287)) ([6f4560b](https://github.com/damacus/robovac/commit/6f4560b5818b7c31ccc7e9507187b3aebfb3322f))
+* Add Protocol 3.4 HMAC-SHA256 support and improve decryption error handling ([#286](https://github.com/damacus/robovac/issues/286)) ([8d0eb8d](https://github.com/damacus/robovac/commit/8d0eb8d7e684db7a877a428352d36970a5569ba2))
+* add protocol version selection for Tuya devices ([#278](https://github.com/damacus/robovac/issues/278)) ([7b99613](https://github.com/damacus/robovac/commit/7b99613643837dd06056a4178992538174a0621f))
+* Simplify README and point to docs site ([#291](https://github.com/damacus/robovac/issues/291)) ([5e82fe8](https://github.com/damacus/robovac/commit/5e82fe8fe06e05f27c53e0ba181e18a07a301e77))
+
+
+### Bug Fixes
+
+* correct markdown table formatting in archive docs ([c79507a](https://github.com/damacus/robovac/commit/c79507a170f73f7320f824005ab7a7cb2c5201ea))
+
+
+### Documentation
+
+* Document T2276 communication issues and investigation ([#238](https://github.com/damacus/robovac/issues/238)) ([933ed71](https://github.com/damacus/robovac/commit/933ed710eb6e0d1583acd873dfd4cb4a48c450a4)), closes [#42](https://github.com/damacus/robovac/issues/42)
+
 ## [1.5.0](https://github.com/damacus/robovac/compare/v1.4.0...v1.5.0) (2025-10-22)
 
 
