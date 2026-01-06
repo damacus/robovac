@@ -1,0 +1,47 @@
+# Protocol 3.5 Implementation Progress
+
+## Session: 2026-01-06
+
+### Completed This Session
+
+1. **Protocol 3.5 Cipher Implementation** (PROTO-001 partial)
+   - Added `is_gcm_mode` property to TuyaCipher
+   - Added `generate_iv()` for 12-byte random IV generation
+   - Added `encrypt_gcm()` method for AES-GCM encryption
+   - Added `decrypt_gcm()` method for AES-GCM decryption
+   - 12 tests passing for cipher functionality
+
+2. **Protocol 3.5 Message Format** (PROTO-001 partial)
+   - Added constants: MAGIC_PREFIX_35 (0x6699), MAGIC_SUFFIX_35 (0x9966)
+   - Added MESSAGE_PREFIX_FORMAT_35 and MESSAGE_SUFFIX_FORMAT_35
+   - Updated `Message.to_bytes()` to detect v3.5 and use GCM format
+   - Added `Message._to_bytes_v35()` for v3.5 message serialization
+   - Updated `Message.from_bytes()` to detect 0x6699 prefix
+   - Added `Message._from_bytes_v35()` for v3.5 message parsing
+   - 11 tests passing for message format
+
+### Test Results
+- 276 total tests passing
+- 23 new tests for Protocol 3.5
+- All lint and type-check passing
+
+### What Remains for PROTO-001
+- Session key negotiation (3-way handshake)
+- Auto-detection of Protocol 3.5 devices
+- Integration with TuyaDevice connection flow
+- Testing with real Protocol 3.5 devices
+
+### Next Steps
+1. Implement session key negotiation for Protocol 3.5
+2. Update TuyaDevice to handle v3.5 connection handshake
+3. Add auto-detection based on device response
+4. Test with actual Protocol 3.5 vacuum models
+
+### Branch
+- Working on: `feat/protocol-35-support`
+- Base: `main`
+
+### Files Modified
+- `custom_components/robovac/tuyalocalapi.py` - Core Protocol 3.5 implementation
+- `tests/test_vacuum/test_protocol_35_cipher.py` - Cipher tests (NEW)
+- `tests/test_vacuum/test_protocol_35_message.py` - Message format tests (NEW)
