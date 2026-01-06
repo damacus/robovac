@@ -52,6 +52,8 @@ from .vacuums.base import RobovacCommand
 
 from cryptography.hazmat.backends.openssl import backend as openssl_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+import os
 from cryptography.hazmat.primitives.hashes import Hash, MD5, SHA256
 from cryptography.hazmat.primitives.padding import PKCS7
 from cryptography.hazmat.primitives import hmac as crypto_hmac
@@ -66,6 +68,14 @@ MESSAGE_SUFFIX_FORMAT_34 = ">32sI"  # 32-byte HMAC + 4-byte suffix for v3.4
 MAGIC_PREFIX = 0x000055AA
 MAGIC_SUFFIX = 0x0000AA55
 MAGIC_SUFFIX_BYTES = struct.pack(">I", MAGIC_SUFFIX)
+
+# Protocol 3.5 constants
+MAGIC_PREFIX_35 = 0x00006699
+MAGIC_SUFFIX_35 = 0x00009966
+MAGIC_SUFFIX_35_BYTES = struct.pack(">I", MAGIC_SUFFIX_35)
+# Format: prefix(4) + version(1) + reserved(1) + seq(4) + cmd(4) + len(4) = 18 bytes
+MESSAGE_PREFIX_FORMAT_35 = ">IBBIII"
+MESSAGE_SUFFIX_FORMAT_35 = ">16sI"  # 16-byte GCM tag + 4-byte suffix
 CRC_32_TABLE = [
     0x00000000,
     0x77073096,
@@ -377,6 +387,77 @@ class TuyaCipher:
         self.cipher = Cipher(
             algorithms.AES(self.key_bytes), modes.ECB(), backend=openssl_backend
         )
+        # Initialize GCM cipher for Protocol 3.5
+        self._aesgcm = AESGCM(self.key_bytes)
+
+    @property
+    def is_gcm_mode(self) -> bool:
+        """Check if this cipher uses GCM mode (Protocol 3.5+).
+
+        Returns:
+            True if Protocol 3.5 or higher (uses GCM), False otherwise (uses ECB).
+        """
+        return self.version >= (3, 5)
+
+    def generate_iv(self) -> bytes:
+        """Generate a random 12-byte IV/nonce for GCM mode.
+
+        Returns:
+            A 12-byte random IV suitable for AES-GCM.
+        """
+        return os.urandom(12)
+
+    def encrypt_gcm(
+        self, plaintext: bytes, aad: bytes | None = None
+    ) -> tuple[bytes, bytes, bytes]:
+        """Encrypt data using AES-GCM for Protocol 3.5.
+
+        Args:
+            plaintext: The data to encrypt.
+            aad: Optional additional authenticated data (signed but not encrypted).
+
+        Returns:
+            A tuple of (iv, ciphertext, tag) where:
+            - iv: 12-byte initialization vector/nonce
+            - ciphertext: The encrypted data (same length as plaintext)
+            - tag: 16-byte GCM authentication tag
+        """
+        iv = self.generate_iv()
+        # AESGCM.encrypt returns ciphertext + tag concatenated
+        if aad is None:
+            aad = b""
+        ct_with_tag = self._aesgcm.encrypt(iv, plaintext, aad)
+        # Split ciphertext and tag (tag is last 16 bytes)
+        ciphertext = ct_with_tag[:-16]
+        tag = ct_with_tag[-16:]
+        return (iv, ciphertext, tag)
+
+    def decrypt_gcm(
+        self,
+        iv: bytes,
+        ciphertext: bytes,
+        tag: bytes,
+        aad: bytes | None = None,
+    ) -> bytes:
+        """Decrypt data using AES-GCM for Protocol 3.5.
+
+        Args:
+            iv: 12-byte initialization vector/nonce.
+            ciphertext: The encrypted data.
+            tag: 16-byte GCM authentication tag.
+            aad: Optional additional authenticated data.
+
+        Returns:
+            The decrypted plaintext.
+
+        Raises:
+            InvalidTag: If the GCM tag verification fails.
+        """
+        if aad is None:
+            aad = b""
+        # AESGCM.decrypt expects ciphertext + tag concatenated
+        ct_with_tag = ciphertext + tag
+        return self._aesgcm.decrypt(iv, ct_with_tag, aad)
 
     def hmac_sha256(self, data: bytes) -> bytes:
         """Calculate HMAC-SHA256 for protocol 3.4.
@@ -617,11 +698,18 @@ class Message:
         if not isinstance(payload_data, bytes):
             payload_data = payload_data.encode("utf8")
 
+        # Check protocol version
+        is_v35 = self.device is not None and self.device.version >= (3, 5)
+        is_v34 = self.device is not None and self.device.version >= (3, 4)
+
+        if is_v35 and self.device is not None:
+            # Protocol 3.5 uses AES-GCM encryption
+            return self._to_bytes_v35(payload_data)
+
         if self.encrypt and self.device is not None:
             payload_data = self.device.cipher.encrypt(self.command, payload_data)
 
         # Determine suffix format based on protocol version
-        is_v34 = self.device is not None and self.device.version >= (3, 4)
         if is_v34:
             suffix_format = MESSAGE_SUFFIX_FORMAT_34
         else:
@@ -648,6 +736,45 @@ class Message:
             checksum = crc(payload_data)
             footer = struct.pack(MESSAGE_SUFFIX_FORMAT, checksum, MAGIC_SUFFIX)
         return header + payload_data + footer
+
+    def _to_bytes_v35(self, payload_data: bytes) -> bytes:
+        """Return the message in Protocol 3.5 format.
+
+        Protocol 3.5 format:
+        00006699 VV RR SSSSSSSS MMMMMMMM LLLLLLLL (IV*12) (encrypted_data) (TAG*16) 00009966
+
+        Args:
+            payload_data: The payload data to encrypt.
+
+        Returns:
+            A bytes object containing the Protocol 3.5 message.
+        """
+        if self.device is None:
+            raise InvalidMessage("Cannot create v3.5 message without a device")
+
+        cipher = self.device.cipher
+
+        # Generate IV and encrypt payload with GCM
+        iv, ciphertext, tag = cipher.encrypt_gcm(payload_data)
+
+        # Calculate payload size: IV(12) + ciphertext + tag(16)
+        payload_size = 12 + len(ciphertext) + 16
+
+        # Build header: prefix(4) + version(1) + reserved(1) + seq(4) + cmd(4) + len(4)
+        header = struct.pack(
+            MESSAGE_PREFIX_FORMAT_35,
+            MAGIC_PREFIX_35,
+            0x00,  # version field (always 0x00)
+            0x00,  # reserved field (always 0x00)
+            self.sequence,
+            self.command,
+            payload_size,
+        )
+
+        # Build footer: tag(16) + suffix(4)
+        footer = struct.pack(MESSAGE_SUFFIX_FORMAT_35, tag, MAGIC_SUFFIX_35)
+
+        return header + iv + ciphertext + footer
 
     def __bytes__(self) -> bytes:
         """Convert the message to bytes.
@@ -687,6 +814,11 @@ class Message:
         Returns:
             A Message object created from the bytes.
         """
+        # Check for Protocol 3.5 prefix first
+        prefix_check = struct.unpack_from(">I", data)[0]
+        if prefix_check == MAGIC_PREFIX_35:
+            return cls._from_bytes_v35(device, data, cipher)
+
         try:
             prefix, sequence, command, payload_size = struct.unpack_from(
                 MESSAGE_PREFIX_FORMAT, data
@@ -797,6 +929,78 @@ class Message:
                     "incorrect. Try removing and re-adding the integration. Error: %s", e
                 )
                 raise MessageDecodeFailed() from e
+
+        return cls(command, payload, sequence)
+
+    @classmethod
+    def _from_bytes_v35(
+        cls,
+        device: "TuyaDevice",
+        data: bytes,
+        cipher: Optional[TuyaCipher] = None
+    ) -> "Message":
+        """Create a message from Protocol 3.5 bytes.
+
+        Protocol 3.5 format:
+        00006699 VV RR SSSSSSSS MMMMMMMM LLLLLLLL (IV*12) (encrypted_data) (TAG*16) 00009966
+
+        Args:
+            device: The device the message is from.
+            data: The bytes received from the device.
+            cipher: The cipher to use for decryption.
+
+        Returns:
+            A Message object created from the bytes.
+        """
+        header_size = struct.calcsize(MESSAGE_PREFIX_FORMAT_35)  # 18 bytes
+
+        try:
+            prefix, version_byte, reserved, sequence, command, payload_size = (
+                struct.unpack_from(MESSAGE_PREFIX_FORMAT_35, data)
+            )
+        except struct.error as e:
+            raise InvalidMessage("Invalid v3.5 message header format.") from e
+
+        if prefix != MAGIC_PREFIX_35:
+            raise InvalidMessage("Magic prefix 0x6699 missing from v3.5 message.")
+
+        # Extract IV (12 bytes after header)
+        iv = data[header_size:header_size + 12]
+        if len(iv) != 12:
+            raise InvalidMessage("Invalid IV length in v3.5 message.")
+
+        # Extract ciphertext (between IV and tag)
+        # payload_size = IV(12) + ciphertext + tag(16)
+        ciphertext_len = payload_size - 12 - 16
+        ciphertext_start = header_size + 12
+        ciphertext = data[ciphertext_start:ciphertext_start + ciphertext_len]
+
+        # Extract tag (16 bytes before suffix)
+        tag_start = ciphertext_start + ciphertext_len
+        tag = data[tag_start:tag_start + 16]
+        if len(tag) != 16:
+            raise InvalidMessage("Invalid GCM tag length in v3.5 message.")
+
+        # Verify suffix
+        suffix_start = tag_start + 16
+        try:
+            (suffix,) = struct.unpack_from(">I", data, suffix_start)
+        except struct.error as e:
+            raise InvalidMessage("Invalid v3.5 message suffix format.") from e
+
+        if suffix != MAGIC_SUFFIX_35:
+            raise InvalidMessage("Magic suffix 0x9966 missing from v3.5 message.")
+
+        # Decrypt payload using GCM
+        payload = None
+        if cipher is not None and ciphertext:
+            try:
+                payload_data = cipher.decrypt_gcm(iv, ciphertext, tag)
+                payload_text = payload_data.decode("utf8")
+                payload = json.loads(payload_text)
+            except Exception as e:
+                device._LOGGER.debug(f"v3.5 decryption failed: {e}")
+                raise InvalidMessage("GCM decryption/verification failed") from e
 
         return cls(command, payload, sequence)
 
