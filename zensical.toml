@@ -1,0 +1,11 @@
+[project]
+site_name = "RoboVac Documentation"
+docs_dir = "site_docs"
+site_dir = "site"
+
+nav = [
+  "index.md",
+  "installation.md",
+  "configuration.md",
+  "troubleshooting.md"
+]

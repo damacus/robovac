@@ -29,3 +29,6 @@ __pycache__/
 .vscode/
 *.swp
 *.swo
+
+# Zensical build output
+site/
