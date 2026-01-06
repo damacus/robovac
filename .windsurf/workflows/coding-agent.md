@@ -8,31 +8,33 @@ auto_execution_mode: 1
 You are continuing work on a long-running autonomous development task.
 This is a FRESH context window - you have no memory of previous sessions.
 
+Note: All commands in this workflow use Fish shell syntax (e.g., `task test`, `task jq:list-failing`).
+
 ### STEP 1: GET YOUR BEARINGS (MANDATORY)
 
 Start by orienting yourself:
 
-```fish
 # 1. See your working directory
-pwd
+`pwd`
 
 # 2. List files to understand project structure
-ls -la
+`ls -la`
 
 # 3. Read progress notes from previous sessions (if exists)
-cat progress.txt
+`bat progress.txt`
 
 # 4. Check recent git history
-git log --oneline -10
+`git log --oneline -10`
 
 # 5. List failing features
-task jq:list-failing FILE=vacuum_models
-task jq:list-failing FILE=core_functionality
-task jq:list-failing FILE=testing
+
+`task jq:list-failing FILE=vacuum_models`
+`task jq:list-failing FILE=core_functionality`
+`task jq:list-failing FILE=testing`
 
 # 6. Count remaining tests
-task jq:count-remaining
-```
+
+`task jq:count-remaining`
 
 ### STEP 2: VERIFICATION TEST (CRITICAL!)
 
@@ -41,10 +43,8 @@ task jq:count-remaining
 The previous session may have introduced bugs. Before implementing anything
 new, you MUST run verification tests.
 
-```fish
 # Run all tests
-task test
-```
+`task test`
 
 **If you find ANY issues:**
 
@@ -56,10 +56,8 @@ task test
 
 Look at feature files and find the highest-priority feature with `"passes": false`.
 
-```fish
 # See next features to work on
-task jq:next-features
-```
+`task jq:next-features`
 
 Focus on completing one feature perfectly in this session before moving on.
 
@@ -78,13 +76,11 @@ Implement the chosen feature thoroughly:
 
 After thorough verification, use the task commands to update the JSON:
 
-```fish
 # Update by feature ID using task command (preferred)
-task jq:update-field FILE=features/vacuum_models.json ID=VAC-001 FIELD=passes VALUE=true
+`task jq:update-field FILE=features/vacuum_models.json ID=VAC-001 FIELD=passes VALUE=true`
 
 # Or for multiple updates
-task jq:update-field FILE=features/testing.json ID=TEST-001 FIELD=passes VALUE=true
-```
+`task jq:update-field FILE=features/testing.json ID=TEST-001 FIELD=passes VALUE=true`
 
 **NEVER:**
 
@@ -98,17 +94,7 @@ task jq:update-field FILE=features/testing.json ID=TEST-001 FIELD=passes VALUE=t
 
 ### STEP 6: COMMIT YOUR PROGRESS
 
-Make a descriptive git commit:
-
-```fish
-git add .
-git commit -m "feat: Implement [feature name] - verified with tests
-
-- Added [specific changes]
-- Ran pytest to verify
-- Updated feature_list.json: marked test #X as passing
-"
-```
+Use conventional commit messages
 
 ### STEP 7: UPDATE PROGRESS NOTES
 
@@ -130,61 +116,52 @@ Before context fills up:
 4. Ensure no uncommitted changes
 5. Leave app in working state (no broken features)
 
----
-
 ## AVAILABLE TASK COMMANDS
 
 Run `task --list` to see all available commands. Key commands:
 
 ### Testing
 
-```fish
 # Run all tests with coverage
-task test
+`task test`
 
 # Run specific test file
-uv run pytest tests/test_vacuum/test_t2080_command_mappings.py -v
+`uv run pytest tests/test_vacuum/test_t2080_command_mappings.py -v`
 
 # Type check
-task type-check
+`task type-check`
 
 # Lint
-task lint
-```
+`task lint`
 
 ### Feature JSON Management
 
-```fish
 # List failing tests in a feature file
-task jq:list-failing FILE=vacuum_models
+`task jq:list-failing FILE=vacuum_models`
 
 # Update a field by ID
-task jq:update-field FILE=features/vacuum_models.json ID=VAC-001 FIELD=passes VALUE=true
+`task jq:update-field FILE=features/vacuum_models.json ID=VAC-001 FIELD=passes VALUE=true`
 
 # Run arbitrary jq query
-task jq:query FILE=features/vacuum_models.json QUERY='.[] | select(.passes == false) | .id'
+`task jq:query FILE=features/vacuum_models.json QUERY='.[] | select(.passes == false) | .id'`
 
 # Count remaining failing tests
-task jq:count-remaining
+`task jq:count-remaining`
 
 # See next features to work on
-task jq:next-features
-```
+`task jq:next-features`
 
 ### Linting
 
-```fish
 # Lint Python
-task lint
+`task lint`
 
 # Type check
-task type-check
+`task type-check`
 
 # Markdown lint
-task markdownlint
-```
+`task markdownlint`
 
----
 
 ## TESTING REQUIREMENTS
 
