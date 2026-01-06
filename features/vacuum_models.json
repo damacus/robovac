@@ -116,7 +116,7 @@
       "Verify all DPS commands defined",
       "Run model-specific tests"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "VAC-011",
@@ -127,7 +127,7 @@
       "Verify all DPS commands defined",
       "Run model-specific tests"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "VAC-012",
@@ -138,6 +138,6 @@
       "Verify all DPS commands defined",
       "Run model-specific tests"
     ],
-    "passes": false
+    "passes": true
   }
 ]
