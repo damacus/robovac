@@ -247,7 +247,8 @@ async def test_options_flow_init(hass: HomeAssistant) -> None:
 
     # Initialize the options flow
     flow = OptionsFlowHandler(config_entry)
-    result = await flow.async_step_init()
+    with patch.object(type(flow), 'config_entry', new_callable=lambda: property(lambda self: self._config_entry)):
+        result = await flow.async_step_init()
 
     assert result["type"] == data_entry_flow.FlowResultType.FORM
     assert result["step_id"] == "init"
@@ -277,7 +278,8 @@ async def test_options_flow_edit(hass: HomeAssistant) -> None:
     flow.selected_vacuum = "test_device_id"
 
     # Test the edit step
-    result = await flow.async_step_edit()
+    with patch.object(type(flow), 'config_entry', new_callable=lambda: property(lambda self: self._config_entry)):
+        result = await flow.async_step_edit()
 
     assert result["type"] == data_entry_flow.FlowResultType.FORM
     assert result["step_id"] == "edit"
@@ -303,7 +305,7 @@ async def test_options_flow_edit_submit(hass: HomeAssistant) -> None:
     config_entry.entry_id = "test_entry_id"
 
     # Create a completed future to return from our mock
-    future = asyncio.Future()
+    future: asyncio.Future[None] = asyncio.Future()
     future.set_result(None)
 
     # Mock the async_update_entry method to return the future
@@ -328,12 +330,13 @@ async def test_options_flow_edit_submit(hass: HomeAssistant) -> None:
     flow._update_data = MagicMock(return_value=updated_data)
 
     # Test the edit step submission
-    result = await flow.async_step_edit(
-        {
-            CONF_AUTODISCOVERY: False,
-            CONF_IP_ADDRESS: "192.168.1.100",
-        }
-    )
+    with patch.object(type(flow), 'config_entry', new_callable=lambda: property(lambda self: self._config_entry)):
+        result = await flow.async_step_edit(
+            {
+                CONF_AUTODISCOVERY: False,
+                CONF_IP_ADDRESS: "192.168.1.100",
+            }
+        )
 
     assert result["type"] == data_entry_flow.FlowResultType.CREATE_ENTRY
     assert result["title"] == ""

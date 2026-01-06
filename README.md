@@ -7,8 +7,7 @@ A Eufy RoboVac integration for Home Assistant that includes a Config Flow to add
 
 ## ⚠️ Breaking Change in v2.0.0
 
-**Version 2.0.0 includes significant protocol improvements that require you to
-remove and re-add the integration.**
+**Version 2.0.0 includes significant protocol improvements that require you to remove and re-add the integration.**
 
 ### What Changed
 
