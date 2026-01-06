@@ -96,7 +96,7 @@ tasks:
       - kubectl exec -it -n home-automation home-assistant-0 -- sh
 
   ha-quick-deploy:
-    desc: Quick deploy without restart (for Python file changes only)
+    desc: Quick deploy without restart (for Python file changes only, quiet output)
     cmds:
       - tar --exclude='__pycache__' --exclude='*.pyc' -cf /tmp/robovac.tar -C custom_components/robovac .
       - kubectl cp /tmp/robovac.tar home-automation/home-assistant-0:/tmp/robovac.tar

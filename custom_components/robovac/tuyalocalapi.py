@@ -455,10 +455,11 @@ class TuyaCipher:
 
         # Check if data length is valid for AES (must be multiple of 16)
         if len(data_to_decrypt) % 16 != 0:
-            # Data length not valid for AES, might need padding or is corrupted
-            # Try padding to nearest 16 bytes
-            pad_len = 16 - (len(data_to_decrypt) % 16)
-            data_to_decrypt = data_to_decrypt + (b'\x00' * pad_len)
+            # Data length not valid for AES - indicates corruption or protocol mismatch
+            raise ValueError(
+                f"Invalid encrypted data length for AES block cipher: "
+                f"{len(data_to_decrypt)} bytes (must be multiple of 16)"
+            )
 
         decryptor = self.cipher.decryptor()
         if self.version < (3, 3):
@@ -739,9 +740,12 @@ class Message:
             if suffix != MAGIC_SUFFIX:
                 raise InvalidMessage("Magic suffix missing from message")
 
-            # Verify HMAC-SHA256
+            # Verify HMAC-SHA256 - cipher is required for v3.4
+            if cipher is None:
+                raise InvalidMessage("Missing cipher for v3.4 message; cannot verify HMAC")
+
             data_to_verify = data[: header_size + payload_size - suffix_size]
-            if cipher is not None and not cipher.verify_hmac(data_to_verify, expected_hmac):
+            if not cipher.verify_hmac(data_to_verify, expected_hmac):
                 device._LOGGER.debug(f"HMAC verification failed. Expected: {expected_hmac.hex()}")
                 raise InvalidMessage("HMAC check failed")
         else:
