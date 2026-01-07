@@ -141,16 +141,17 @@ class RoboVac(TuyaDevice):
         """Get the supported fan speeds for this vacuum model.
 
         Returns:
-            list[str]: List of human-readable fan speed names (e.g., ["Standard", "Boost IQ", "Max"])
+            list[str]: List of human-readable fan speed names (e.g., ["Pure", "Standard", "Max"])
                       Returns empty list if fan speed control is not supported by this model.
         """
         values = self._get_command_values(RobovacCommand.FAN_SPEED)
         if values is None:
             return []
 
-        # Return the values from the dictionary (the display names)
-        # This preserves existing behavior for tests
-        return list(values.values())
+        # Return the keys title-cased as display names for the UI
+        # This ensures user-friendly names like "Pure" are shown even when
+        # the device uses different internal values like "Quiet"
+        return [key.replace("_", " ").title() for key in values.keys()]
 
     def getSupportedCommands(self) -> list[str]:
         """Get the list of supported commands for this vacuum model.
