@@ -68,6 +68,22 @@ RobovacCommand.MODE: {
 
 Device responses use case-insensitive matching - "AUTO", "auto", "Auto" all resolve correctly.
 
+## Proto Reference (Reference Only)
+
+The `proto-reference/` directory contains Protocol Buffer definitions that document the communication protocol used by newer Eufy vacuums. **This is reference material only and is not part of the Home Assistant integration.**
+
+Key proto files:
+
+- **`control.proto`**: Cleaning commands (auto, room, zone, spot, cruise, goto) via `ModeCtrlRequest`
+- **`work_status.proto`**: Device state machine with nested sub-states (cleaning, charging, washing, drying)
+- **`clean_param.proto`**: Cleaning parameters (fan suction, mop level, carpet strategy, clean type)
+- **`map_manage.proto`**: Map data structures (pixels, room outlines, restricted zones)
+- **`station.proto`**: Docking station config (dust collection, mop washing/drying, water levels)
+- **`consumable.proto`**: Part wear tracking (brushes, filters, mop, dust bag in hours)
+- **`error_code.proto`**: Error/warning reporting with obstacle detection (e.g., poop detection)
+
+These protos use the `proto.cloud` package and include Chinese comments from original development. The generated `*_pb2.py` files are Python protobuf outputs. Coordinates use centimeters (meters × 100).
+
 ## Adding a New Vacuum Model
 
 1. Create `custom_components/robovac/vacuums/TXXX.py` with features and commands
