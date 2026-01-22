@@ -9,14 +9,14 @@ message Empty {
 }
 
 message Point {
-    sint32 x = 1;       // 单位: m x 100
+    sint32 x = 1;       // 单位: m x 100 [EN: Unit: m x 100]
     sint32 y = 2;
 }
 
 message Pose {
-    sint32 x = 1;       // 单位: m x 100
+    sint32 x = 1;       // 单位: m x 100 [EN: Unit: m x 100]
     sint32 y = 2;
-    sint32 theta = 3;   // 单位: rad * 100
+    sint32 theta = 3;   // 单位: rad * 100 [EN: Unit: rad * 100]
 }
 
 message Line {
@@ -43,23 +43,23 @@ message Active {
     bool value = 1;
 }
 
-message Numerical {   // 数值分级
+message Numerical {   // 数值分级 [EN: Numerical grading]
     uint32 value = 1;
 }
 
-// 地面类型
+// 地面类型 [EN: Floor type]
 message Floor {
     enum Type {
         UNKNOW = 0;
-        BLANKET = 1;  // 毛毯
-        WOOD = 2;     // 木质
-        CERAMIC = 3;  // 瓷砖
+        BLANKET = 1;  // 毛毯 [EN: Carpet]
+        WOOD = 2;     // 木质 [EN: Wood]
+        CERAMIC = 3;  // 瓷砖 [EN: Ceramic tile]
     }
     Type type = 1;
 }
 
-// 房间类型
-// 当房间未命名时，手机 app 根据类型和索引值自动多语言命名，如 "厨房1"、"Kitchen1" 等
+// 房间类型 [EN: Room type]
+// 当房间未命名时，手机 app 根据类型和索引值自动多语言命名，如 "厨房1"、"Kitchen1" 等 [EN: When room is unnamed, mobile app automatically names it in multiple languages based on type and index, such as "厨房1", "Kitchen1", etc.]
 message RoomScene {
     enum Type {
         UNKNOW = 0;
@@ -74,7 +74,7 @@ message RoomScene {
     Type type = 1;
 
     message Index {
-        uint32 value = 1;  // 从1开始
+        uint32 value = 1;  // 从1开始 [EN: Starting from 1]
     }
     Index index = 2;
 }

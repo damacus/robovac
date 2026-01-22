@@ -13,12 +13,12 @@ message MapEditRequest {
         MERGE_ROOMS = 0;
         DIVIDE_ROOM = 1;
         RESET_ROOMS = 2;
-        RENAME_ROOM = 3;            // 房间描述
-        SET_RESTRICTED_ZONES = 4;   // 设置限制区域：虚拟墙、禁区、禁拖区；
-        SET_ROOMS_CUSTOM = 5;       // 房间定制(个性化清洁)
-        SET_CRUISE_POINTS = 6;      // 设置全局巡航点
-        ROTATION = 7;               // 地图旋转
-        IGNORE_OBSTACLE = 8;        // 忽略/恢复障碍物
+        RENAME_ROOM = 3;            // 房间描述 [EN: Room description]
+        SET_RESTRICTED_ZONES = 4;   // 设置限制区域：虚拟墙、禁区、禁拖区； [EN: Set restricted zones: virtual walls, no-go zones, no-mop zones;]
+        SET_ROOMS_CUSTOM = 5;       // 房间定制(个性化清洁) [EN: Room customization (personalized cleaning)]
+        SET_CRUISE_POINTS = 6;      // 设置全局巡航点 [EN: Set global cruise points]
+        ROTATION = 7;               // 地图旋转 [EN: Map rotation]
+        IGNORE_OBSTACLE = 8;        // 忽略/恢复障碍物 [EN: Ignore/restore obstacle]
     }
 
     Method method = 1;
@@ -31,17 +31,17 @@ message MapEditRequest {
 
     message DivideRoom {
         uint32 room_id = 1;
-        repeated Point points = 2;  // 分房是两个点还是可以大于2个点？？？
+        repeated Point points = 2;  // 分房是两个点还是可以大于2个点？？？ [EN: Is room division two points or can it be more than 2 points???]
     }
 
-    // 房间定制(个性化清洁)
+    // 房间定制(个性化清洁) [EN: Room customization (personalized cleaning)]
     message RoomsCustom {
         message Enable {
-            bool value = 1; // false: 使用全局参数；true: 使用房间定制参数
+            bool value = 1; // false: 使用全局参数；true: 使用房间定制参数 [EN: false: use global parameters; true: use room custom parameters]
         }
-        Enable custom_enable = 1;   // x10 之后不再使用
+        Enable custom_enable = 1;   // x10 之后不再使用 [EN: No longer used after x10]
 
-        // 设置房间顺序
+        // 设置房间顺序 [EN: Set room order]
         message Order {
             message Room {
                 uint32 id = 1;
@@ -51,7 +51,7 @@ message MapEditRequest {
         }
         Order rooms_order = 2;
 
-        // 设置房间定制参数
+        // 设置房间定制参数 [EN: Set room custom parameters]
         message Parm {
             message Room {
                 uint32 id = 1;
@@ -61,7 +61,7 @@ message MapEditRequest {
                     Fan fan = 2;
                     MopMode mop_mode = 3;
                     CleanExtent clean_extent = 4;
-                    uint32 clean_times = 5; // 清扫次数，非 0 有效
+                    uint32 clean_times = 5; // 清扫次数，非 0 有效 [EN: Cleaning times, non-zero is valid]
                 }
                 Custom custom = 2;
             }
@@ -69,11 +69,11 @@ message MapEditRequest {
         }
         Parm rooms_parm = 3;
 
-        Switch smart_mode_sw = 4; // 智能省心模式开关
+        Switch smart_mode_sw = 4; // 智能省心模式开关 [EN: Smart hassle-free mode switch]
 
         enum Condition {
-            GENERAL = 0;                    // 通常设置房间定制参数
-            RESERVATION_IN_PROGRESS = 1;    // 预约房间清扫过程中设置房间定制参数
+            GENERAL = 0;                    // 通常设置房间定制参数 [EN: Normally set room custom parameters]
+            RESERVATION_IN_PROGRESS = 1;    // 预约房间清扫过程中设置房间定制参数 [EN: Set room custom parameters during scheduled room cleaning]
         }
         Condition condition = 5;
     }
@@ -90,14 +90,14 @@ message MapEditRequest {
     }
 
     message Rotation {
-        uint32 angle = 1;  // 顺时针的角度的度数，如 90，180
+        uint32 angle = 1;  // 顺时针的角度的度数，如 90，180 [EN: Clockwise angle in degrees, e.g. 90, 180]
     }
 
     message IgnoreObstacle {
-        bool valid = 1;         // false: 设置无效；true: 设置有效
+        bool valid = 1;         // false: 设置无效；true: 设置有效 [EN: false: setting invalid; true: setting valid]
         string object_type = 2;
-        string photo_id = 3;    // 照片 id（优先通过照片 id 进行匹配）
-        Point point = 4;        // 障碍物中心点（其次搜索点的周围区域）
+        string photo_id = 3;    // 照片 id（优先通过照片 id 进行匹配） [EN: Photo ID (priority matching by photo ID)]
+        Point point = 4;        // 障碍物中心点（其次搜索点的周围区域） [EN: Obstacle center point (then search surrounding area of the point)]
     }
 
     oneof Param {
@@ -125,10 +125,10 @@ message MapEditResponse {
 
     message FailCode{
         enum Value {
-            UNKNOWN = 0;  // 其他错误，非以下错误码
-            AREA_SMALL = 1;  // 分割后房间面积太小
-            ROOM_UNADJACENT = 2;  // 房间不相邻不能合并
-            TOO_MANY_ROOMS = 3;  // 分割后房间数太多
+            UNKNOWN = 0;  // 其他错误，非以下错误码 [EN: Other errors, not the following error codes]
+            AREA_SMALL = 1;  // 分割后房间面积太小 [EN: Room area too small after division]
+            ROOM_UNADJACENT = 2;  // 房间不相邻不能合并 [EN: Rooms not adjacent cannot be merged]
+            TOO_MANY_ROOMS = 3;  // 分割后房间数太多 [EN: Too many rooms after division]
         }
         Value value = 1;
     }

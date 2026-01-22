@@ -1,7 +1,7 @@
 /**
- * 流通道协议包装.
+ * 流通道协议包装. [EN: Stream channel protocol wrapper.]
  *
- * @note: 机器端使用，app忽略
+ * @note: 机器端使用，app忽略 [EN: @note: Used by device, app should ignore]
  */
 syntax = "proto3";
 

@@ -7,7 +7,7 @@ package proto.cloud;
 message KeepAliveRequest {
     uint64 timestamp = 1;
 
-    // 强制同步机器中数据
-    // 手机 app 上多次尝试都拿不到数据才考虑使用该标志
+    // 强制同步机器中数据 [EN: Force sync data from device]
+    // 手机 app 上多次尝试都拿不到数据才考虑使用该标志 [EN: Consider using this flag only after multiple failed attempts to get data from mobile app]
     bool force_sync = 2;
 }

@@ -1,5 +1,5 @@
 /**
- * 通用数据协议
+ * 通用数据协议 [EN: Universal data protocol]
  */
 syntax = "proto3";
 

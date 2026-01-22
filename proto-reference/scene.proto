@@ -9,7 +9,7 @@ import "proto/cloud/clean_param.proto";
 import "proto/cloud/timing.proto";
 
 message SceneTask {
-    uint32 index = 1;  // 顺序，从1开始
+    uint32 index = 1;  // 顺序，从1开始 [EN: Order, starting from 1]
 
     enum Type {
         CURRENT_ROOM = 0;
@@ -18,14 +18,14 @@ message SceneTask {
     Type type = 2;
 
     enum CleanMode {
-        GENERAL = 0;    // 通用模式
-        SMART = 1;      // 智能省心模式
+        GENERAL = 0;    // 通用模式 [EN: General mode]
+        SMART = 1;      // 智能省心模式 [EN: Smart hassle-free mode]
     }
 
-    // 通用参数
+    // 通用参数 [EN: General parameters]
     message General {
         CleanType clean_type = 1;
-        uint32 clean_times = 2; // 清扫次数，非 0 有效
+        uint32 clean_times = 2; // 清扫次数，非 0 有效 [EN: Cleaning times, non-zero is valid]
         Fan fan = 3;
         MopMode mop_mode = 4;
         CleanExtent clean_extent = 5;
@@ -33,7 +33,7 @@ message SceneTask {
 
     message CurrentRoom {
         message Unit {
-            General general = 1;  // 通用模式会有这项
+            General general = 1;  // 通用模式会有这项 [EN: This is present in general mode]
 
             message RoomClean {
                 uint32 room_id = 1;
@@ -54,7 +54,7 @@ message SceneTask {
 
     message AllRooms {
         CleanMode mode = 1;
-        General general = 2;  // 通用模式会有这项
+        General general = 2;  // 通用模式会有这项 [EN: This is present in general mode]
     }
 
     oneof Task {
@@ -64,8 +64,8 @@ message SceneTask {
 }
 
 message SceneInfo {
-    // 手机 app 新建定时不需要该字段，设备返回 id
-    // 手机 app 其他操作需要该字段
+    // 手机 app 新建定时不需要该字段，设备返回 id [EN: Mobile app doesn't need this field when creating new schedule, device returns id]
+    // 手机 app 其他操作需要该字段 [EN: Mobile app needs this field for other operations]
     message Id {
         uint32 value = 1;
     }
@@ -73,28 +73,28 @@ message SceneInfo {
 
     bool valid = 2;
     enum InvalidReason {
-        NORMAL = 0;             // 正常（非失效状态）
-        MAP_NOT_EXIST = 1;      // 地图不存在
-        MAP_NOT_AVAILABLE = 2;  // 地图不可用（地图不完整）
-        MAP_NOT_MATCH = 3;      // 地图不适配（缺少指定区域）
-        OTHER = 4;              // 其他未分类的失效原因
-        DEFAULT = 5;  // 后续使用 type 字段，不再使用这个值表示默认场景
+        NORMAL = 0;             // 正常（非失效状态） [EN: Normal (not invalid state)]
+        MAP_NOT_EXIST = 1;      // 地图不存在 [EN: Map does not exist]
+        MAP_NOT_AVAILABLE = 2;  // 地图不可用（地图不完整） [EN: Map not available (map incomplete)]
+        MAP_NOT_MATCH = 3;      // 地图不适配（缺少指定区域） [EN: Map not matching (missing specified area)]
+        OTHER = 4;              // 其他未分类的失效原因 [EN: Other uncategorized invalid reasons]
+        DEFAULT = 5;  // 后续使用 type 字段，不再使用这个值表示默认场景 [EN: Subsequently use type field, no longer use this value to represent default scene]
     }
     InvalidReason invalid_reason = 3;
 
     string name = 4;
-    uint32 mapid = 5;       // 关联的地图id（无效：-2）
+    uint32 mapid = 5;       // 关联的地图id（无效：-2） [EN: Associated map ID (invalid: -2)]
 
-    // 场景执行时的动态时间数据放 WorkStatus 中
-    uint32 estimate_time = 6;   // 执行前预估完成时间（无效：0）
-    uint32 index = 7;       // 顺序，从1开始
+    // 场景执行时的动态时间数据放 WorkStatus 中 [EN: Dynamic time data during scene execution is placed in WorkStatus]
+    uint32 estimate_time = 6;   // 执行前预估完成时间（无效：0） [EN: Estimated completion time before execution (invalid: 0)]
+    uint32 index = 7;       // 顺序，从1开始 [EN: Order, starting from 1]
 
     enum Type {
-        SCENE_NORMAL = 0;                   // 普通场景
-        WHOLE_HOUSE_DAILY_CLEANING = 1;     // 全屋日常清洁（默认）
-        WHOLE_HOUSE_DEEP_CLEANING = 2;      // 全屋深度清洁（默认）
-        AFTER_DINNER_CLEANING = 3;          // 饭后清洁（默认）
-        PET_AREA_CLEANING = 4;              // 宠物区域清洁（默认）
+        SCENE_NORMAL = 0;                   // 普通场景 [EN: Normal scene]
+        WHOLE_HOUSE_DAILY_CLEANING = 1;     // 全屋日常清洁（默认） [EN: Whole house daily cleaning (default)]
+        WHOLE_HOUSE_DEEP_CLEANING = 2;      // 全屋深度清洁（默认） [EN: Whole house deep cleaning (default)]
+        AFTER_DINNER_CLEANING = 3;          // 饭后清洁（默认） [EN: After dinner cleaning (default)]
+        PET_AREA_CLEANING = 4;              // 宠物区域清洁（默认） [EN: Pet area cleaning (default)]
     }
     Type type = 8;
 }
@@ -102,9 +102,9 @@ message SceneInfo {
 message SceneRequest {
     enum Method {
         DEFAULT = 0;
-        ADD_SCENE = 1;      // 添加场景（可选设置定时、是否指定地图）
-        DELETE_SCENE = 2;   // 删除场景，使用 message common
-        MODIFY_SCENE = 3;   // 修改场景（可选设置定时、是否指定地图）
+        ADD_SCENE = 1;      // 添加场景（可选设置定时、是否指定地图） [EN: Add scene (optional: set schedule, specify map)]
+        DELETE_SCENE = 2;   // 删除场景，使用 message common [EN: Delete scene, use message common]
+        MODIFY_SCENE = 3;   // 修改场景（可选设置定时、是否指定地图） [EN: Modify scene (optional: set schedule, specify map)]
     }
 
     Method method = 1;
@@ -126,9 +126,9 @@ message SceneRequest {
     }
 }
 
-// 通过 dp 传基础信息
+// 通过 dp 传基础信息 [EN: Basic information transmitted via dp]
 message SceneResponse {
-    SceneRequest.Method method = 1;  // 开机/失效上报 DEFAULT，其他情况跟下发相同
+    SceneRequest.Method method = 1;  // 开机/失效上报 DEFAULT，其他情况跟下发相同 [EN: Report DEFAULT on boot/invalid, otherwise same as sent]
     uint32 seq = 2;
 
     message Result {

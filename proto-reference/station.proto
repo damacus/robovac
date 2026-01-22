@@ -1,5 +1,5 @@
 /**
- * 基站 Request 和 Response 协议；
+ * 基站 Request 和 Response 协议；[EN: Station Request and Response protocol;]
  */
 syntax = "proto3";
 // option optimize_for = LITE_RUNTIME;
@@ -7,7 +7,7 @@ package proto.cloud;
 
 import "proto/cloud/common.proto";
 
-message Duration {   // 时长档位分级
+message Duration {   // 时长档位分级 [EN: Duration level grading]
     enum Level {
         SHORT = 0;
         MEDIUM = 1;
@@ -16,89 +16,89 @@ message Duration {   // 时长档位分级
     Level level = 1;
 }
 
-message CollectDustCfg {    // 集尘配置
+message CollectDustCfg {    // 集尘配置 [EN: Dust collection configuration]
     enum Cfg {
-       CLOSE = 0; // 关闭
-       ONCE = 1; // 清扫1次就集尘
-       TWICE = 2; // 清扫2次才集尘
+       CLOSE = 0; // 关闭 [EN: Close]
+       ONCE = 1; // 清扫1次就集尘 [EN: Collect dust after 1 cleaning]
+       TWICE = 2; // 清扫2次才集尘 [EN: Collect dust after 2 cleanings]
     }
     Cfg cfg = 1;
 }
 
-message CollectDustCfgV2 {    // 集尘配置新版协议
+message CollectDustCfgV2 {    // 集尘配置新版协议 [EN: Dust collection configuration new version protocol]
     Switch sw = 1;
 
     message Mode {
         enum Value {
-            BY_TASK = 0;  // 按次数
-            BY_TIME = 1;  // 按时间
-            SMART = 2;    // 智能托管
+            BY_TASK = 0;  // 按次数 [EN: By task count]
+            BY_TIME = 1;  // 按时间 [EN: By time]
+            SMART = 2;    // 智能托管 [EN: Smart management]
         }
         Value value = 1;
 
-        uint32 task = 2;  // 任务次数
-        uint32 time = 3;  // 清洁时间，单位分钟
+        uint32 task = 2;  // 任务次数 [EN: Task count]
+        uint32 time = 3;  // 清洁时间，单位分钟 [EN: Cleaning time, unit minutes]
     }
     Mode mode = 2;
 }
 
-message DryCfg {    // 烘干配置
+message DryCfg {    // 烘干配置 [EN: Drying configuration]
     enum Cfg {
-       CLOSE = 0;    // 关闭
-       STANDARD = 1; // 标准
-       QUICK = 2;    // 快速
+       CLOSE = 0;    // 关闭 [EN: Close]
+       STANDARD = 1; // 标准 [EN: Standard]
+       QUICK = 2;    // 快速 [EN: Quick]
     }
     Cfg cfg = 1;
     Duration duration = 2;
 }
 
-message WashCfg {   // 洗拖布配置
+message WashCfg {   // 洗拖布配置 [EN: Mop washing configuration]
     message BackwashFreq {
         enum Mode {
-            ByPartition = 0;    // 按分区
-            ByTime = 1;         // 按时间
-            ByArea = 2;         // 按面积
+            ByPartition = 0;    // 按分区 [EN: By partition]
+            ByTime = 1;         // 按时间 [EN: By time]
+            ByArea = 2;         // 按面积 [EN: By area]
         }
         Mode mode = 1;
-        // 按档位需要传下面的值（档位表示不同时长或者不同面积）
+        // 按档位需要传下面的值（档位表示不同时长或者不同面积） [EN: When by level, need to pass below values (level represents different duration or area)]
         Duration duration = 2;
-        // 按数值需要传下面的值（表示不同时长或者不同面积）
-        Numerical time_or_area = 3;  // 时长单位分钟，面积单位平方米
+        // 按数值需要传下面的值（表示不同时长或者不同面积） [EN: When by value, need to pass below values (represents different duration or area)]
+        Numerical time_or_area = 3;  // 时长单位分钟，面积单位平方米 [EN: Duration unit minutes, area unit square meters]
     }
-    BackwashFreq wash_freq = 1;  // 回洗拖布的频率
-    Duration wash_duration = 2;  // 清洗拖布的时长
+    BackwashFreq wash_freq = 1;  // 回洗拖布的频率 [EN: Frequency of mop wash return]
+    Duration wash_duration = 2;  // 清洗拖布的时长 [EN: Duration of mop washing]
 
-    // 自动洗拖布开关
+    // 自动洗拖布开关 [EN: Auto mop washing switch]
     enum Cfg {
-        CLOSE = 0;    // 关闭
-        STANDARD = 1; // 标准
+        CLOSE = 0;    // 关闭 [EN: Close]
+        STANDARD = 1; // 标准 [EN: Standard]
     }
     Cfg cfg = 3;
 }
 
-message CutHairCfg {    // 割毛发配置
+message CutHairCfg {    // 割毛发配置 [EN: Hair cutting configuration]
     Switch sw = 1;
 }
 
-message SelfPurifyingCfg {  // [废弃] 手动自净（集尘、滚刷清洁组合项）
+message SelfPurifyingCfg {  // [废弃] 手动自净（集尘、滚刷清洁组合项） [EN: [Deprecated] Manual self-purifying (dust collection, roller brush cleaning combo)]
     enum Type {
-        STANDARD = 0;       // 标准
-        STRONG = 1;         // 强效
-        ENERGY_SAVING = 2;  // 节能
-        CUSTOM = 3;         // 自定义
+        STANDARD = 0;       // 标准 [EN: Standard]
+        STRONG = 1;         // 强效 [EN: Strong]
+        ENERGY_SAVING = 2;  // 节能 [EN: Energy saving]
+        CUSTOM = 3;         // 自定义 [EN: Custom]
     }
     Type type = 1;
 
     message Config {
         message Frequency {
             enum Mode {
-                BY_TASK = 0;  // 按次数
-                BY_TIME = 1;  // 按时间
+                BY_TASK = 0;  // 按次数 [EN: By task count]
+                BY_TIME = 1;  // 按时间 [EN: By time]
             }
             Mode mode = 1;
 
-            uint32 task = 2;  // 任务次数
-            uint32 time = 3;  // 清洁时间，单位分钟
+            uint32 task = 2;  // 任务次数 [EN: Task count]
+            uint32 time = 3;  // 清洁时间，单位分钟 [EN: Cleaning time, unit minutes]
         }
         Frequency frequency = 1;
 
@@ -113,40 +113,40 @@ message SelfPurifyingCfg {  // [废弃] 手动自净（集尘、滚刷清洁组�
         Intensity intensity = 2;
     }
 
-    // 设备始终上报所有的配置
-    // app 选择自定义时，需要下发 custom_cfg
+    // 设备始终上报所有的配置 [EN: Device always reports all configurations]
+    // app 选择自定义时，需要下发 custom_cfg [EN: When app selects custom, need to send custom_cfg]
     Config standard_cfg = 2;
     Config strong_cfg = 3;
     Config energy_saving_cfg = 4;
     Config custom_cfg = 5;
 }
 
-message AutoActionCfg {    // 扫拖过程自动进行的行为开关
-    WashCfg wash = 1;               //洗拖布
-    DryCfg dry = 2;                 // 烘干
-    CollectDustCfg collectdust = 3; // 集尘
-    bool detergent = 4;             // 添加清洁剂
-    bool make_disinfectant = 5;     // 自动制备消毒剂
-    CollectDustCfgV2 collectdust_v2 = 6;    // 集尘新版协议
-    CutHairCfg cut_hair = 7;                // 割毛发
-    SelfPurifyingCfg self_purifying = 8;    // [废弃] 手动自净（集尘、滚刷清洁组合项）
+message AutoActionCfg {    // 扫拖过程自动进行的行为开关 [EN: Auto action switches during sweep/mop process]
+    WashCfg wash = 1;               //洗拖布 [EN: Mop washing]
+    DryCfg dry = 2;                 // 烘干 [EN: Drying]
+    CollectDustCfg collectdust = 3; // 集尘 [EN: Dust collection]
+    bool detergent = 4;             // 添加清洁剂 [EN: Add detergent]
+    bool make_disinfectant = 5;     // 自动制备消毒剂 [EN: Auto prepare disinfectant]
+    CollectDustCfgV2 collectdust_v2 = 6;    // 集尘新版协议 [EN: Dust collection new version protocol]
+    CutHairCfg cut_hair = 7;                // 割毛发 [EN: Hair cutting]
+    SelfPurifyingCfg self_purifying = 8;    // [废弃] 手动自净（集尘、滚刷清洁组合项） [EN: [Deprecated] Manual self-purifying (dust collection, roller brush cleaning combo)]
 }
 
 message ManualActionCmd {
     oneof Cmd {
-        bool self_maintain = 1;    // 按照设置完成返回基站后的自动维护操作（加污排污/集尘/洗拖把/烘干），即深度自清洁
-        bool go_dry = 2;           // 手动烘干开关
-        bool go_collect_dust = 3;  // 手动集尘
-        bool go_selfcleaning = 4;  // 手动洗拖把
-        bool go_remove_scale = 5;  // 手动除水垢
-        bool go_cut_hair = 6;      // 手动割毛发
-        bool go_selfpurifying = 7; // [废弃] 手动自净（集尘、滚刷清洁组合项）
+        bool self_maintain = 1;    // 按照设置完成返回基站后的自动维护操作（加污排污/集尘/洗拖把/烘干），即深度自清洁 [EN: Auto maintenance after returning to station per settings (add/drain water/dust collection/mop wash/dry), i.e., deep self-cleaning]
+        bool go_dry = 2;           // 手动烘干开关 [EN: Manual drying switch]
+        bool go_collect_dust = 3;  // 手动集尘 [EN: Manual dust collection]
+        bool go_selfcleaning = 4;  // 手动洗拖把 [EN: Manual mop washing]
+        bool go_remove_scale = 5;  // 手动除水垢 [EN: Manual descaling]
+        bool go_cut_hair = 6;      // 手动割毛发 [EN: Manual hair cutting]
+        bool go_selfpurifying = 7; // [废弃] 手动自净（集尘、滚刷清洁组合项） [EN: [Deprecated] Manual self-purifying (dust collection, roller brush cleaning combo)]
     }
 }
 
-// 拖地模式下：
-// 回到基站自动触发清洗拖布；
-// 需要设置自动烘干拖布，才能烘干拖布；
+// 拖地模式下：[EN: In mopping mode:]
+// 回到基站自动触发清洗拖布；[EN: Returning to station auto triggers mop washing;]
+// 需要设置自动烘干拖布，才能烘干拖布；[EN: Need to set auto dry mop to dry the mop;]
 message StationRequest {
     AutoActionCfg auto_cfg = 1;
     ManualActionCmd manual_cmd = 2;
@@ -156,23 +156,23 @@ message StationResponse {
     AutoActionCfg auto_cfg_status = 1;
 
     message StationStatus {
-        bool connected = 1;		//基站是否已连接
+        bool connected = 1;		//基站是否已连接 [EN: Whether station is connected]
 
-        // 基站工作状态
+        // 基站工作状态 [EN: Station working status]
         enum State {
-            IDLE = 0;           // 空闲
-            WASHING = 1;        // 清洗拖布
-            DRYING = 2;         // 烘干拖布
-            REMOVING_SCALE = 3; // 除水垢
+            IDLE = 0;           // 空闲 [EN: Idle]
+            WASHING = 1;        // 清洗拖布 [EN: Washing mop]
+            DRYING = 2;         // 烘干拖布 [EN: Drying mop]
+            REMOVING_SCALE = 3; // 除水垢 [EN: Descaling]
         }
         State state = 2;
 
-        // 各模块的状态
-        bool collecting_dust = 3;        // 集尘中
-        bool clear_water_adding = 4;     // 清水添加中
-        bool waste_water_recycling = 5;  // 污水回收中
-        bool disinfectant_making = 6;    // 消毒剂制备中
-        bool cutting_hair = 7;           // 割毛发
+        // 各模块的状态 [EN: Status of each module]
+        bool collecting_dust = 3;        // 集尘中 [EN: Collecting dust]
+        bool clear_water_adding = 4;     // 清水添加中 [EN: Adding clean water]
+        bool waste_water_recycling = 5;  // 污水回收中 [EN: Recycling waste water]
+        bool disinfectant_making = 6;    // 消毒剂制备中 [EN: Making disinfectant]
+        bool cutting_hair = 7;           // 割毛发 [EN: Cutting hair]
     }
     StationStatus status = 2;
 
@@ -183,8 +183,8 @@ message StationResponse {
         MEDIUM = 3;     // 50% < medium < 75%
         HIGH = 4;       // >75%
     }
-    WaterLevel clean_level = 3;  // 干净水量
-    WaterLevel dirty_level = 4;  // 污水水量
+    WaterLevel clean_level = 3;  // 干净水量 [EN: Clean water level]
+    WaterLevel dirty_level = 4;  // 污水水量 [EN: Dirty water level]
 
-    Numerical clean_water = 5;   // 干净水量，0%~100%
+    Numerical clean_water = 5;   // 干净水量，0%~100% [EN: Clean water level, 0%~100%]
 }

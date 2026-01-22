@@ -1,5 +1,5 @@
 /**
- * media控制协议；
+ * media控制协议； [EN: Media control protocol;]
  */
 syntax = "proto3";
 
@@ -14,20 +14,20 @@ message MediaSetting {
         R_1080P = 2;
     }
 
-    // 实时视频流参数
+    // 实时视频流参数 [EN: Real-time video stream parameters]
     message RTStream {
         Resolution resolution = 1;
     }
     RTStream rt_stream = 1;
 
-    // 录像参数
+    // 录像参数 [EN: Recording parameters]
     message Record {
         Resolution resolution = 1;
         uint32 bitrate = 2;
     }
     Record record = 2;
 
-    // 拍照参数
+    // 拍照参数 [EN: Photo capture parameters]
     message Capture {
         uint32 width = 1;
         uint32 height = 2;
@@ -37,34 +37,34 @@ message MediaSetting {
 
 message MediaStatus {
     enum State {
-        IDLE = 0;         // 空闲
-        RECORDING = 1;    // 录像中
+        IDLE = 0;         // 空闲 [EN: Idle]
+        RECORDING = 1;    // 录像中 [EN: Recording]
     }
     State state = 1;
 
     enum Storage {
         NORMAL = 0;
-        THRESHOLD = 1;      // 达到阈值
-        FULL = 2;           // 存储空间满
+        THRESHOLD = 1;      // 达到阈值 [EN: Reached threshold]
+        FULL = 2;           // 存储空间满 [EN: Storage full]
     }
     Storage storage = 2;
 
-    uint32 total_space = 3; // 总空间大小（单位 kb，下同）
-    uint32 photo_space = 4; // 照片占用空间大小
-    uint32 video_space = 5; // 视频占用空间大小
-    bool bind_state = 6;    // 是否已绑定云
+    uint32 total_space = 3; // 总空间大小（单位 kb，下同） [EN: Total space size (unit: kb, same below)]
+    uint32 photo_space = 4; // 照片占用空间大小 [EN: Photo space usage]
+    uint32 video_space = 5; // 视频占用空间大小 [EN: Video space usage]
+    bool bind_state = 6;    // 是否已绑定云 [EN: Whether bound to cloud]
 }
 
 message MediaManagerRequest {
-    // 媒体控制
+    // 媒体控制 [EN: Media control]
     message Control {
         enum Method {
-            RECORD_START = 0;   // 开始录像
-            RECORD_STOP = 1;    // 停止录像
-            CAPTURE = 2;        // 执行拍照
+            RECORD_START = 0;   // 开始录像 [EN: Start recording]
+            RECORD_STOP = 1;    // 停止录像 [EN: Stop recording]
+            CAPTURE = 2;        // 执行拍照 [EN: Take photo]
         }
         Method method = 1;
-        uint32 seq = 2;   // 序号
+        uint32 seq = 2;   // 序号 [EN: Sequence number]
     }
     Control control = 1;
 
@@ -82,10 +82,10 @@ message MediaManagerRequest {
 }
 
 message MediaManagerResponse {
-    // 媒体控制结果
+    // 媒体控制结果 [EN: Media control result]
     message Control {
         MediaManagerRequest.Control.Method method = 1;
-        uint32 seq = 2;   // 返回与Request相同的seq
+        uint32 seq = 2;   // 返回与Request相同的seq [EN: Returns same seq as Request]
 
         enum Result {
             SUCCESS = 0;

@@ -8,8 +8,8 @@ import "proto/cloud/common.proto";
 import "proto/cloud/clean_param.proto";
 
 message TimerInfo {
-    // 手机 app 新建定时不需要该字段，设备返回 id
-    // 手机 app 其他操作需要该字段
+    // 手机 app 新建定时不需要该字段，设备返回 id [EN: Mobile app doesn't need this field when creating new schedule, device returns id]
+    // 手机 app 其他操作需要该字段 [EN: Mobile app needs this field for other operations]
     message Id {
         uint32 value = 1;
     }
@@ -23,67 +23,67 @@ message TimerInfo {
 
     message Desc {
         enum Trigger {
-            SINGLE = 0;          // 单次触发
-            CYCLE = 1;           // 周期触发
+            SINGLE = 0;          // 单次触发 [EN: Single trigger]
+            CYCLE = 1;           // 周期触发 [EN: Cyclic trigger]
         }
         Trigger trigger = 1;
 
         message Timing {
-            uint32 user_tz = 1;  // 用户时区，单位 s
-            bool summer = 2;     // 用户是否处于夏令时的国家或地区
+            uint32 user_tz = 1;  // 用户时区，单位 s [EN: User timezone, unit: seconds]
+            bool summer = 2;     // 用户是否处于夏令时的国家或地区 [EN: Whether user is in a country or region with daylight saving time]
             uint32 hours = 3;
             uint32 minutes = 4;
         }
         Timing timing = 2;
 
-        // 周期触发需要有以下字段描述周期
-        // 这里的 week 指用户感知的周，机器需要结合用户时区来判断某天对应的时间
+        // 周期触发需要有以下字段描述周期 [EN: Cyclic trigger requires the following fields to describe the cycle]
+        // 这里的 week 指用户感知的周，机器需要结合用户时区来判断某天对应的时间 [EN: The week here refers to the user-perceived week, device needs to combine user timezone to determine the time for a certain day]
         message Cycle {
-            uint32 week_bits = 1;  // bit-0 周日 bit-1 ... bit-6 周一~周六
+            uint32 week_bits = 1;  // bit-0 周日 bit-1 ... bit-6 周一~周六 [EN: bit-0 Sunday bit-1 ... bit-6 Monday~Saturday]
         }
         Cycle cycle = 3;
     }
     Desc desc = 3;
 
     message Addition {
-        uint64 create_time = 1;     // 创建时间
-        string create_user_id = 2;  // 创建用户 id
-        uint64 renew_time = 3;      // 修改时间
-        string renew_user_id = 4;   // 修改用户 id
+        uint64 create_time = 1;     // 创建时间 [EN: Creation time]
+        string create_user_id = 2;  // 创建用户 id [EN: Creator user ID]
+        uint64 renew_time = 3;      // 修改时间 [EN: Modification time]
+        string renew_user_id = 4;   // 修改用户 id [EN: Modifier user ID]
     }
     Addition addition = 4;
 
     message Action {
         enum Type {
-            SCHEDULE_AUTO_CLEAN = 0;   // 预约自动清扫
-            SCHEDULE_ROOMS_CLEAN = 1;  // 预约房间清扫
-            SCHEDULE_CRUISE = 2;       // 预约巡航
-            SCHEDULE_SCENE_CLEAN = 3;  // 预约场景清扫
+            SCHEDULE_AUTO_CLEAN = 0;   // 预约自动清扫 [EN: Scheduled automatic cleaning]
+            SCHEDULE_ROOMS_CLEAN = 1;  // 预约房间清扫 [EN: Scheduled rooms cleaning]
+            SCHEDULE_CRUISE = 2;       // 预约巡航 [EN: Scheduled cruise]
+            SCHEDULE_SCENE_CLEAN = 3;  // 预约场景清扫 [EN: Scheduled scene cleaning]
         }
         Type type = 1;
 
-        // 前置操作
+        // 前置操作 [EN: Pre-operation]
         message Precondition {
             // TODO
         }
         Precondition precondition = 2;
 
         enum Mode {
-            GENERAL = 0;    // 通用模式
-            CUSTOMIZE = 1;  // x9 定制清洁和 stream 房间参数关联，x10 后和 ScheduleRoomsClean.Custom 关联
+            GENERAL = 0;    // 通用模式 [EN: General mode]
+            CUSTOMIZE = 1;  // x9 定制清洁和 stream 房间参数关联，x10 后和 ScheduleRoomsClean.Custom 关联 [EN: x9 custom cleaning associated with stream room parameters, after x10 associated with ScheduleRoomsClean.Custom]
         }
 
         message ScheduleAutoClean {
             Mode mode = 1;
 
             message General {
-                // 智能省心模式开关关闭时才有下面 4 个字段
+                // 智能省心模式开关关闭时才有下面 4 个字段 [EN: The following 4 fields exist only when smart hassle-free mode switch is off]
                 Fan fan = 1;
                 MopMode mop_mode = 2;
                 CleanType clean_type = 3;
                 CleanExtent clean_extent = 4;
 
-                Switch smart_mode_sw = 5;   // 智能省心模式开关
+                Switch smart_mode_sw = 5;   // 智能省心模式开关 [EN: Smart hassle-free mode switch]
             }
             General general = 2;
         }
@@ -91,7 +91,7 @@ message TimerInfo {
         message ScheduleRoomsClean {
             Mode mode = 1;
 
-            message General {  // x9 通用模式有效，x10 之后不再使用
+            message General {  // x9 通用模式有效，x10 之后不再使用 [EN: x9 general mode valid, no longer used after x10]
                 uint32 map_id = 1;
 
                 Fan fan = 2;
@@ -107,21 +107,21 @@ message TimerInfo {
             }
             General general = 2;
 
-            message Custom {  // x9 定制模式不走这里，走 stream，x10 之后房间清洁走这里
+            message Custom {  // x9 定制模式不走这里，走 stream，x10 之后房间清洁走这里 [EN: x9 custom mode doesn't go here, goes to stream, after x10 room cleaning goes here]
                 uint32 map_id = 1;
-                Switch smart_mode_sw = 2;   // 智能省心模式开关
+                Switch smart_mode_sw = 2;   // 智能省心模式开关 [EN: Smart hassle-free mode switch]
 
                 message Room {
                     uint32 id = 1;
                     uint32 order = 2;
 
-                    // 智能省心模式开关关闭时才有下面 4 个字段
+                    // 智能省心模式开关关闭时才有下面 4 个字段 [EN: The following 4 fields exist only when smart hassle-free mode switch is off]
                     CleanType clean_type = 6;
                     Fan fan = 7;
                     MopMode mop_mode = 8;
                     CleanExtent clean_extent = 9;
 
-                    uint32 clean_times = 10;    // 清扫次数，非 0 有效
+                    uint32 clean_times = 10;    // 清扫次数，非 0 有效 [EN: Cleaning times, non-zero is valid]
                 }
                 repeated Room rooms = 3;
             }
@@ -134,7 +134,7 @@ message TimerInfo {
 
         message ScheduleSceneClean {
             uint32 scene_id = 1;
-            string scene_name = 2;  // 场景被删除时还可以在定时中显示失效的场景名
+            string scene_name = 2;  // 场景被删除时还可以在定时中显示失效的场景名 [EN: When scene is deleted, the invalid scene name can still be displayed in schedule]
         }
 
         oneof Param {
@@ -150,13 +150,13 @@ message TimerInfo {
 message TimerRequest {
     enum Method {
         DEFAULT = 0;
-        ADD = 1;     // 下面 timer 字段中不带 id 字段，其他都要
-        DELETE = 2;  // 下面 timer 字段中只用带 id 字段
-        MOTIFY = 3;  // 下面 timer 字段中要完整的字段
-        OPEN = 4;    // 下面 timer 字段中只用带 id 字段
-        CLOSE = 5;   // 下面 timer 字段中只用带 id 字段
-        INQUIRY = 6; // 查询/上报
-        IGNORE_ONCE = 7;  // 忽略一次，下面 timer 字段中只用带 id 字段
+        ADD = 1;     // 下面 timer 字段中不带 id 字段，其他都要 [EN: timer field below without id field, others are required]
+        DELETE = 2;  // 下面 timer 字段中只用带 id 字段 [EN: timer field below only needs id field]
+        MOTIFY = 3;  // 下面 timer 字段中要完整的字段 [EN: timer field below needs complete fields]
+        OPEN = 4;    // 下面 timer 字段中只用带 id 字段 [EN: timer field below only needs id field]
+        CLOSE = 5;   // 下面 timer 字段中只用带 id 字段 [EN: timer field below only needs id field]
+        INQUIRY = 6; // 查询/上报 [EN: Query/report]
+        IGNORE_ONCE = 7;  // 忽略一次，下面 timer 字段中只用带 id 字段 [EN: Ignore once, timer field below only needs id field]
     }
     Method method = 1;
 
@@ -166,7 +166,7 @@ message TimerRequest {
 }
 
 message TimerResponse {
-    TimerRequest.Method method = 1;  // 开机/失效上报 DEFAULT，其他情况跟下发相同
+    TimerRequest.Method method = 1;  // 开机/失效上报 DEFAULT，其他情况跟下发相同 [EN: Report DEFAULT on boot/invalid, otherwise same as sent]
     uint32 seq = 2;
 
     message Result {
@@ -180,6 +180,6 @@ message TimerResponse {
     }
     Result result = 3;
 
-    // 全量上报机器中所有的定时信息
+    // 全量上报机器中所有的定时信息 [EN: Report all schedule information in device in full]
     repeated TimerInfo timers = 4;
 }

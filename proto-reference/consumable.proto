@@ -1,5 +1,5 @@
 /**
- * 耗材统计.
+ * 耗材统计. [EN: Consumables statistics.]
  */
 syntax = "proto3";
 
@@ -24,20 +24,20 @@ message ConsumableRequest {
 
 message ConsumableRuntime {
     message Duration {
-        uint32 duration = 1;   // 单位：hour
+        uint32 duration = 1;   // 单位：hour [EN: Unit: hour]
     }
 
-    Duration side_brush = 1;    //边刷
-    Duration rolling_brush = 2; //滚刷
-    Duration filter_mesh = 3;   //滤网
-    Duration scrape = 4;        //刮条
-    Duration sensor = 5;        //传感器
-    Duration mop = 6;           //拖布
-    Duration dustbag = 7;       //尘袋
-    Duration dirty_watertank = 10;       //污水预存水槽
-    Duration dirty_waterfilter = 11;     //污水泵滤芯
+    Duration side_brush = 1;    //边刷 [EN: Side brush]
+    Duration rolling_brush = 2; //滚刷 [EN: Rolling brush]
+    Duration filter_mesh = 3;   //滤网 [EN: Filter mesh]
+    Duration scrape = 4;        //刮条 [EN: Scraper]
+    Duration sensor = 5;        //传感器 [EN: Sensor]
+    Duration mop = 6;           //拖布 [EN: Mop]
+    Duration dustbag = 7;       //尘袋 [EN: Dust bag]
+    Duration dirty_watertank = 10;       //污水预存水槽 [EN: Dirty water pre-storage tank]
+    Duration dirty_waterfilter = 11;     //污水泵滤芯 [EN: Dirty water pump filter]
 
-    uint64 last_time = 20;  // 需要带上时间，单位纳秒，从1970.1.1开始的纳秒数。
+    uint64 last_time = 20;  // 需要带上时间，单位纳秒，从1970.1.1开始的纳秒数。[EN: Needs to include time, unit nanoseconds, nanoseconds since 1970.1.1.]
 }
 
 message ConsumableResponse {

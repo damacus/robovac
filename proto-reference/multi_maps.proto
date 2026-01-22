@@ -7,26 +7,26 @@ package proto.cloud;
 import "proto/cloud/common.proto";
 import "proto/cloud/p2pdata.proto";
 
-// 所有的Request均使用tuya DP发送
+// 所有的Request均使用tuya DP发送 [EN: All Requests are sent using Tuya DP]
 message MultiMapsManageRequest {
     enum Method {
-        MAP_RESET = 0;     // 不带参
+        MAP_RESET = 0;     // 不带参 [EN: No parameters]
         MAP_RENAME = 1;    // message Rename
         MAP_LOAD = 2;      // message Common
         MAP_REPLACE = 3;   // message Common
         MAP_DELETE = 4;    // message Common
         MAP_SAVE = 5;      // message SaveOptions
-        MAP_IGNORE = 6;    // 忽略当前地图（不保存）,不带参
-        MAP_GET_ALL = 7;   // 获取所有地址, p2p同时加入
-        MAP_GET_ONE = 8;   // 获取单个地图, p2p同时加入
-        MAP_RECOVERY = 9;  // 恢复地图，message Common
+        MAP_IGNORE = 6;    // 忽略当前地图（不保存）,不带参 [EN: Ignore current map (don't save), no parameters]
+        MAP_GET_ALL = 7;   // 获取所有地址, p2p同时加入 [EN: Get all maps, p2p also included]
+        MAP_GET_ONE = 8;   // 获取单个地图, p2p同时加入 [EN: Get single map, p2p also included]
+        MAP_RECOVERY = 9;  // 恢复地图，message Common [EN: Recover map, message Common]
     }
 
     Method method = 1;
     uint32 seq = 2;
 
     message Rename {
-        uint32 cloud_mapid = 1;  // TODO: 是否使用cloud_mapid与多地图方案有关；
+        uint32 cloud_mapid = 1;  // TODO: 是否使用cloud_mapid与多地图方案有关； [EN: TODO: Whether to use cloud_mapid is related to multi-map solution;]
         string new_name = 2;
     }
 
@@ -45,8 +45,8 @@ message MultiMapsManageRequest {
     }
 }
 
-// 请求中method == MAP_GET_ALL或MAP_GET_ONE时, 使用p2p传送
-// 其它使用tuya DP传送
+// 请求中method == MAP_GET_ALL或MAP_GET_ONE时, 使用p2p传送 [EN: When method == MAP_GET_ALL or MAP_GET_ONE in request, use p2p transmission]
+// 其它使用tuya DP传送 [EN: Others use Tuya DP transmission]
 message MultiMapsManageResponse {
     MultiMapsManageRequest.Method method = 1;
     uint32 seq = 2;
@@ -58,7 +58,7 @@ message MultiMapsManageResponse {
     }
     Result result = 3;
 
-    // p2p同时加入, 请求中method == MAP_GET_ALL或MAP_GET_ONE时使用.
+    // p2p同时加入, 请求中method == MAP_GET_ALL或MAP_GET_ONE时使用. [EN: p2p also included, used when method == MAP_GET_ALL or MAP_GET_ONE in request.]
     message CompleteMaps {
         repeated p2p.CompleteMap complete_map = 1;
     }

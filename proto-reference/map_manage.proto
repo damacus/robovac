@@ -1,9 +1,9 @@
 /**
- * 地图管理相关协议，存储在云端的地图文件信息.
+ * 地图管理相关协议，存储在云端的地图文件信息. [EN: Map management protocol, map file information stored in cloud.]
  *
- * 此协议与云端存储方式相关，目前以涂鸦为例：
- * 涂鸦地图可以存储多张，每张地图有两个通道，分别是显示地图通道和特征地图通道，
- * 由于特征地图目前已经不需要，故将地图通道数据拆开分两部分：MapEntity 和 MapExtras.
+ * 此协议与云端存储方式相关，目前以涂鸦为例： [EN: This protocol is related to cloud storage method, currently using Tuya as example:]
+ * 涂鸦地图可以存储多张，每张地图有两个通道，分别是显示地图通道和特征地图通道， [EN: Tuya maps can store multiple maps, each map has two channels: display map channel and feature map channel,]
+ * 由于特征地图目前已经不需要，故将地图通道数据拆开分两部分：MapEntity 和 MapExtras. [EN: Since feature maps are no longer needed, map channel data is split into two parts: MapEntity and MapExtras.]
  */
 syntax = "proto3";
 
@@ -15,9 +15,9 @@ import "proto/cloud/common.proto";
 import "proto/cloud/stream.proto";
 
 /**
- * 地图实体数据，包括
-    - 地图描述；
-    - 地图像素；
+ * 地图实体数据，包括 [EN: Map entity data, including]
+    - 地图描述； [EN:     - Map description;]
+    - 地图像素； [EN:     - Map pixels;]
  */
 message MapEntity {
     message Desc {
@@ -27,7 +27,7 @@ message MapEntity {
         uint32 height = 3;
         uint32 resolution = 4;
 
-        Point origin = 5;          // 原点
+        Point origin = 5;          // 原点 [EN: Origin]
         repeated Pose docks = 6;
     }
     Desc desc = 1;
@@ -36,11 +36,11 @@ message MapEntity {
 }
 
 /**
- * 地图附加信息，包括
- *  - 地图名称；
- *  - 房间轮廓；
- *  - 房间参数；
- *  - 禁区；
+ * 地图附加信息，包括 [EN: Map additional information, including]
+ *  - 地图名称； [EN:  - Map name;]
+ *  - 房间轮廓； [EN:  - Room outlines;]
+ *  - 房间参数； [EN:  - Room parameters;]
+ *  - 禁区； [EN:  - Restricted zones;]
  */
 message MapExtras {
     string name = 1;

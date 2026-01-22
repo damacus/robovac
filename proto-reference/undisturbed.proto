@@ -12,7 +12,7 @@ message Undisturbed {
         uint32 minute = 2;
     }
 
-    Switch sw = 1;       // 勿扰使能开关
+    Switch sw = 1;       // 勿扰使能开关 [EN: Do not disturb enable switch]
 
     TimePoint begin = 2;
     TimePoint end = 3;
@@ -23,7 +23,7 @@ message UndisturbedRequest {
 }
 
 message UndisturbedResponse {
-    Active active = 1;      // 勿扰激活状态
+    Active active = 1;      // 勿扰激活状态 [EN: Do not disturb active state]
 
     Undisturbed undisturbed = 2;
 }

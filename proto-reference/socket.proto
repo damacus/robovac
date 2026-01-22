@@ -1,5 +1,5 @@
 /**
- * tcp 服务和 udp 广播协议，通过 socket 进行通信；
+ * tcp 服务和 udp 广播协议，通过 socket 进行通信； [EN: TCP service and UDP broadcast protocol, communicates via socket;]
  */
 syntax = "proto3";
 // option optimize_for = LITE_RUNTIME;
@@ -8,32 +8,32 @@ package proto.cloud;
 
 import "proto/cloud/ble.proto";
 
-// ==机器人定时向外广播==
+// ==机器人定时向外广播== [EN: ==Robot periodically broadcasts outward==]
 message SocketBroadcast {
-    bool is_bind = 1; // 是否绑定
-    string device_sn = 2; // 设备序列号
-    string user_id = 3; // 用户id（绑定后才有这个字段）
+    bool is_bind = 1; // 是否绑定 [EN: Whether bound]
+    string device_sn = 2; // 设备序列号 [EN: Device serial number]
+    string user_id = 3; // 用户id（绑定后才有这个字段） [EN: User ID (this field exists only after binding)]
 }
 
-// ==验证消息==
-// 1. 客户端（手机 app）连接服务端（机器人）
-// 2. 服务端（机器人）向客户端（手机 app）发送 12 位随机数
-// 3. 客户端（手机 app）向服务端（机器人）发送验证消息
-// 4. 服务端（机器人）向客户端（手机 app）发送验证结果（验证失败服务器会关闭 socket 连接）
+// ==验证消息== [EN: ==Verification message==]
+// 1. 客户端（手机 app）连接服务端（机器人） [EN: 1. Client (mobile app) connects to server (robot)]
+// 2. 服务端（机器人）向客户端（手机 app）发送 12 位随机数 [EN: 2. Server (robot) sends 12-digit random number to client (mobile app)]
+// 3. 客户端（手机 app）向服务端（机器人）发送验证消息 [EN: 3. Client (mobile app) sends verification message to server (robot)]
+// 4. 服务端（机器人）向客户端（手机 app）发送验证结果（验证失败服务器会关闭 socket 连接） [EN: 4. Server (robot) sends verification result to client (mobile app) (server closes socket connection on verification failure)]
 
-// 验证消息的 message 定义如下
+// 验证消息的 message 定义如下 [EN: Verification message definition is as follows]
 message SocketVerify {
-    string random = 1; // 12 位随机数
-    string device_sn = 2; // 设备序列号
-    string user_id = 3; // 用户id（绑定后才验证这个字段）
+    string random = 1; // 12 位随机数 [EN: 12-digit random number]
+    string device_sn = 2; // 设备序列号 [EN: Device serial number]
+    string user_id = 3; // 用户id（绑定后才验证这个字段） [EN: User ID (this field is verified only after binding)]
 }
-// 验证结果的 message 返回 BtRobotMsg.ProductInfo 消息（消息体中有成功/失败）
+// 验证结果的 message 返回 BtRobotMsg.ProductInfo 消息（消息体中有成功/失败） [EN: Verification result message returns BtRobotMsg.ProductInfo message (success/failure in message body)]
 
-// ==手机 app 发送数据==
+// ==手机 app 发送数据== [EN: ==Mobile app sends data==]
 message SocketTransData {
     enum Type {
-        E_DISTRIBUTE = 0;   // 配网
-        E_DP = 1;           // 数据点
+        E_DISTRIBUTE = 0;   // 配网 [EN: Network configuration]
+        E_DP = 1;           // 数据点 [EN: Data point]
     }
     Type type = 1;
 
