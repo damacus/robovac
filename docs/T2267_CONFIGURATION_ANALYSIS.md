@@ -1,209 +1,251 @@
 # T2267 (RoboVac L60) Configuration Analysis
 
-This document analyzes the T2267 vacuum configuration against the proto-reference files to identify potentially missing settings and features.
+This document reviews the T2267 vacuum configuration and identifies missing or incorrect features.
 
-## Current Configuration
+## Current Features
 
-### DPS Codes Defined
+### Home Assistant Features (`VacuumEntityFeature`)
 
-| Command | Code | Has Values |
-|---------|------|------------|
-| MODE | 152 | ✓ (auto, pause, Spot, return, Nosweep) |
-| STATUS | 153 | ✓ (base64 encoded states) |
-| DIRECTION | 155 | ✓ (brake, forward, back, left, right) |
-| START_PAUSE | 156 | ✗ |
-| DO_NOT_DISTURB | 157 | ✗ |
-| FAN_SPEED | 158 | ✓ (quiet, standard, turbo, max, boost_iq) |
-| BOOST_IQ | 159 | ✗ |
-| LOCATE | 160 | ✗ |
-| BATTERY | 163 | ✗ |
-| CONSUMABLES | 168 | ✗ |
-| RETURN_HOME | 173 | ✗ |
-| ERROR | 177 | ✗ |
+| Feature | Status | Notes |
+|---------|--------|-------|
+| CLEAN_SPOT | ✓ | |
+| FAN_SPEED | ✓ | |
+| LOCATE | ✓ | |
+| PAUSE | ✓ | Fixed - uses code 152 with "AggN" |
+| RETURN_HOME | ✓ | Fixed - uses code 152 with "AggG" |
+| SEND_COMMAND | ✓ | |
+| START | ✓ | |
+| STATE | ✓ | |
+| STOP | ✓ | Fixed - uses code 152 with "AggM" |
+| BATTERY | ❌ Missing | Command exists (code 163) but feature flag not set |
 
-### Features Enabled
+### RoboVac Features (`RoboVacEntityFeature`)
 
-**Home Assistant Features:**
-- `VacuumEntityFeature.FAN_SPEED`
-- `VacuumEntityFeature.LOCATE`
-- `VacuumEntityFeature.PAUSE`
-- `VacuumEntityFeature.RETURN_HOME`
-- `VacuumEntityFeature.SEND_COMMAND`
-- `VacuumEntityFeature.START`
-- `VacuumEntityFeature.STATE`
-- `VacuumEntityFeature.STOP`
+| Feature | Status | Notes |
+|---------|--------|-------|
+| DO_NOT_DISTURB | ✓ | Code 157 |
+| BOOST_IQ | ✓ | Code 159 |
+| CLEANING_TIME | ❌ Missing | T2278 has this |
+| CLEANING_AREA | ❌ Missing | T2278 has this |
+| ROOM | ❌ Missing | Device supports room cleaning (status values exist) |
+| ZONE | ❌ Missing | Device supports zone cleaning (status values exist) |
+| MAP | ❌ Missing | |
+| CONSUMABLES | ⚠️ Partial | Command exists (code 168) but feature flag not set |
 
-**RoboVac Features:**
-- `RoboVacEntityFeature.DO_NOT_DISTURB`
-- `RoboVacEntityFeature.BOOST_IQ`
+## Current Commands
 
----
+| Command | DPS Code | Values | Status |
+|---------|----------|--------|--------|
+| MODE | 152 | auto, pause, spot, return, nosweep | ⚠️ Issues |
+| STATUS | 153 | Multiple protobuf-encoded values | ✓ |
+| DIRECTION | 155 | brake, forward, back, left, right | ✓ |
+| START_PAUSE | 152 | pause, resume | ✓ Fixed |
+| STOP | 152 | stop | ✓ Fixed |
+| DO_NOT_DISTURB | 157 | - | ✓ |
+| FAN_SPEED | 158 | quiet, standard, turbo, max, boost_iq | ✓ |
+| BOOST_IQ | 159 | - | ✓ |
+| LOCATE | 160 | - | ⚠️ Missing value |
+| BATTERY | 163 | - | ✓ |
+| CONSUMABLES | 168 | - | ✓ |
+| RETURN_HOME | 152 | return | ✓ Fixed |
+| ERROR | 177 | - | ✓ |
 
-## Missing Commands (from proto-reference)
+## Issues Found
 
-### 1. CLEANING_TIME / CLEANING_AREA
-**Source:** `work_status.proto`
+### 1. MODE "spot" value is incorrect
 
-The proto shows `elapsed_time` and `area` fields in cleaning status messages. The T2268 model has these features enabled, but T2267 does not.
-
-Would require DPS codes for time/area tracking to be identified.
-
-### 2. MOP_LEVEL
-**Source:** `clean_param.proto`
-
-If the model supports mopping, the following levels are available:
-- LOW = 0
-- MIDDLE = 1
-- HIGH = 2
-
-Not present in T2267 configuration.
-
-### 3. AUTO_RETURN
-**Source:** `control.proto`
-
-Resume cleaning after charging (breakpoint continuation). The T2268 model has this feature; T2267 does not.
-
----
-
-## Missing Features
-
-### 1. VacuumEntityFeature.CLEAN_SPOT
-T2267 has "Spot" mode value defined but doesn't expose the `CLEAN_SPOT` feature flag.
-
-**Comparison:** T2268 has `VacuumEntityFeature.CLEAN_SPOT` enabled.
-
-### 2. RoboVacEntityFeature.CLEANING_TIME
-**Proto reference:** `elapsed_time` in WorkStatus message
-
-Not enabled in T2267.
-
-### 3. RoboVacEntityFeature.CLEANING_AREA
-**Proto reference:** `area` field in cleaning status
-
-Not enabled in T2267.
-
-### 4. RoboVacEntityFeature.CONSUMABLES
-T2267 has CONSUMABLES command defined (code 168) but the feature flag is not set in `robovac_features`.
-
-**Proto reference** (`consumable.proto`) shows available consumables:
-- Side brush
-- Rolling brush
-- Filter mesh
-- Scraper
-- Sensor
-- Mop
-- Dust bag
-
-### 5. RoboVacEntityFeature.EDGE / SMALL_ROOM
-T2267 MODE has "Nosweep" but no edge or small room modes.
-
-Could potentially add edge cleaning support if the device supports it.
-
----
-
-## Missing Mode Values
-
-Based on `control.proto` ModeCtrlRequest:
-
-| T2267 Mode | Proto Equivalent | Status |
-|------------|------------------|--------|
-| auto | START_AUTO_CLEAN | ✓ Present |
-| pause | PAUSE_TASK | ✓ Present |
-| Spot | START_SPOT_CLEAN | ✓ Present |
-| return | START_GOHOME | ✓ Present |
-| Nosweep | - | ✓ Present |
-| - | edge | **Missing** |
-| - | small_room | **Missing** |
-
-### Additional Modes from Proto (if supported by hardware)
-
-From `work_status.proto` WorkStatus.Mode:
-- `AUTO` - Global auto cleaning
-- `SELECT_ROOM` - Selected room cleaning
-- `SELECT_ZONE` - Selected zone cleaning
-- `SPOT` - Spot cleaning
-- `FAST_MAPPING` - Fast mapping
-- `GLOBAL_CRUISE` - Whole house cruise
-- `ZONES_CRUISE` - Selected zones cruise
-- `POINT_CRUISE` - Point cruise (precise arrival)
-- `SCENE` - Scene cleaning
-- `SMART_FOLLOW` - Smart follow
-
----
-
-## Missing Activity Mapping
-
-T2267 lacks an `activity_mapping` dictionary to translate STATUS values to `VacuumActivity` states.
-
-Based on `work_status.proto`, a suggested mapping would be:
-
+**Current:**
 ```python
-activity_mapping = {
-    "Standby": VacuumActivity.IDLE,
-    "Sleep": VacuumActivity.IDLE,
-    "Charging": VacuumActivity.DOCKED,
-    "Cleaning": VacuumActivity.CLEANING,
-    "GoHome": VacuumActivity.RETURNING,
-    "Paused": VacuumActivity.PAUSED,
-    "Fault": VacuumActivity.ERROR,
-    "RemoteCtrl": VacuumActivity.CLEANING,
-    "FastMapping": VacuumActivity.CLEANING,
-    "Cruising": VacuumActivity.CLEANING,
+"spot": "AA=="  # WRONG - AA== decodes to standby/empty
+```
+
+**Should be:**
+```python
+"spot": "AggD"  # Correct - encodes START_SPOT_CLEAN (method=3)
+```
+
+The value "AA==" (base64) decodes to a zero byte, which represents standby, not spot cleaning. The correct encoding for `ModeCtrlRequest.Method.START_SPOT_CLEAN` (value 3) is "AggD".
+
+### 2. MODE "nosweep" is misleading
+
+**Current:**
+```python
+"nosweep": "AggO"  # Encodes RESUME_TASK (14), not a cleaning mode
+```
+
+The value "AggO" encodes `ModeCtrlRequest.Method.RESUME_TASK` (value 14), which resumes a paused task. This should either be:
+- Renamed to "resume" for clarity, or
+- Replaced with proper mop-only mode encoding if that's the intent
+
+### 3. LOCATE missing value
+
+**T2278 has:**
+```python
+RobovacCommand.LOCATE: {
+    "code": 160,
+    "values": {"locate": "true"},
 }
 ```
 
-**Note:** The T2267 uses base64-encoded protobuf STATUS values, so the mapping would need to decode these values first.
+**T2267 has:**
+```python
+RobovacCommand.LOCATE: {
+    "code": 160,
+}
+```
 
----
+The LOCATE command should have a value defined.
 
-## Missing Settings (from unisetting.proto)
+### 4. FAN_SPEED missing MAX_PLUS
 
-The following settings are available in the proto but not exposed in T2267:
+Protobuf defines these fan suction levels:
+- QUIET = 0
+- STANDARD = 1
+- TURBO = 2
+- MAX = 3
+- MAX_PLUS = 4
 
-| Setting | Description | Proto Field |
-|---------|-------------|-------------|
-| Child Lock | Prevent accidental button presses | `children_lock` |
-| AI See | AI object recognition | `ai_see` |
-| Pet Mode | Pet-specific cleaning behavior | `pet_mode_sw` |
-| Poop Avoidance | Avoid pet waste | `poop_avoidance_sw` |
-| Multi-map | Support multiple floor maps | `multi_map_sw` |
-| Cruise Continue | Resume cruise after interruption | `cruise_continue_sw` |
+T2267 is missing MAX_PLUS if the device hardware supports it.
 
----
+## Missing Commands
 
-## Summary
+| Command | Expected Code | Notes |
+|---------|--------------|-------|
+| CLEANING_TIME | 6 | For tracking cleaning duration |
+| CLEANING_AREA | 7 | For tracking cleaning area (m²) |
 
-| Category | Missing Item | Priority | Notes |
-|----------|--------------|----------|-------|
-| Config | `activity_mapping` | **High** | Would improve state reporting |
-| Feature | `CLEAN_SPOT` | Medium | Mode exists, feature flag missing |
-| Mode | `edge` | Medium | Common cleaning mode |
-| Mode | `small_room` | Medium | Common cleaning mode |
-| Feature | `CONSUMABLES` flag | Low | Command exists, flag missing |
-| Feature | `CLEANING_TIME` | Low | Requires DPS code discovery |
-| Feature | `CLEANING_AREA` | Low | Requires DPS code discovery |
-| Command | `AUTO_RETURN` | Low | Breakpoint continuation |
-| Command | `MOP_LEVEL` | Unknown | Only if hardware supports mopping |
+## Protobuf Methods Reference
 
----
+From `control.proto` - `ModeCtrlRequest.Method`:
 
-## Recommendations
+| Method | Value | Base64 Encoding | T2267 Status |
+|--------|-------|-----------------|--------------|
+| START_AUTO_CLEAN | 0 | BBoCCAE= | ✓ ("auto") |
+| START_SELECT_ROOMS_CLEAN | 1 | Complex* | ❌ Not implemented |
+| START_SELECT_ZONES_CLEAN | 2 | Complex* | ❌ Not implemented |
+| START_SPOT_CLEAN | 3 | AggD | ❌ Wrong value (uses AA==) |
+| START_GOTO_CLEAN | 4 | AggE | ❌ Not implemented |
+| START_RC_CLEAN | 5 | AggF | ❌ Not implemented |
+| START_GOHOME | 6 | AggG | ✓ ("return") |
+| START_SCHEDULE_AUTO_CLEAN | 7 | AggH | ❌ Not implemented |
+| START_SCHEDULE_ROOMS_CLEAN | 8 | AggI | ❌ Not implemented |
+| START_FAST_MAPPING | 9 | AggJ | ❌ Not implemented |
+| START_GOWASH | 10 | AggK | ❌ Not implemented |
+| STOP_TASK | 12 | AggM | ✓ (STOP command) |
+| PAUSE_TASK | 13 | AggN | ✓ ("pause") |
+| RESUME_TASK | 14 | AggO | ✓ (labeled "nosweep") |
+| STOP_GOHOME | 15 | AggP | ❌ Not implemented |
+| STOP_RC_CLEAN | 16 | AggQ | ❌ Not implemented |
 
-1. **Add `activity_mapping`** - This would significantly improve Home Assistant state reporting. Requires decoding the base64 STATUS values to understand the state format.
+*Complex methods require additional parameters (room IDs, zone coordinates, etc.)
 
-2. **Enable `CLEAN_SPOT` feature** - The "Spot" mode already exists; just need to add the feature flag.
+## Base64 Encoding Pattern
 
-3. **Enable `CONSUMABLES` feature** - The command is already defined (code 168); add the feature flag to expose consumable data.
+The simple method-only commands follow this pattern:
+- 2 bytes length prefix + field 1 (method) as varint
+- Example: Method 13 (PAUSE_TASK) = `02 08 0D` = "AggN"
 
-4. **Test edge/small_room modes** - Try adding these mode values to see if the device responds.
+| Method Value | Hex Bytes | Base64 |
+|--------------|-----------|--------|
+| 0 | 02 08 00 | AggA |
+| 3 | 02 08 03 | AggD |
+| 6 | 02 08 06 | AggG |
+| 12 | 02 08 0C | AggM |
+| 13 | 02 08 0D | AggN |
+| 14 | 02 08 0E | AggO |
 
----
+## Recommended Fixes
 
-## References
+### Priority 1 - Critical Fixes
 
-- `proto-reference/work_status.proto` - Work status and state definitions
-- `proto-reference/clean_param.proto` - Cleaning parameters (fan, mop, carpet strategy)
-- `proto-reference/control.proto` - Mode control commands
-- `proto-reference/consumable.proto` - Consumables tracking
-- `proto-reference/unisetting.proto` - Device settings
-- `proto-reference/error_code_list_t2265.proto` - T22xx series error codes
+1. **Fix spot mode encoding**
+   ```python
+   "spot": "AggD"  # START_SPOT_CLEAN (method=3)
+   ```
+
+2. **Rename "nosweep" to "resume"** (or implement proper mop-only mode)
+   ```python
+   "resume": "AggO"  # RESUME_TASK (method=14)
+   ```
+
+### Priority 2 - Feature Additions
+
+3. **Add BATTERY to homeassistant_features**
+   ```python
+   homeassistant_features = (
+       ...
+       | VacuumEntityFeature.BATTERY
+   )
+   ```
+
+4. **Add LOCATE value**
+   ```python
+   RobovacCommand.LOCATE: {
+       "code": 160,
+       "values": {"locate": True},
+   },
+   ```
+
+### Priority 3 - Enhanced Features
+
+5. **Add CLEANING_TIME and CLEANING_AREA**
+   ```python
+   robovac_features = (
+       ...
+       | RoboVacEntityFeature.CLEANING_TIME
+       | RoboVacEntityFeature.CLEANING_AREA
+   )
+
+   # Commands
+   RobovacCommand.CLEANING_TIME: {"code": 6},
+   RobovacCommand.CLEANING_AREA: {"code": 7},
+   ```
+
+6. **Add ROOM and ZONE features** if device supports room/zone cleaning
+   ```python
+   robovac_features = (
+       ...
+       | RoboVacEntityFeature.ROOM
+       | RoboVacEntityFeature.ZONE
+   )
+   ```
+
+## Status Values Reference
+
+T2267 currently supports these status values:
+
+| Base64 Code | Human Readable | Activity |
+|-------------|----------------|----------|
+| BgoAEAUyAA== | Cleaning | CLEANING |
+| BgoAEAVSAA== | Positioning | CLEANING |
+| CAoAEAUyAggB | Paused | PAUSED |
+| AggB | Paused | PAUSED |
+| CAoCCAEQBTIA | Room Cleaning | CLEANING |
+| CAoCCAEQBVIA | Room Positioning | CLEANING |
+| CgoCCAEQBTICCAE= | Room Paused | PAUSED |
+| CAoCCAIQBTIA | Zone Cleaning | CLEANING |
+| CAoCCAIQBVIA | Zone Positioning | CLEANING |
+| CgoCCAIQBTICCAE= | Zone Paused | PAUSED |
+| BAoAEAY= | Remote Control | CLEANING |
+| BBAHQgA= | Heading Home | RETURNING |
+| BBADGgA= | Charging | DOCKED |
+| BhADGgIIAQ== | Completed | DOCKED |
+| AA== | Standby | IDLE |
+| AhAB | Sleeping | IDLE |
+| BQgNEIsB | Off Ground | ERROR |
+
+## Comparison with Similar Models
+
+### T2278 (L60 Hybrid SES) has additional:
+- CLEANING_TIME feature
+- CLEANING_AREA feature
+- AUTO_RETURN feature
+- ROOM feature
+- ZONE feature
+- MAP feature
+- STOP command in MODE values
+
+### T2080 (S1 Pro) has additional:
+- Station-related status values (Adding Water, Drying Mop, Washing Mop, etc.)
+- MOP_LEVEL command
+- More comprehensive error handling
