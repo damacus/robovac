@@ -3,6 +3,8 @@
 import pytest
 from unittest.mock import patch
 
+from homeassistant.components.vacuum import VacuumActivity
+
 from custom_components.robovac.robovac import RoboVac
 from custom_components.robovac.vacuums.base import RobovacCommand
 
@@ -42,9 +44,9 @@ def test_t2267_mode_command_values(mock_t2267_robovac: RoboVac) -> None:
     """Test T2267 MODE command value mappings."""
     assert mock_t2267_robovac.getRoboVacCommandValue(RobovacCommand.MODE, "auto") == "BBoCCAE="
     assert mock_t2267_robovac.getRoboVacCommandValue(RobovacCommand.MODE, "pause") == "AggN"
-    assert mock_t2267_robovac.getRoboVacCommandValue(RobovacCommand.MODE, "Spot") == "AA=="
+    assert mock_t2267_robovac.getRoboVacCommandValue(RobovacCommand.MODE, "spot") == "AA=="
     assert mock_t2267_robovac.getRoboVacCommandValue(RobovacCommand.MODE, "return") == "AggG"
-    assert mock_t2267_robovac.getRoboVacCommandValue(RobovacCommand.MODE, "Nosweep") == "AggO"
+    assert mock_t2267_robovac.getRoboVacCommandValue(RobovacCommand.MODE, "nosweep") == "AggO"
 
     # Unknown returns as-is
     assert mock_t2267_robovac.getRoboVacCommandValue(RobovacCommand.MODE, "unknown") == "unknown"
@@ -90,3 +92,82 @@ def test_t2267_command_codes(mock_t2267_robovac: RoboVac) -> None:
     assert commands[RobovacCommand.CONSUMABLES]["code"] == 168
     assert commands[RobovacCommand.RETURN_HOME]["code"] == 173
     assert commands[RobovacCommand.ERROR]["code"] == 177
+
+
+def test_t2267_status_values(mock_t2267_robovac: RoboVac) -> None:
+    """Test T2267 STATUS command value mappings."""
+    # Cleaning states
+    assert mock_t2267_robovac.getRoboVacHumanReadableValue(
+        RobovacCommand.STATUS, "BgoAEAUyAA=="
+    ) == "Cleaning"
+    assert mock_t2267_robovac.getRoboVacHumanReadableValue(
+        RobovacCommand.STATUS, "BgoAEAVSAA=="
+    ) == "Positioning"
+
+    # Room cleaning states
+    assert mock_t2267_robovac.getRoboVacHumanReadableValue(
+        RobovacCommand.STATUS, "CAoCCAEQBTIA"
+    ) == "Room Cleaning"
+    assert mock_t2267_robovac.getRoboVacHumanReadableValue(
+        RobovacCommand.STATUS, "CgoCCAEQBTICCAE="
+    ) == "Room Paused"
+
+    # Zone cleaning states
+    assert mock_t2267_robovac.getRoboVacHumanReadableValue(
+        RobovacCommand.STATUS, "CAoCCAIQBTIA"
+    ) == "Zone Cleaning"
+    assert mock_t2267_robovac.getRoboVacHumanReadableValue(
+        RobovacCommand.STATUS, "CgoCCAIQBTICCAE="
+    ) == "Zone Paused"
+
+    # Docked/charging states
+    assert mock_t2267_robovac.getRoboVacHumanReadableValue(
+        RobovacCommand.STATUS, "BBADGgA="
+    ) == "Charging"
+    assert mock_t2267_robovac.getRoboVacHumanReadableValue(
+        RobovacCommand.STATUS, "BhADGgIIAQ=="
+    ) == "Completed"
+
+    # Navigation states
+    assert mock_t2267_robovac.getRoboVacHumanReadableValue(
+        RobovacCommand.STATUS, "BBAHQgA="
+    ) == "Heading Home"
+
+    # Idle states
+    assert mock_t2267_robovac.getRoboVacHumanReadableValue(
+        RobovacCommand.STATUS, "AA=="
+    ) == "Standby"
+    assert mock_t2267_robovac.getRoboVacHumanReadableValue(
+        RobovacCommand.STATUS, "AhAB"
+    ) == "Sleeping"
+
+
+def test_t2267_activity_mapping(mock_t2267_robovac: RoboVac) -> None:
+    """Test T2267 activity_mapping for VacuumActivity states."""
+    activity_mapping = mock_t2267_robovac.model_details.activity_mapping
+
+    # Verify activity_mapping exists
+    assert activity_mapping is not None
+
+    # Cleaning states map to CLEANING
+    assert activity_mapping["Cleaning"] == VacuumActivity.CLEANING
+    assert activity_mapping["Positioning"] == VacuumActivity.CLEANING
+    assert activity_mapping["Room Cleaning"] == VacuumActivity.CLEANING
+    assert activity_mapping["Zone Cleaning"] == VacuumActivity.CLEANING
+    assert activity_mapping["Remote Control"] == VacuumActivity.CLEANING
+
+    # Paused states map to PAUSED
+    assert activity_mapping["Paused"] == VacuumActivity.PAUSED
+    assert activity_mapping["Room Paused"] == VacuumActivity.PAUSED
+    assert activity_mapping["Zone Paused"] == VacuumActivity.PAUSED
+
+    # Returning states map to RETURNING
+    assert activity_mapping["Heading Home"] == VacuumActivity.RETURNING
+
+    # Docked states map to DOCKED
+    assert activity_mapping["Charging"] == VacuumActivity.DOCKED
+    assert activity_mapping["Completed"] == VacuumActivity.DOCKED
+
+    # Idle states map to IDLE
+    assert activity_mapping["Standby"] == VacuumActivity.IDLE
+    assert activity_mapping["Sleeping"] == VacuumActivity.IDLE

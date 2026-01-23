@@ -1,11 +1,12 @@
 """RoboVac L60 (T2267)"""
-from homeassistant.components.vacuum import VacuumEntityFeature
+from homeassistant.components.vacuum import (VacuumEntityFeature, VacuumActivity)
 from .base import RoboVacEntityFeature, RobovacCommand, RobovacModelDetails
 
 
 class T2267(RobovacModelDetails):
     homeassistant_features = (
-        VacuumEntityFeature.FAN_SPEED
+        VacuumEntityFeature.CLEAN_SPOT
+        | VacuumEntityFeature.FAN_SPEED
         | VacuumEntityFeature.LOCATE
         | VacuumEntityFeature.PAUSE
         | VacuumEntityFeature.RETURN_HOME
@@ -24,30 +25,40 @@ class T2267(RobovacModelDetails):
             "values": {
                 "auto": "BBoCCAE=",
                 "pause": "AggN",
-                "Spot": "AA==",
+                "spot": "AA==",
                 "return": "AggG",
-                "Nosweep": "AggO",
+                "nosweep": "AggO",
             },
         },
         RobovacCommand.STATUS: {
             "code": 153,
-            "values": [
-                "BgoAEAUyAA===",
-                "BgoAEAVSAA===",
-                "CAoAEAUyAggB",
-                "CAoCCAEQBTIA",
-                "CAoCCAEQBVIA",
-                "CgoCCAEQBTICCAE=",
-                "CAoCCAIQBTIA",
-                "CAoCCAIQBVIA",
-                "CgoCCAIQBTICCAE=",
-                "BAoAEAY=",
-                "BBAHQgA=",
-                "BBADGgA=",
-                "BhADGgIIAQ==",
-                "AA==",
-                "AhAB",
-            ],
+            "values": {
+                # Cleaning states
+                "BgoAEAUyAA==": "Cleaning",
+                "BgoAEAVSAA==": "Positioning",
+                # Paused states
+                "CAoAEAUyAggB": "Paused",
+                "AggB": "Paused",
+                # Room cleaning states
+                "CAoCCAEQBTIA": "Room Cleaning",
+                "CAoCCAEQBVIA": "Room Positioning",
+                "CgoCCAEQBTICCAE=": "Room Paused",
+                # Zone cleaning states
+                "CAoCCAIQBTIA": "Zone Cleaning",
+                "CAoCCAIQBVIA": "Zone Positioning",
+                "CgoCCAIQBTICCAE=": "Zone Paused",
+                # Navigation states
+                "BAoAEAY=": "Remote Control",
+                "BBAHQgA=": "Heading Home",
+                # Charging/docked states
+                "BBADGgA=": "Charging",
+                "BhADGgIIAQ==": "Completed",
+                # Idle states
+                "AA==": "Standby",
+                "AhAB": "Sleeping",
+                # User-reported status codes (contain embedded timestamp/stats)
+                "DAi73ou93qHyzgFSAA==": "Positioning",  # Reported via HA, likely positioning with timestamp
+            },
         },
         RobovacCommand.DIRECTION: {
             "code": 155,
@@ -93,4 +104,27 @@ class T2267(RobovacModelDetails):
         RobovacCommand.ERROR: {
             "code": 177,
         }
+    }
+
+    activity_mapping = {
+        # Cleaning states
+        "Cleaning": VacuumActivity.CLEANING,
+        "Positioning": VacuumActivity.CLEANING,
+        "Room Cleaning": VacuumActivity.CLEANING,
+        "Room Positioning": VacuumActivity.CLEANING,
+        "Zone Cleaning": VacuumActivity.CLEANING,
+        "Zone Positioning": VacuumActivity.CLEANING,
+        "Remote Control": VacuumActivity.CLEANING,
+        # Paused states
+        "Paused": VacuumActivity.PAUSED,
+        "Room Paused": VacuumActivity.PAUSED,
+        "Zone Paused": VacuumActivity.PAUSED,
+        # Returning states
+        "Heading Home": VacuumActivity.RETURNING,
+        # Docked states
+        "Charging": VacuumActivity.DOCKED,
+        "Completed": VacuumActivity.DOCKED,
+        # Idle states
+        "Standby": VacuumActivity.IDLE,
+        "Sleeping": VacuumActivity.IDLE,
     }
