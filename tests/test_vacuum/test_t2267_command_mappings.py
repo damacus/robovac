@@ -29,14 +29,16 @@ def test_t2267_dps_codes(mock_t2267_robovac: RoboVac) -> None:
     assert dps_codes["MODE"] == "152"
     assert dps_codes["STATUS"] == "153"
     assert dps_codes["DIRECTION"] == "155"
-    assert dps_codes["START_PAUSE"] == "156"
+    # START_PAUSE uses MODE command (code 152) for protobuf models
+    assert dps_codes["START_PAUSE"] == "152"
     assert dps_codes["DO_NOT_DISTURB"] == "157"
     assert dps_codes["FAN_SPEED"] == "158"
     assert dps_codes["BOOST_IQ"] == "159"
     assert dps_codes["LOCATE"] == "160"
     assert dps_codes["BATTERY_LEVEL"] == "163"
     assert dps_codes["CONSUMABLES"] == "168"
-    assert dps_codes["RETURN_HOME"] == "173"
+    # RETURN_HOME uses MODE command (code 152) for protobuf models
+    assert dps_codes["RETURN_HOME"] == "152"
     assert dps_codes["ERROR_CODE"] == "177"
 
 
@@ -76,6 +78,49 @@ def test_t2267_direction_command_values(mock_t2267_robovac: RoboVac) -> None:
     assert mock_t2267_robovac.getRoboVacCommandValue(RobovacCommand.DIRECTION, "unknown") == "unknown"
 
 
+def test_t2267_start_pause_command_values(mock_t2267_robovac: RoboVac) -> None:
+    """Test T2267 START_PAUSE command value mappings.
+
+    START_PAUSE uses the MODE DPS code (152) with protobuf-encoded values:
+    - "AggN" encodes ModeCtrlRequest.Method.PAUSE_TASK (13)
+    - "AggO" encodes ModeCtrlRequest.Method.RESUME_TASK (14)
+    """
+    # Pause command - encodes PAUSE_TASK (method=13)
+    assert mock_t2267_robovac.getRoboVacCommandValue(RobovacCommand.START_PAUSE, "pause") == "AggN"
+
+    # Resume command - encodes RESUME_TASK (method=14)
+    assert mock_t2267_robovac.getRoboVacCommandValue(RobovacCommand.START_PAUSE, "resume") == "AggO"
+
+    # Unknown returns as-is
+    assert mock_t2267_robovac.getRoboVacCommandValue(RobovacCommand.START_PAUSE, "unknown") == "unknown"
+
+
+def test_t2267_return_home_command_values(mock_t2267_robovac: RoboVac) -> None:
+    """Test T2267 RETURN_HOME command value mappings.
+
+    RETURN_HOME uses the MODE DPS code (152) with protobuf-encoded value:
+    - "AggG" encodes ModeCtrlRequest.Method.START_GOHOME (6)
+    """
+    # Return home command - encodes START_GOHOME (method=6)
+    assert mock_t2267_robovac.getRoboVacCommandValue(RobovacCommand.RETURN_HOME, "return") == "AggG"
+
+    # Unknown returns as-is
+    assert mock_t2267_robovac.getRoboVacCommandValue(RobovacCommand.RETURN_HOME, "unknown") == "unknown"
+
+
+def test_t2267_stop_command_values(mock_t2267_robovac: RoboVac) -> None:
+    """Test T2267 STOP command value mappings.
+
+    STOP uses the MODE DPS code (152) with protobuf-encoded value:
+    - "AggM" encodes ModeCtrlRequest.Method.STOP_TASK (12)
+    """
+    # Stop command - encodes STOP_TASK (method=12)
+    assert mock_t2267_robovac.getRoboVacCommandValue(RobovacCommand.STOP, "stop") == "AggM"
+
+    # Unknown returns as-is
+    assert mock_t2267_robovac.getRoboVacCommandValue(RobovacCommand.STOP, "unknown") == "unknown"
+
+
 def test_t2267_command_codes(mock_t2267_robovac: RoboVac) -> None:
     """Test that T2267 command codes are correctly defined on model."""
     commands = mock_t2267_robovac.model_details.commands
@@ -83,14 +128,16 @@ def test_t2267_command_codes(mock_t2267_robovac: RoboVac) -> None:
     assert commands[RobovacCommand.MODE]["code"] == 152
     assert commands[RobovacCommand.STATUS]["code"] == 153
     assert commands[RobovacCommand.DIRECTION]["code"] == 155
-    assert commands[RobovacCommand.START_PAUSE]["code"] == 156
+    # START_PAUSE uses MODE command (code 152) for protobuf models
+    assert commands[RobovacCommand.START_PAUSE]["code"] == 152
     assert commands[RobovacCommand.DO_NOT_DISTURB]["code"] == 157
     assert commands[RobovacCommand.FAN_SPEED]["code"] == 158
     assert commands[RobovacCommand.BOOST_IQ]["code"] == 159
     assert commands[RobovacCommand.LOCATE]["code"] == 160
     assert commands[RobovacCommand.BATTERY]["code"] == 163
     assert commands[RobovacCommand.CONSUMABLES]["code"] == 168
-    assert commands[RobovacCommand.RETURN_HOME]["code"] == 173
+    # RETURN_HOME uses MODE command (code 152) for protobuf models
+    assert commands[RobovacCommand.RETURN_HOME]["code"] == 152
     assert commands[RobovacCommand.ERROR]["code"] == 177
 
 

@@ -71,7 +71,22 @@ class T2267(RobovacModelDetails):
             },
         },
         RobovacCommand.START_PAUSE: {
-            "code": 156,
+            # Pause is sent via MODE command (code 152) with protobuf-encoded value
+            # "AggN" encodes ModeCtrlRequest.Method.PAUSE_TASK (13)
+            # "AggO" encodes ModeCtrlRequest.Method.RESUME_TASK (14)
+            "code": 152,
+            "values": {
+                "pause": "AggN",
+                "resume": "AggO",
+            },
+        },
+        RobovacCommand.STOP: {
+            # Stop is sent via MODE command (code 152) with protobuf-encoded value
+            # "AggM" encodes ModeCtrlRequest.Method.STOP_TASK (12)
+            "code": 152,
+            "values": {
+                "stop": "AggM",
+            },
         },
         RobovacCommand.DO_NOT_DISTURB: {
             "code": 157,
@@ -99,7 +114,12 @@ class T2267(RobovacModelDetails):
             "code": 168,
         },
         RobovacCommand.RETURN_HOME: {
-            "code": 173,
+            # Return home is sent via MODE command (code 152) with protobuf-encoded value
+            # "AggG" encodes ModeCtrlRequest.Method.START_GOHOME (6)
+            "code": 152,
+            "values": {
+                "return": "AggG",
+            },
         },
         RobovacCommand.ERROR: {
             "code": 177,
