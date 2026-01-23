@@ -21,6 +21,46 @@ ERROR_MESSAGES = {
     19: "Laser sensor stuck",
     20: "Laser sensor blocked",
     21: "Base blocked",
+    # T2320 (X9 Pro) specific error codes (from proto-reference/error_code_list_t2320.proto)
+    # These codes are used by vacuums with auto-clean stations
+    26: "Low battery - scheduled start failed",
+    31: "Foreign objects stuck in suction port",
+    32: "Mop holder rotating motor stuck - clear tangled objects from mop",
+    33: "Mop bracket lift motor stuck - clear foreign objects from lifting bracket",
+    39: "Positioning failed - cleaning ended, check if map matches environment",
+    40: "Mop cloth dislodged",
+    41: "Air drying device heater abnormal",
+    50: "Machine accidentally on carpet",
+    51: "Camera blocked",
+    52: "Unable to leave station - check surroundings",
+    55: "Station exploration failed",
+    70: "Please clean dust collector and filter",
+    71: "Wall sensor abnormal",
+    72: "Robot water tank insufficient",
+    73: "Station dirty water tank full",
+    74: "Station clean water tank insufficient",
+    75: "Station water tank missing",
+    76: "Camera abnormal",
+    77: "3D TOF sensor abnormal",
+    78: "Ultrasonic sensor abnormal",
+    79: "Station clean tray not installed",
+    80: "Robot and station communication abnormal",
+    81: "Dirty water tank leaking",
+    82: "Please clean station wash tray",
+    83: "Poor charging contact",
+    101: "Battery abnormal",
+    102: "Wheel module abnormal",
+    103: "Side brush module abnormal",
+    104: "Fan abnormal",
+    105: "Roller brush motor abnormal",
+    106: "Water pump abnormal",
+    107: "Laser sensor abnormal",
+    111: "Rotation motor abnormal",
+    112: "Lift motor abnormal",
+    113: "Water spraying device abnormal",
+    114: "Water pumping device abnormal",
+    117: "Ultrasonic sensor abnormal",
+    119: "WiFi or Bluetooth abnormal",
     # T22xx series error codes (from proto-reference/error_code_list_t2265.proto)
     # Wheel errors (1xxx)
     1010: "Left wheel open circuit",
@@ -327,6 +367,147 @@ TROUBLESHOOTING_CONTEXT = {
             "Obstacles blocking dock access",
             "Dirty charging contacts",
             "Dock moved from mapped location",
+        ],
+    },
+    # T2320 (X9 Pro) specific error codes
+    32: {
+        "troubleshooting": [
+            "Remove mop pads and check for tangled hair or debris",
+            "Clean the mop holder rotating mechanism",
+            "Ensure mop pads are properly attached",
+            "Restart vacuum",
+        ],
+        "common_causes": [
+            "Hair or string wrapped around mop holder",
+            "Debris blocking rotation",
+            "Mop pads incorrectly installed",
+        ],
+    },
+    33: {
+        "troubleshooting": [
+            "Check mop lifting bracket for foreign objects",
+            "Clean around lift motor area",
+            "Ensure nothing is blocking the lift mechanism",
+            "Restart vacuum",
+        ],
+        "common_causes": [
+            "Debris in lifting mechanism",
+            "Foreign objects blocking lift",
+            "Mechanical obstruction",
+        ],
+    },
+    40: {
+        "troubleshooting": [
+            "Reattach mop cloth securely",
+            "Check mop holder clips are engaged",
+            "Inspect mop cloth for damage",
+            "Replace mop cloth if worn",
+        ],
+        "common_causes": [
+            "Mop cloth not properly attached",
+            "Worn mop cloth velcro",
+            "Mop holder clips damaged",
+        ],
+    },
+    52: {
+        "troubleshooting": [
+            "Clear area around station",
+            "Check for obstacles blocking exit path",
+            "Ensure station is on flat surface",
+            "Clean station sensors",
+        ],
+        "common_causes": [
+            "Obstacles blocking station exit",
+            "Station misaligned",
+            "Dirty sensors",
+        ],
+    },
+    73: {
+        "troubleshooting": [
+            "Empty the dirty water tank",
+            "Clean dirty water tank",
+            "Ensure tank is properly seated",
+            "Check tank sensors are clean",
+        ],
+        "common_causes": [
+            "Dirty water tank full",
+            "Tank sensor dirty",
+            "Tank not properly inserted",
+        ],
+    },
+    74: {
+        "troubleshooting": [
+            "Refill station clean water tank",
+            "Check tank is properly seated",
+            "Ensure water inlet is not blocked",
+        ],
+        "common_causes": [
+            "Clean water tank empty",
+            "Tank not properly inserted",
+            "Water inlet blocked",
+        ],
+    },
+    75: {
+        "troubleshooting": [
+            "Install clean water tank in station",
+            "Install dirty water tank in station",
+            "Ensure both tanks are properly seated",
+        ],
+        "common_causes": [
+            "Water tank removed for cleaning",
+            "Tank not properly inserted",
+            "Tank detection sensor dirty",
+        ],
+    },
+    79: {
+        "troubleshooting": [
+            "Install wash tray in station",
+            "Ensure tray is properly seated",
+            "Clean tray sensors",
+        ],
+        "common_causes": [
+            "Wash tray removed for cleaning",
+            "Tray not properly inserted",
+            "Tray sensor dirty",
+        ],
+    },
+    80: {
+        "troubleshooting": [
+            "Ensure vacuum is properly docked",
+            "Clean charging contacts",
+            "Restart both vacuum and station",
+            "Check station power connection",
+        ],
+        "common_causes": [
+            "Poor contact between vacuum and station",
+            "Dirty charging contacts",
+            "Station power issue",
+        ],
+    },
+    82: {
+        "troubleshooting": [
+            "Remove and clean station wash tray",
+            "Rinse tray thoroughly",
+            "Check for debris buildup",
+            "Reinstall tray",
+        ],
+        "common_causes": [
+            "Accumulated dirt on wash tray",
+            "Mop debris buildup",
+            "Regular maintenance needed",
+        ],
+    },
+    83: {
+        "troubleshooting": [
+            "Clean charging contacts on vacuum",
+            "Clean charging pins on station",
+            "Ensure vacuum is properly aligned on dock",
+            "Check for debris on dock",
+        ],
+        "common_causes": [
+            "Dirty charging contacts",
+            "Vacuum misaligned on dock",
+            "Debris on charging area",
         ],
     },
 }
