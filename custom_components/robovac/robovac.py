@@ -257,6 +257,12 @@ class RoboVac(TuyaDevice):
                 if pattern_result is not None:
                     return pattern_result
 
+            # For ERROR commands, try pattern matching if exact lookup failed
+            if cmd == RobovacCommand.ERROR:
+                pattern_result = self._match_error_pattern(value)
+                if pattern_result is not None:
+                    return pattern_result
+
             # Only log if values dict exists but value not found
             if values is not None:
                 _LOGGER.debug(
@@ -295,5 +301,30 @@ class RoboVac(TuyaDevice):
         for prefix, suffix, status_name in status_patterns:
             if value.startswith(prefix) and value.endswith(suffix):
                 return status_name
+
+        return None
+
+    def _match_error_pattern(self, value: str) -> str | None:
+        """Match an ERROR value against defined patterns.
+
+        Some devices send status-like protobuf messages on the ERROR DPS code.
+        This method matches such codes using prefix/suffix patterns to prevent
+        them from being incorrectly treated as errors.
+
+        Args:
+            value: The base64-encoded error value from the device.
+
+        Returns:
+            The mapped value if a pattern matches (e.g., "no_error"), None otherwise.
+        """
+        error_patterns: list[tuple[str, str, str]] | None = getattr(
+            self.model_details, 'error_patterns', None
+        )
+        if not error_patterns:
+            return None
+
+        for prefix, suffix, error_name in error_patterns:
+            if value.startswith(prefix) and value.endswith(suffix):
+                return error_name
 
         return None

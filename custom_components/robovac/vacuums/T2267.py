@@ -56,6 +56,8 @@ class T2267(RobovacModelDetails):
                 # Idle states
                 "AA==": "Standby",
                 "AhAB": "Sleeping",
+                # Error states
+                "BQgNEIsB": "Off Ground",
             },
         },
         RobovacCommand.DIRECTION: {
@@ -125,6 +127,8 @@ class T2267(RobovacModelDetails):
         # Idle states
         "Standby": VacuumActivity.IDLE,
         "Sleeping": VacuumActivity.IDLE,
+        # Error states
+        "Off Ground": VacuumActivity.ERROR,
     }
 
     # Patterns for STATUS codes with dynamic content (prefix, suffix, status_name)
@@ -133,4 +137,11 @@ class T2267(RobovacModelDetails):
         # Positioning codes: start with "DA" (0c08), end with "FSAA==" (5200)
         # The middle bytes contain a timestamp that changes with each update
         ("DA", "FSAA==", "Positioning"),
+    ]
+
+    # Patterns for ERROR codes - some devices send status messages on the ERROR DPS
+    # These patterns map such messages to "no_error" to prevent false error states
+    error_patterns = [
+        # Positioning/relocating status sent on ERROR DPS - not an actual error
+        ("DA", "FSAA==", "no_error"),
     ]
