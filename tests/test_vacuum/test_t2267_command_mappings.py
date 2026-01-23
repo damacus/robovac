@@ -171,3 +171,33 @@ def test_t2267_activity_mapping(mock_t2267_robovac: RoboVac) -> None:
     # Idle states map to IDLE
     assert activity_mapping["Standby"] == VacuumActivity.IDLE
     assert activity_mapping["Sleeping"] == VacuumActivity.IDLE
+
+
+def test_t2267_status_patterns(mock_t2267_robovac: RoboVac) -> None:
+    """Test T2267 status pattern matching for dynamic STATUS codes."""
+    # Verify status_patterns exists
+    status_patterns = mock_t2267_robovac.model_details.status_patterns
+    assert status_patterns is not None
+    assert len(status_patterns) > 0
+
+    # Test pattern matching for positioning codes with different timestamps
+    # These codes follow the pattern: DA...FSAA== (start with DA, end with FSAA==)
+    positioning_codes = [
+        "DAi73ou93qHyzgFSAA==",  # Different timestamps
+        "DAjE74KF76HyzgFSAA==",
+        "DAiCobvM+KHyzgFSAA==",
+        "DAxxxxxxxxxxxxxxFSAA==",  # Any content in middle should match
+    ]
+
+    for code in positioning_codes:
+        result = mock_t2267_robovac.getRoboVacHumanReadableValue(
+            RobovacCommand.STATUS, code
+        )
+        assert result == "Positioning", f"Expected 'Positioning' for {code}, got {result}"
+
+    # Test that non-matching codes are returned as-is
+    non_matching = "XYZabc123=="
+    result = mock_t2267_robovac.getRoboVacHumanReadableValue(
+        RobovacCommand.STATUS, non_matching
+    )
+    assert result == non_matching

@@ -56,8 +56,6 @@ class T2267(RobovacModelDetails):
                 # Idle states
                 "AA==": "Standby",
                 "AhAB": "Sleeping",
-                # User-reported status codes (contain embedded timestamp/stats)
-                "DAi73ou93qHyzgFSAA==": "Positioning",  # Reported via HA, likely positioning with timestamp
             },
         },
         RobovacCommand.DIRECTION: {
@@ -128,3 +126,11 @@ class T2267(RobovacModelDetails):
         "Standby": VacuumActivity.IDLE,
         "Sleeping": VacuumActivity.IDLE,
     }
+
+    # Patterns for STATUS codes with dynamic content (prefix, suffix, status_name)
+    # These match base64-encoded protobuf messages with embedded timestamps
+    status_patterns = [
+        # Positioning codes: start with "DA" (0c08), end with "FSAA==" (5200)
+        # The middle bytes contain a timestamp that changes with each update
+        ("DA", "FSAA==", "Positioning"),
+    ]
