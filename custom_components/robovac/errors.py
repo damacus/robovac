@@ -61,6 +61,23 @@ ERROR_MESSAGES = {
     114: "Water pumping device abnormal",
     117: "Ultrasonic sensor abnormal",
     119: "WiFi or Bluetooth abnormal",
+    # T2320 (X9 Pro) prompt codes (informational messages from error_code_list_t2320.proto)
+    # These are sent on the ERROR DPS but are status messages, not errors
+    "P001": "Starting scheduled cleaning",
+    "P003": "Battery low - returning to base station",
+    "P004": "Positioning failed - rebuilding map, starting new cleaning",
+    "P005": "Positioning failed - returning to base station",
+    "P006": "Some areas unreachable - not cleaned",
+    "P007": "Path planning failed - cannot reach designated area",
+    "P009": "Base station exploration failed - returned to starting point",
+    "P010": "Positioning successful",
+    "P011": "Task finished - returning to base station",
+    "P012": "Cannot start task while on station",
+    "P013": "Scheduled cleaning failed - task in progress",
+    "P014": "Map data updating - please try again later",
+    "P015": "Mop washing complete - resuming cleaning",
+    "P016": "Low battery - please charge and try again",
+    "P017": "Mop cleaning completed",
     # T22xx series error codes (from proto-reference/error_code_list_t2265.proto)
     # Wheel errors (1xxx)
     1010: "Left wheel open circuit",
@@ -508,6 +525,337 @@ TROUBLESHOOTING_CONTEXT = {
             "Dirty charging contacts",
             "Vacuum misaligned on dock",
             "Debris on charging area",
+        ],
+    },
+    # Additional T2320 (X9 Pro) troubleshooting contexts
+    26: {
+        "troubleshooting": [
+            "Charge vacuum before scheduled cleaning time",
+            "Adjust schedule to allow more charging time",
+            "Check if battery is holding charge properly",
+        ],
+        "common_causes": [
+            "Vacuum not docked before scheduled time",
+            "Battery not fully charged",
+            "Short charging window before schedule",
+        ],
+    },
+    31: {
+        "troubleshooting": [
+            "Check suction port for debris",
+            "Remove any stuck objects from suction area",
+            "Clean around the suction inlet",
+            "Restart vacuum",
+        ],
+        "common_causes": [
+            "Large debris blocking suction",
+            "Foreign object stuck in inlet",
+            "Hair or string wrapped around inlet",
+        ],
+    },
+    39: {
+        "troubleshooting": [
+            "Verify map matches current room layout",
+            "Delete and rebuild map if furniture moved",
+            "Ensure good lighting for camera-based positioning",
+            "Clean sensors and camera lens",
+        ],
+        "common_causes": [
+            "Room layout changed since mapping",
+            "Furniture moved significantly",
+            "Poor lighting conditions",
+            "Dirty camera or sensors",
+        ],
+    },
+    41: {
+        "troubleshooting": [
+            "Check air drying unit for blockages",
+            "Ensure station has proper ventilation",
+            "Contact support if error persists",
+        ],
+        "common_causes": [
+            "Heater malfunction",
+            "Blocked ventilation",
+            "Hardware fault",
+        ],
+    },
+    50: {
+        "troubleshooting": [
+            "Move vacuum off carpet manually",
+            "Update carpet avoidance settings in app",
+            "Check if mop is attached (should avoid carpet when mopping)",
+        ],
+        "common_causes": [
+            "Vacuum drifted onto carpet while mopping",
+            "Carpet detection settings incorrect",
+            "Mop attached with carpet in cleaning area",
+        ],
+    },
+    51: {
+        "troubleshooting": [
+            "Clean camera lens with soft dry cloth",
+            "Remove any obstructions above camera",
+            "Check for protective film on camera",
+        ],
+        "common_causes": [
+            "Dirty camera lens",
+            "Object blocking camera view",
+            "Protective film not removed",
+        ],
+    },
+    55: {
+        "troubleshooting": [
+            "Clear area around station",
+            "Ensure station is properly positioned against wall",
+            "Restart vacuum and station",
+            "Try manual docking first",
+        ],
+        "common_causes": [
+            "Obstacles near station",
+            "Station moved from mapped location",
+            "Poor lighting for navigation",
+        ],
+    },
+    70: {
+        "troubleshooting": [
+            "Remove and empty dust collector",
+            "Clean or replace filter",
+            "Check filter is properly installed",
+        ],
+        "common_causes": [
+            "Dust collector full",
+            "Filter clogged with dust",
+            "Regular maintenance needed",
+        ],
+    },
+    71: {
+        "troubleshooting": [
+            "Clean wall sensor on side of vacuum",
+            "Check for debris blocking sensor",
+            "Restart vacuum",
+        ],
+        "common_causes": [
+            "Dirty wall sensor",
+            "Debris blocking sensor",
+            "Sensor malfunction",
+        ],
+    },
+    72: {
+        "troubleshooting": [
+            "Refill robot's onboard water tank",
+            "Check water tank is properly seated",
+            "Ensure water inlet is not blocked",
+        ],
+        "common_causes": [
+            "Water tank empty",
+            "Tank not properly inserted",
+            "Water consumption higher than expected",
+        ],
+    },
+    76: {
+        "troubleshooting": [
+            "Clean camera lens",
+            "Restart vacuum",
+            "Contact support if error persists",
+        ],
+        "common_causes": [
+            "Camera hardware issue",
+            "Software glitch",
+            "Camera damaged",
+        ],
+    },
+    77: {
+        "troubleshooting": [
+            "Clean 3D TOF sensor area",
+            "Restart vacuum",
+            "Contact support if error persists",
+        ],
+        "common_causes": [
+            "Sensor obstruction",
+            "Hardware malfunction",
+            "Sensor damaged",
+        ],
+    },
+    78: {
+        "troubleshooting": [
+            "Clean ultrasonic sensors",
+            "Check for damage to sensor covers",
+            "Restart vacuum",
+        ],
+        "common_causes": [
+            "Dirty ultrasonic sensors",
+            "Sensor obstruction",
+            "Hardware malfunction",
+        ],
+    },
+    81: {
+        "troubleshooting": [
+            "Check dirty water tank seal",
+            "Ensure tank is properly seated",
+            "Inspect tank for cracks or damage",
+            "Replace tank if damaged",
+        ],
+        "common_causes": [
+            "Tank seal damaged",
+            "Tank not properly seated",
+            "Cracked tank",
+        ],
+    },
+    101: {
+        "troubleshooting": [
+            "Restart vacuum",
+            "Let battery fully discharge then recharge",
+            "Contact support if error persists",
+        ],
+        "common_causes": [
+            "Battery communication error",
+            "Battery degradation",
+            "Temperature extreme",
+        ],
+    },
+    102: {
+        "troubleshooting": [
+            "Check wheels for obstructions",
+            "Clean wheel axles",
+            "Restart vacuum",
+        ],
+        "common_causes": [
+            "Wheel motor issue",
+            "Debris in wheel mechanism",
+            "Wheel sensor malfunction",
+        ],
+    },
+    103: {
+        "troubleshooting": [
+            "Remove and clean side brush",
+            "Check side brush motor area for debris",
+            "Replace side brush if worn",
+        ],
+        "common_causes": [
+            "Side brush motor issue",
+            "Debris blocking brush",
+            "Worn side brush",
+        ],
+    },
+    104: {
+        "troubleshooting": [
+            "Clean dust collector and filter",
+            "Check for blockages in airway",
+            "Restart vacuum",
+        ],
+        "common_causes": [
+            "Clogged filter restricting airflow",
+            "Fan motor issue",
+            "Debris in fan housing",
+        ],
+    },
+    105: {
+        "troubleshooting": [
+            "Remove and clean roller brush",
+            "Check brush bearings",
+            "Remove hair and debris from brush area",
+        ],
+        "common_causes": [
+            "Roller brush motor strain",
+            "Excessive debris buildup",
+            "Worn brush bearings",
+        ],
+    },
+    106: {
+        "troubleshooting": [
+            "Check water tank is properly seated",
+            "Ensure water lines are not kinked",
+            "Restart vacuum",
+        ],
+        "common_causes": [
+            "Water pump malfunction",
+            "Air in water lines",
+            "Blocked water pathway",
+        ],
+    },
+    107: {
+        "troubleshooting": [
+            "Clean laser sensor cover",
+            "Check laser turret rotates freely",
+            "Remove any obstructions from turret",
+        ],
+        "common_causes": [
+            "Laser sensor malfunction",
+            "Turret motor issue",
+            "Sensor damage",
+        ],
+    },
+    111: {
+        "troubleshooting": [
+            "Check mop pad attachment area",
+            "Remove debris from rotation mechanism",
+            "Restart vacuum",
+        ],
+        "common_causes": [
+            "Rotation motor malfunction",
+            "Debris blocking rotation",
+            "Motor strain from obstruction",
+        ],
+    },
+    112: {
+        "troubleshooting": [
+            "Check mop lifting mechanism for obstructions",
+            "Remove debris from lift area",
+            "Restart vacuum",
+        ],
+        "common_causes": [
+            "Lift motor malfunction",
+            "Debris blocking lift mechanism",
+            "Motor strain",
+        ],
+    },
+    113: {
+        "troubleshooting": [
+            "Check water spray nozzles for blockages",
+            "Ensure water tank has water",
+            "Restart vacuum",
+        ],
+        "common_causes": [
+            "Spray nozzle clogged",
+            "Water pump issue",
+            "Empty water tank",
+        ],
+    },
+    114: {
+        "troubleshooting": [
+            "Check water pumping mechanism",
+            "Ensure water tank is properly seated",
+            "Restart vacuum",
+        ],
+        "common_causes": [
+            "Pump malfunction",
+            "Blocked water lines",
+            "Air in system",
+        ],
+    },
+    117: {
+        "troubleshooting": [
+            "Clean ultrasonic sensors",
+            "Check for debris or damage",
+            "Restart vacuum",
+        ],
+        "common_causes": [
+            "Sensor obstruction",
+            "Sensor damage",
+            "Hardware malfunction",
+        ],
+    },
+    119: {
+        "troubleshooting": [
+            "Restart vacuum",
+            "Check WiFi signal strength",
+            "Re-pair vacuum with app if needed",
+            "Restart router",
+        ],
+        "common_causes": [
+            "WiFi connectivity issue",
+            "Bluetooth interference",
+            "Communication module fault",
         ],
     },
 }
