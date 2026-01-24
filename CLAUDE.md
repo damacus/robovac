@@ -70,7 +70,7 @@ Device responses use case-insensitive matching - "AUTO", "auto", "Auto" all reso
 
 ## Proto Reference (Reference Only)
 
-The `proto-reference/` directory contains Protocol Buffer definitions that document the communication protocol used by newer Eufy vacuums. **This is reference material only and is not part of the Home Assistant integration.**
+The `proto-reference/` directory contains Protocol Buffer definitions that document the communication protocol used by newer Eufy vacuums. **This is reference material only and is not part of the Home Assistant integration.** The proto-reference is more accurate than the Home Assistant integration.
 
 Key proto files:
 
@@ -82,7 +82,7 @@ Key proto files:
 - **`consumable.proto`**: Part wear tracking (brushes, filters, mop, dust bag in hours)
 - **`error_code.proto`**: Error/warning reporting with obstacle detection (e.g., poop detection)
 
-These protos use the `proto.cloud` package and include Chinese comments from original development. The generated `*_pb2.py` files are Python protobuf outputs. Coordinates use centimeters (meters × 100).
+These protos use the `proto.cloud` package and include Chinese comments from original development, followed by english translation within square brackets. The generated `*_pb2.py` files are Python protobuf outputs. Coordinates use centimeters (meters × 100).
 
 ## Adding a New Vacuum Model
 
