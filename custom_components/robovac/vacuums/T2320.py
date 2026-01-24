@@ -27,7 +27,7 @@ class T2320(RobovacModelDetails):
         RobovacCommand.START_PAUSE: {
             "code": 152,  # Same as MODE, uses protobuf-encoded values like T2267
             "values": {
-                "pause": "AggN",   # Protobuf: ModeCtrlRequest.Method.PAUSE_TASK
+                "pause": "AggN",  # Protobuf: ModeCtrlRequest.Method.PAUSE_TASK
                 "resume": "AggO",  # Protobuf: ModeCtrlRequest.Method.RESUME_TASK
             },
         },
@@ -35,14 +35,14 @@ class T2320(RobovacModelDetails):
             "code": 152,
             "values": {
                 "auto": "BBoCCAE=",  # Protobuf: ModeCtrlRequest.Method.START_AUTO_CLEAN
-                "pause": "AggN",      # Protobuf: ModeCtrlRequest.Method.PAUSE_TASK
-                "return": "AggG",     # Protobuf: ModeCtrlRequest.Method.START_GOHOME
+                "pause": "AggN",  # Protobuf: ModeCtrlRequest.Method.PAUSE_TASK
+                "return": "AggG",  # Protobuf: ModeCtrlRequest.Method.START_GOHOME
                 "small_room": "small_room",
                 "single_room": "single_room",
             },
         },
         RobovacCommand.STATUS: {
-            "code": 173,
+            "code": 177,  # Same as T2267
             "values": {
                 # Protobuf-encoded status values (similar to T2080/T2267)
                 # Cleaning states
@@ -139,6 +139,9 @@ class T2320(RobovacModelDetails):
         RobovacCommand.CLEANING_AREA: {
             "code": 7,
         },
+        RobovacCommand.ERROR: {
+            "code": 177,
+        },
     }
 
     activity_mapping = {
@@ -181,6 +184,7 @@ class T2320(RobovacModelDetails):
         # Positioning codes: start with "DA" (0c08), end with "FSAA==" (5200)
         # The middle bytes contain a timestamp that changes with each update
         ("DA", "FSAA==", "Positioning"),
+        ("Dw", "BSAA==", "Washing Mop"),
     ]
 
     # Patterns for ERROR codes - some devices send status messages on the ERROR DPS
@@ -188,4 +192,5 @@ class T2320(RobovacModelDetails):
     error_patterns = [
         # Positioning/relocating status sent on ERROR DPS - not an actual error
         ("DA", "FSAA==", "no_error"),
+        ("Dw", "BSAA==", "no_error"),
     ]

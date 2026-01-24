@@ -24,10 +24,10 @@ class TestT2320CommandMappings:
     """Test T2320 command mappings match debug log expectations."""
 
     def test_return_home_command_value(self, t2320_robovac):
-        """Test RETURN_HOME command returns boolean true as seen in debug logs."""
-        # Debug log shows: "dps": {"153": true}
-        result = t2320_robovac.getRoboVacCommandValue(RobovacCommand.RETURN_HOME, "return_home")
-        assert result is True or result == "True" or result == "true"
+        """Test RETURN_HOME command returns protobuf-encoded value like T2267."""
+        # T2320 uses same protobuf encoding as T2267 for return home
+        result = t2320_robovac.getRoboVacCommandValue(RobovacCommand.RETURN_HOME, "return")
+        assert result == "AggG"  # Protobuf: ModeCtrlRequest.Method.START_GOHOME
 
     def test_start_pause_command_exists(self, t2320_robovac):
         """Test START_PAUSE command is defined for T2320."""
@@ -63,12 +63,13 @@ class TestT2320CommandMappings:
     def test_dps_codes_mapping(self, t2320_robovac):
         """Test DPS codes match expected values."""
         dps_codes = t2320_robovac.getDpsCodes()
-        assert dps_codes.get("RETURN_HOME") == "153"
+        assert dps_codes.get("RETURN_HOME") == "152"  # Same as MODE, uses protobuf like T2267
         assert dps_codes.get("START_PAUSE") == "152"  # Same as MODE, uses protobuf like T2267
         assert dps_codes.get("MODE") == "152"
+        assert dps_codes.get("STOP") == "152"  # Same as MODE, uses protobuf like T2267
         assert dps_codes.get("FAN_SPEED") == "154"
         assert dps_codes.get("LOCATE") == "160"  # Fixed: was 153 (conflict with RETURN_HOME)
-        assert dps_codes.get("STATUS") == "173"
+        assert dps_codes.get("STATUS") == "153"  # Same as T2267
         assert dps_codes.get("BATTERY_LEVEL") == "172"
         assert dps_codes.get("ERROR_CODE") == "169"
 
