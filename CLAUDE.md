@@ -20,12 +20,14 @@ task all              # Run install-dev, test, type-check, lint, markdownlint
 ```
 
 Run a single test:
+
 ```bash
 pytest tests/test_vacuum/test_t2251_command_mappings.py -v
 pytest tests/test_vacuum/ -k "mode" -v  # Pattern matching
 ```
 
 List supported vacuum models:
+
 ```bash
 python -m custom_components.robovac.model_validator_cli --list
 ```
@@ -42,6 +44,7 @@ python -m custom_components.robovac.model_validator_cli --list
 ### Model System
 
 Each vacuum model has a file in `custom_components/robovac/vacuums/T*.py` defining:
+
 - `homeassistant_features`: Home Assistant vacuum capabilities (battery, start, stop, fan_speed, etc.)
 - `robovac_features`: Custom features (cleaning_time, cleaning_area, etc.)
 - `commands`: Dict mapping `RobovacCommand` enum to DPS codes and value mappings
@@ -52,6 +55,7 @@ Models are registered in `custom_components/robovac/vacuums/__init__.py` via the
 ### Command Mapping Pattern
 
 Commands translate between three levels:
+
 - **DPS Code**: Numeric identifier from Tuya protocol (e.g., "5", "102")
 - **Command Name**: Enum value (e.g., `RobovacCommand.MODE`)
 - **Command Value**: User-friendly string (e.g., "auto" -> "Auto")
@@ -68,11 +72,11 @@ RobovacCommand.MODE: {
 
 Device responses use case-insensitive matching - "AUTO", "auto", "Auto" all resolve correctly.
 
-## Proto Reference (Reference Only)
+## Proto Reference (Optional)
 
-The `proto-reference/` directory contains Protocol Buffer definitions that document the communication protocol used by newer Eufy vacuums. **This is reference material only and is not part of the Home Assistant integration.** The proto-reference is more accurate than the Home Assistant integration.
+A `proto-reference/` directory may optionally contain Protocol Buffer definitions that document the communication protocol used by newer Eufy vacuums. **If present, this reference material should be trusted above existing configuration in `custom_components/`** as it reflects the actual device protocol more accurately.
 
-Key proto files:
+Key proto files (if available):
 
 - **`control.proto`**: Cleaning commands (auto, room, zone, spot, cruise, goto) via `ModeCtrlRequest`
 - **`work_status.proto`**: Device state machine with nested sub-states (cleaning, charging, washing, drying)
@@ -82,7 +86,7 @@ Key proto files:
 - **`consumable.proto`**: Part wear tracking (brushes, filters, mop, dust bag in hours)
 - **`error_code.proto`**: Error/warning reporting with obstacle detection (e.g., poop detection)
 
-These protos use the `proto.cloud` package and include Chinese comments from original development, followed by english translation within square brackets. The generated `*_pb2.py` files are Python protobuf outputs. Coordinates use centimeters (meters × 100).
+These protos use the `proto.cloud` package and include Chinese comments from original development, followed by English translation within square brackets. The generated `*_pb2.py` files are Python protobuf outputs. Coordinates use centimeters (meters × 100).
 
 ## Adding a New Vacuum Model
 
@@ -91,6 +95,7 @@ These protos use the `proto.cloud` package and include Chinese comments from ori
 3. Create tests in `tests/test_vacuum/test_txxx_command_mappings.py`
 
 Test fixture pattern:
+
 ```python
 @pytest.fixture
 def mock_txxx_robovac():
@@ -105,6 +110,7 @@ Follow [Conventional Commits](https://www.conventionalcommits.org/): `feat:`, `f
 ## Dev Container
 
 The project includes a dev container with Home Assistant for live testing:
+
 ```bash
 task ha-start         # Start Home Assistant
 task ha-logs          # View robovac logs

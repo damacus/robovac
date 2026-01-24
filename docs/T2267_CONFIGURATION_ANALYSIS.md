@@ -7,7 +7,7 @@ This document reviews the T2267 vacuum configuration and identifies missing or i
 ### Home Assistant Features (`VacuumEntityFeature`)
 
 | Feature | Status | Notes |
-|---------|--------|-------|
+| ------- | ------ | ----- |
 | CLEAN_SPOT | ✓ | |
 | FAN_SPEED | ✓ | |
 | LOCATE | ✓ | |
@@ -22,7 +22,7 @@ This document reviews the T2267 vacuum configuration and identifies missing or i
 ### RoboVac Features (`RoboVacEntityFeature`)
 
 | Feature | Status | Notes |
-|---------|--------|-------|
+| ------- | ------ | ----- |
 | DO_NOT_DISTURB | ✓ | Code 157 |
 | BOOST_IQ | ✓ | Code 159 |
 | CLEANING_TIME | ❌ Missing | T2278 has this |
@@ -35,7 +35,7 @@ This document reviews the T2267 vacuum configuration and identifies missing or i
 ## Current Commands
 
 | Command | DPS Code | Values | Status |
-|---------|----------|--------|--------|
+| ------- | -------- | ------ | ------ |
 | MODE | 152 | auto, pause, spot, return, nosweep | ⚠️ Issues |
 | STATUS | 153 | Multiple protobuf-encoded values | ✓ |
 | DIRECTION | 155 | brake, forward, back, left, right | ✓ |
@@ -55,11 +55,13 @@ This document reviews the T2267 vacuum configuration and identifies missing or i
 ### 1. MODE "spot" value is incorrect
 
 **Current:**
+
 ```python
 "spot": "AA=="  # WRONG - AA== decodes to standby/empty
 ```
 
 **Should be:**
+
 ```python
 "spot": "AggD"  # Correct - encodes START_SPOT_CLEAN (method=3)
 ```
@@ -69,17 +71,20 @@ The value "AA==" (base64) decodes to a zero byte, which represents standby, not 
 ### 2. MODE "nosweep" is misleading
 
 **Current:**
+
 ```python
 "nosweep": "AggO"  # Encodes RESUME_TASK (14), not a cleaning mode
 ```
 
 The value "AggO" encodes `ModeCtrlRequest.Method.RESUME_TASK` (value 14), which resumes a paused task. This should either be:
+
 - Renamed to "resume" for clarity, or
 - Replaced with proper mop-only mode encoding if that's the intent
 
 ### 3. LOCATE missing value
 
 **T2278 has:**
+
 ```python
 RobovacCommand.LOCATE: {
     "code": 160,
@@ -88,6 +93,7 @@ RobovacCommand.LOCATE: {
 ```
 
 **T2267 has:**
+
 ```python
 RobovacCommand.LOCATE: {
     "code": 160,
@@ -99,6 +105,7 @@ The LOCATE command should have a value defined.
 ### 4. FAN_SPEED missing MAX_PLUS
 
 Protobuf defines these fan suction levels:
+
 - QUIET = 0
 - STANDARD = 1
 - TURBO = 2
@@ -110,7 +117,7 @@ T2267 is missing MAX_PLUS if the device hardware supports it.
 ## Missing Commands
 
 | Command | Expected Code | Notes |
-|---------|--------------|-------|
+| ------- | ------------- | ----- |
 | CLEANING_TIME | 6 | For tracking cleaning duration |
 | CLEANING_AREA | 7 | For tracking cleaning area (m²) |
 
@@ -119,7 +126,7 @@ T2267 is missing MAX_PLUS if the device hardware supports it.
 From `control.proto` - `ModeCtrlRequest.Method`:
 
 | Method | Value | Base64 Encoding | T2267 Status |
-|--------|-------|-----------------|--------------|
+| ------ | ----- | --------------- | ------------ |
 | START_AUTO_CLEAN | 0 | BBoCCAE= | ✓ ("auto") |
 | START_SELECT_ROOMS_CLEAN | 1 | Complex* | ❌ Not implemented |
 | START_SELECT_ZONES_CLEAN | 2 | Complex* | ❌ Not implemented |
@@ -142,11 +149,12 @@ From `control.proto` - `ModeCtrlRequest.Method`:
 ## Base64 Encoding Pattern
 
 The simple method-only commands follow this pattern:
+
 - 2 bytes length prefix + field 1 (method) as varint
 - Example: Method 13 (PAUSE_TASK) = `02 08 0D` = "AggN"
 
 | Method Value | Hex Bytes | Base64 |
-|--------------|-----------|--------|
+| ------------ | --------- | ------ |
 | 0 | 02 08 00 | AggA |
 | 3 | 02 08 03 | AggD |
 | 6 | 02 08 06 | AggG |
@@ -159,18 +167,20 @@ The simple method-only commands follow this pattern:
 ### Priority 1 - Critical Fixes
 
 1. **Fix spot mode encoding**
+
    ```python
    "spot": "AggD"  # START_SPOT_CLEAN (method=3)
    ```
 
 2. **Rename "nosweep" to "resume"** (or implement proper mop-only mode)
+
    ```python
    "resume": "AggO"  # RESUME_TASK (method=14)
    ```
 
 ### Priority 2 - Feature Additions
 
-3. **~~Add BATTERY to homeassistant_features~~** ✅ COMPLETED (2025-01)
+1. **~~Add BATTERY to homeassistant_features~~** ✅ COMPLETED (2025-01)
 
    `VacuumEntityFeature.BATTERY` was deprecated in Home Assistant 2025.8 and will stop working in 2026.8. Instead, the integration now uses a dedicated battery sensor entity with `SensorDeviceClass.BATTERY`.
 
@@ -181,7 +191,8 @@ The simple method-only commands follow this pattern:
 
    See: [Vacuum battery properties are deprecated](https://developers.home-assistant.io/blog/2025/07/02/vacuum-battery-properties-deprecated/)
 
-4. **Add LOCATE value**
+2. **Add LOCATE value**
+
    ```python
    RobovacCommand.LOCATE: {
        "code": 160,
@@ -191,7 +202,8 @@ The simple method-only commands follow this pattern:
 
 ### Priority 3 - Enhanced Features
 
-5. **Add CLEANING_TIME and CLEANING_AREA**
+1. **Add CLEANING_TIME and CLEANING_AREA**
+
    ```python
    robovac_features = (
        ...
@@ -204,7 +216,8 @@ The simple method-only commands follow this pattern:
    RobovacCommand.CLEANING_AREA: {"code": 7},
    ```
 
-6. **Add ROOM and ZONE features** if device supports room/zone cleaning
+2. **Add ROOM and ZONE features** if device supports room/zone cleaning
+
    ```python
    robovac_features = (
        ...
@@ -218,7 +231,7 @@ The simple method-only commands follow this pattern:
 T2267 currently supports these status values:
 
 | Base64 Code | Human Readable | Activity |
-|-------------|----------------|----------|
+| ----------- | -------------- | -------- |
 | BgoAEAUyAA== | Cleaning | CLEANING |
 | BgoAEAVSAA== | Positioning | CLEANING |
 | CAoAEAUyAggB | Paused | PAUSED |
@@ -239,7 +252,8 @@ T2267 currently supports these status values:
 
 ## Comparison with Similar Models
 
-### T2278 (L60 Hybrid SES) has additional:
+### T2278 (L60 Hybrid SES) has additional
+
 - CLEANING_TIME feature
 - CLEANING_AREA feature
 - AUTO_RETURN feature
@@ -248,12 +262,36 @@ T2267 currently supports these status values:
 - MAP feature
 - STOP command in MODE values
 
-### T2080 (S1 Pro) has additional:
+### T2080 (S1 Pro) has additional
+
 - Station-related status values (Adding Water, Drying Mop, Washing Mop, etc.)
 - MOP_LEVEL command
 - More comprehensive error handling
 
+## Additional Features
+
+### Status Patterns
+
+T2267 implements `status_patterns` for matching dynamic protobuf-encoded status values:
+
+```python
+status_patterns = [
+    ("DA", "FSAA==", "Positioning"),  # Matches positioning codes with embedded timestamps
+]
+```
+
+### Error Patterns
+
+T2267 implements `error_patterns` to filter false error states:
+
+```python
+error_patterns = [
+    ("DA", "FSAA==", "no_error"),  # Positioning status sent on ERROR DPS
+]
+```
+
 ## Notes
 
 - Battery level is exposed via a dedicated sensor entity (Home Assistant 2025.8+ pattern) using model-specific DPS code 163
-- T2267 uses protobuf-encoded values for MODE commands (unlike T2320 which uses plain strings)
+- T2267 uses protobuf-encoded values for MODE commands
+- Both T2267 and T2320 now use protobuf encoding for control commands
