@@ -749,9 +749,26 @@ class RoboVacEntity(StateVacuumEntity):
             _LOGGER.error("Cannot start vacuum: vacuum not initialized")
             return
 
-        await self.vacuum.async_set({
-            self._get_dps_code("MODE"): self.vacuum.getRoboVacCommandValue(RobovacCommand.MODE, "auto")
-        })
+        mode_code = self._get_dps_code("MODE")
+
+        # Build command payload
+        payload = {
+            mode_code: self.vacuum.getRoboVacCommandValue(RobovacCommand.MODE, "auto")
+        }
+
+        # Some models (e.g., T2320) use a separate START_PAUSE DPS code to trigger cleaning
+        # MODE sets the cleaning mode, START_PAUSE triggers the action
+        # Only add START_PAUSE if the model explicitly defines it with a different code
+        model_dps_codes = self.vacuum.getDpsCodes()
+        if "START_PAUSE" in model_dps_codes:
+            start_pause_code = model_dps_codes["START_PAUSE"]
+            if start_pause_code != mode_code:
+                start_value = self.vacuum.getRoboVacCommandValue(RobovacCommand.START_PAUSE, "start")
+                if start_value != "start":
+                    # Model has a mapped "start" value for START_PAUSE, include it
+                    payload[start_pause_code] = start_value
+
+        await self.vacuum.async_set(payload)
 
     async def async_pause(self, **kwargs: Any) -> None:
         """Pause the vacuum cleaner.
