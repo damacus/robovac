@@ -25,7 +25,7 @@ The T2320 is the Eufy Robot Vacuum and Mop X9 Pro with Auto-Clean Station. It fe
 | START | ✓ | Via START_PAUSE code 2 |
 | STATE | ✓ | Code 173 with protobuf values |
 | STOP | ✓ | |
-| BATTERY | ❌ Missing | Command exists (code 172) but feature flag not set |
+| BATTERY | ✓ Via Sensor | Command exists (code 172), exposed via dedicated sensor entity (HA 2025.8+ compliant) |
 | CLEAN_SPOT | ❌ Missing | Device likely supports spot cleaning |
 
 ### RoboVac Features (`RoboVacEntityFeature`)
@@ -52,7 +52,7 @@ The T2320 is the Eufy Robot Vacuum and Mop X9 Pro with Auto-Clean Station. It fe
 | RETURN_HOME | 153 | return_home=True | ✓ |
 | FAN_SPEED | 154 | quiet, standard, turbo, max, boost_iq | ✓ |
 | LOCATE | 160 | locate=True | ✓ Fixed |
-| BATTERY | 172 | - | ✓ |
+| BATTERY | 172 | - | ✓ Via sensor entity |
 | ERROR | 169 | - | ✓ |
 | BOOST_IQ | 159 | - | ✓ |
 | CLEANING_TIME | 6 | - | ✓ |
@@ -303,14 +303,16 @@ T2320 supports these status values:
 
 ### Priority 1 - Critical
 
-1. **Add BATTERY to homeassistant_features**
+1. **~~Add BATTERY to homeassistant_features~~** ✅ COMPLETED (2025-01)
 
-   ```python
-   homeassistant_features = (
-       ...
-       | VacuumEntityFeature.BATTERY
-   )
-   ```
+   `VacuumEntityFeature.BATTERY` was deprecated in Home Assistant 2025.8 and will stop working in 2026.8. Instead, the integration now uses a dedicated battery sensor entity with `SensorDeviceClass.BATTERY`.
+
+   **Changes made:**
+   - `sensor.py`: Updated to use model-specific DPS codes via `vacuum_entity._get_dps_code("BATTERY_LEVEL")` instead of hardcoded `TuyaCodes.BATTERY_LEVEL`
+   - T2320 correctly defines `RobovacCommand.BATTERY` with code `172`
+   - Battery level is now exposed as a separate sensor entity linked to the vacuum device
+
+   See: [Vacuum battery properties are deprecated](https://developers.home-assistant.io/blog/2025/07/02/vacuum-battery-properties-deprecated/)
 
 2. **Add CLEAN_SPOT feature and command** (if device supports it)
 
@@ -378,3 +380,4 @@ T2320 supports these status values:
 - The DPS code scheme differs significantly from T2267/T2278 family
 - Station-related status values are comprehensive for the auto-clean station features
 - Error codes are specific to the X9 Pro model with station-related errors
+- Battery level is exposed via a dedicated sensor entity (Home Assistant 2025.8+ pattern) using model-specific DPS code 172

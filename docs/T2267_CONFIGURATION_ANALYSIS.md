@@ -17,7 +17,7 @@ This document reviews the T2267 vacuum configuration and identifies missing or i
 | START | ✓ | |
 | STATE | ✓ | |
 | STOP | ✓ | Fixed - uses code 152 with "AggM" |
-| BATTERY | ❌ Missing | Command exists (code 163) but feature flag not set |
+| BATTERY | ✓ Via Sensor | Command exists (code 163), exposed via dedicated sensor entity (HA 2025.8+ compliant) |
 
 ### RoboVac Features (`RoboVacEntityFeature`)
 
@@ -170,13 +170,16 @@ The simple method-only commands follow this pattern:
 
 ### Priority 2 - Feature Additions
 
-3. **Add BATTERY to homeassistant_features**
-   ```python
-   homeassistant_features = (
-       ...
-       | VacuumEntityFeature.BATTERY
-   )
-   ```
+3. **~~Add BATTERY to homeassistant_features~~** ✅ COMPLETED (2025-01)
+
+   `VacuumEntityFeature.BATTERY` was deprecated in Home Assistant 2025.8 and will stop working in 2026.8. Instead, the integration now uses a dedicated battery sensor entity with `SensorDeviceClass.BATTERY`.
+
+   **Changes made:**
+   - `sensor.py`: Updated to use model-specific DPS codes via `vacuum_entity._get_dps_code("BATTERY_LEVEL")` instead of hardcoded `TuyaCodes.BATTERY_LEVEL`
+   - T2267 correctly defines `RobovacCommand.BATTERY` with code `163`
+   - Battery level is now exposed as a separate sensor entity linked to the vacuum device
+
+   See: [Vacuum battery properties are deprecated](https://developers.home-assistant.io/blog/2025/07/02/vacuum-battery-properties-deprecated/)
 
 4. **Add LOCATE value**
    ```python
@@ -249,3 +252,8 @@ T2267 currently supports these status values:
 - Station-related status values (Adding Water, Drying Mop, Washing Mop, etc.)
 - MOP_LEVEL command
 - More comprehensive error handling
+
+## Notes
+
+- Battery level is exposed via a dedicated sensor entity (Home Assistant 2025.8+ pattern) using model-specific DPS code 163
+- T2267 uses protobuf-encoded values for MODE commands (unlike T2320 which uses plain strings)
