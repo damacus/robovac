@@ -95,7 +95,22 @@ class T2320(RobovacModelDetails):
                 "CAoAEAIyAggB": "Error",
             },
         },
-        RobovacCommand.RETURN_HOME: {"code": 153, "values": {"return_home": True}},
+        RobovacCommand.RETURN_HOME: {
+            # Return home is sent via MODE command (code 152) with protobuf-encoded value
+            # "AggG" encodes ModeCtrlRequest.Method.START_GOHOME (6)
+            "code": 152,
+            "values": {
+                "return": "AggG",
+            },
+        },
+        RobovacCommand.STOP: {
+            # Stop is sent via MODE command (code 152) with protobuf-encoded value
+            # "AggM" encodes ModeCtrlRequest.Method.STOP_TASK (12)
+            "code": 152,
+            "values": {
+                "stop": "AggM",
+            },
+        },
         RobovacCommand.FAN_SPEED: {
             "code": 154,
             "values": {
@@ -106,7 +121,9 @@ class T2320(RobovacModelDetails):
                 "boost_iq": "Boost_IQ",
             },
         },
-        RobovacCommand.LOCATE: {"code": 160, "values": {"locate": True}},
+        RobovacCommand.LOCATE: {
+            "code": 160,
+        },
         RobovacCommand.BATTERY: {
             "code": 172,
         },
