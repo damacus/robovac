@@ -58,7 +58,7 @@ class T2261(RobovacModelDetails):
         RobovacCommand.FAN_SPEED: {
             "code": 102,
             "values": {
-                "pure": "Pure",
+                "pure": "Quiet",
                 "standard": "Standard",
                 "turbo": "Turbo",
                 "max": "Max",

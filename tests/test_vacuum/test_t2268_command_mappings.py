@@ -49,7 +49,7 @@ def test_t2268_mode_command_values(mock_t2268_robovac: RoboVac) -> None:
 
 def test_t2268_fan_speed_command_values(mock_t2268_robovac: RoboVac) -> None:
     """Test T2268 FAN_SPEED command value mappings."""
-    assert mock_t2268_robovac.getRoboVacCommandValue(RobovacCommand.FAN_SPEED, "pure") == "Pure"
+    assert mock_t2268_robovac.getRoboVacCommandValue(RobovacCommand.FAN_SPEED, "pure") == "Quiet"
     assert mock_t2268_robovac.getRoboVacCommandValue(RobovacCommand.FAN_SPEED, "standard") == "Standard"
     assert mock_t2268_robovac.getRoboVacCommandValue(RobovacCommand.FAN_SPEED, "turbo") == "Turbo"
     assert mock_t2268_robovac.getRoboVacCommandValue(RobovacCommand.FAN_SPEED, "max") == "Max"
