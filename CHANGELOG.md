@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0-beta.1](https://github.com/damacus/robovac/compare/v2.0.1-beta.1...v2.1.0-beta.1) (2026-01-28)
+
+
+### Features
+
+* **vaccum:** add support for Eufy X10 PRO (alias T2351) ([#281](https://github.com/damacus/robovac/issues/281)) ([bc9ecaf](https://github.com/damacus/robovac/commit/bc9ecaf162b4a3db6b26f47b3d9c62ce254e2a07))
+
+
+### Bug Fixes
+
+* resolve issue [#300](https://github.com/damacus/robovac/issues/300) - X8 'Pure' fan speed not setting ([#315](https://github.com/damacus/robovac/issues/315)) ([b931726](https://github.com/damacus/robovac/commit/b93172628b40931c5dd2e7797a878707df5bce0c))
+
 ## [2.0.1-beta.1](https://github.com/damacus/robovac/compare/v2.0.0-beta.1...v2.0.1-beta.1) (2026-01-06)
 
 
