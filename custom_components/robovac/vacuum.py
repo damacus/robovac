@@ -756,7 +756,7 @@ class RoboVacEntity(StateVacuumEntity):
             mode_code: self.vacuum.getRoboVacCommandValue(RobovacCommand.MODE, "auto")
         }
 
-        # Some models (e.g., T2320) use a separate START_PAUSE DPS code to trigger cleaning
+        # Some models use a separate START_PAUSE DPS code to trigger cleaning
         # MODE sets the cleaning mode, START_PAUSE triggers the action
         # Only add START_PAUSE if the model explicitly defines it with a different code
         model_dps_codes = self.vacuum.getDpsCodes()
