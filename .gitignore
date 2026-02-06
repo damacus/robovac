@@ -32,3 +32,4 @@ __pycache__/
 
 # Zensical build output
 site/
+message.txt

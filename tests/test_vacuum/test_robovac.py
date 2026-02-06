@@ -124,15 +124,19 @@ def test_get_robovac_features() -> None:
 
 
 def test_get_fan_speeds() -> None:
-    """Test getFanSpeeds returns correct fan speeds for different series."""
+    """Test getFanSpeeds returns correct fan speeds for different series.
+
+    getFanSpeeds() returns title-cased keys as display names for the UI.
+    This ensures user-friendly names are shown regardless of device values.
+    """
     with patch(
         "custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None
     ):
         test_cases = [
-            # Model code, expected fan speeds, and the dictionary to mock
+            # Model code, expected fan speeds (title-cased keys), and the dictionary to mock
             (
                 "T2118",
-                ["No_suction", "Standard", "Boost_IQ", "Max"],
+                ["No Suction", "Standard", "Boost Iq", "Max"],
                 {
                     "no_suction": "No_suction",
                     "standard": "Standard",
@@ -142,7 +146,7 @@ def test_get_fan_speeds() -> None:
             ),
             (
                 "T2250",
-                ["Standard", "Turbo", "Max", "Boost_IQ"],
+                ["Standard", "Turbo", "Max", "Boost Iq"],
                 {
                     "standard": "Standard",
                     "turbo": "Turbo",
