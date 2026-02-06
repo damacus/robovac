@@ -749,9 +749,26 @@ class RoboVacEntity(StateVacuumEntity):
             _LOGGER.error("Cannot start vacuum: vacuum not initialized")
             return
 
-        await self.vacuum.async_set({
-            self._get_dps_code("MODE"): self.vacuum.getRoboVacCommandValue(RobovacCommand.MODE, "auto")
-        })
+        mode_code = self._get_dps_code("MODE")
+
+        # Build command payload
+        payload = {
+            mode_code: self.vacuum.getRoboVacCommandValue(RobovacCommand.MODE, "auto")
+        }
+
+        # Some models use a separate START_PAUSE DPS code to trigger cleaning
+        # MODE sets the cleaning mode, START_PAUSE triggers the action
+        # Only add START_PAUSE if the model explicitly defines it with a different code
+        model_dps_codes = self.vacuum.getDpsCodes()
+        if "START_PAUSE" in model_dps_codes:
+            start_pause_code = model_dps_codes["START_PAUSE"]
+            if start_pause_code != mode_code:
+                start_value = self.vacuum.getRoboVacCommandValue(RobovacCommand.START_PAUSE, "start")
+                if start_value != "start":
+                    # Model has a mapped "start" value for START_PAUSE, include it
+                    payload[start_pause_code] = start_value
+
+        await self.vacuum.async_set(payload)
 
     async def async_pause(self, **kwargs: Any) -> None:
         """Pause the vacuum cleaner.
@@ -773,7 +790,18 @@ class RoboVacEntity(StateVacuumEntity):
         Args:
             **kwargs: Additional arguments passed from Home Assistant.
         """
-        await self.async_return_to_base()
+        if self.vacuum is None:
+            _LOGGER.error("Cannot stop vacuum: vacuum not initialized")
+            return
+
+        # Use STOP command if model supports it, otherwise fall back to return_to_base
+        stop_code = self._get_dps_code("STOP")
+        if stop_code:
+            await self.vacuum.async_set({
+                stop_code: self.vacuum.getRoboVacCommandValue(RobovacCommand.STOP, "stop")
+            })
+        else:
+            await self.async_return_to_base()
 
     async def async_clean_spot(self, **kwargs: Any) -> None:
         """Perform a spot clean.
