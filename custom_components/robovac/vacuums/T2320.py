@@ -42,7 +42,7 @@ class T2320(RobovacModelDetails):
             },
         },
         RobovacCommand.STATUS: {
-            "code": 177,  # Same as T2267
+            "code": 177,
             "values": {
                 # Protobuf-encoded status values (similar to T2080/T2267)
                 # Cleaning states
