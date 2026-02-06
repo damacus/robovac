@@ -25,7 +25,7 @@ class T2267(RobovacModelDetails):
             "values": {
                 "auto": "BBoCCAE=",
                 "pause": "AggN",
-                "spot": "AA==",
+                "spot": "AggD",
                 "return": "AggG",
                 "nosweep": "AggO",
             },
