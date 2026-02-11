@@ -43,6 +43,14 @@ class T2118(RobovacModelDetails):
         },
         RobovacCommand.STATUS: {
             "code": 15,
+            "values": {
+                "Charging": "Charging",
+                "completed": "Completed",
+                "Running": "Running",
+                "standby": "Standby",
+                "Sleeping": "Sleeping",
+                "recharge_needed": "Recharge needed",
+            },
         },
         RobovacCommand.RETURN_HOME: {
             "code": 101,
@@ -64,5 +72,8 @@ class T2118(RobovacModelDetails):
         },
         RobovacCommand.ERROR: {
             "code": 106,
+            "values": {
+                "0": "No error",
+            },
         },
     }

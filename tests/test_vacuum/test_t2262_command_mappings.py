@@ -50,6 +50,19 @@ def test_t2262_fan_speed_command_values(mock_t2262_robovac) -> None:
     assert mock_t2262_robovac.getRoboVacCommandValue(RobovacCommand.FAN_SPEED, "unknown") == "unknown"
 
 
+def test_t2262_status_human_readable(mock_t2262_robovac) -> None:
+    """Test T2262 STATUS values are mapped to human-readable strings.
+
+    GH-186: The vacuum reports status 'Charging' which should be mapped.
+    """
+    assert mock_t2262_robovac.getRoboVacHumanReadableValue(RobovacCommand.STATUS, "Charging") == "Charging"
+    assert mock_t2262_robovac.getRoboVacHumanReadableValue(RobovacCommand.STATUS, "completed") == "Completed"
+    assert mock_t2262_robovac.getRoboVacHumanReadableValue(RobovacCommand.STATUS, "Running") == "Running"
+    assert mock_t2262_robovac.getRoboVacHumanReadableValue(RobovacCommand.STATUS, "standby") == "Standby"
+    assert mock_t2262_robovac.getRoboVacHumanReadableValue(RobovacCommand.STATUS, "Sleeping") == "Sleeping"
+    assert mock_t2262_robovac.getRoboVacHumanReadableValue(RobovacCommand.STATUS, "recharge_needed") == "Recharge needed"
+
+
 def test_t2262_error_code_mapping(mock_t2262_robovac) -> None:
     """Test T2262 error code 0 maps to 'No error'."""
     assert mock_t2262_robovac.getRoboVacHumanReadableValue(RobovacCommand.ERROR, "0") == "No error"
