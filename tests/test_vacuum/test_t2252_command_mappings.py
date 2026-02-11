@@ -55,6 +55,30 @@ def test_t2252_error_code_mapping(mock_t2252_robovac) -> None:
     assert mock_t2252_robovac.getRoboVacHumanReadableValue(RobovacCommand.ERROR, "0") == "No error"
 
 
+def test_t2252_status_human_readable(mock_t2252_robovac) -> None:
+    """Test T2252 STATUS values are mapped to human-readable strings.
+
+    GH-196: The G30 Verge reports status values like 'Charging', 'completed',
+    'Running' etc. which should be mapped to human-readable names.
+    """
+    assert mock_t2252_robovac.getRoboVacHumanReadableValue(RobovacCommand.STATUS, "Charging") == "Charging"
+    assert mock_t2252_robovac.getRoboVacHumanReadableValue(RobovacCommand.STATUS, "completed") == "Completed"
+    assert mock_t2252_robovac.getRoboVacHumanReadableValue(RobovacCommand.STATUS, "Running") == "Running"
+    assert mock_t2252_robovac.getRoboVacHumanReadableValue(RobovacCommand.STATUS, "standby") == "Standby"
+    assert mock_t2252_robovac.getRoboVacHumanReadableValue(RobovacCommand.STATUS, "Sleeping") == "Sleeping"
+    assert mock_t2252_robovac.getRoboVacHumanReadableValue(RobovacCommand.STATUS, "recharge_needed") == "Recharge needed"
+
+
+def test_t2252_start_pause_values(mock_t2252_robovac) -> None:
+    """Test T2252 START_PAUSE maps 'start' to True and 'pause' to False.
+
+    GH-196: G30 Verge GUI control commands not working. START_PAUSE needs
+    boolean values for the toggle to work correctly.
+    """
+    assert mock_t2252_robovac.getRoboVacCommandValue(RobovacCommand.START_PAUSE, "start") is True
+    assert mock_t2252_robovac.getRoboVacCommandValue(RobovacCommand.START_PAUSE, "pause") is False
+
+
 def test_t2252_model_has_commands(mock_t2252_robovac) -> None:
     """Test that T2252 model has required commands defined."""
     commands = mock_t2252_robovac.model_details.commands

@@ -50,6 +50,20 @@ def test_t2251_fan_speed_command_values(mock_t2251_robovac) -> None:
     assert mock_t2251_robovac.getRoboVacCommandValue(RobovacCommand.FAN_SPEED, "unknown") == "unknown"
 
 
+def test_t2251_status_human_readable(mock_t2251_robovac) -> None:
+    """Test T2251 STATUS values are mapped to human-readable strings.
+
+    GH-202: The vacuum reports status values like 'completed', 'Charging',
+    'Running' etc. which should be mapped to human-readable names.
+    """
+    assert mock_t2251_robovac.getRoboVacHumanReadableValue(RobovacCommand.STATUS, "Charging") == "Charging"
+    assert mock_t2251_robovac.getRoboVacHumanReadableValue(RobovacCommand.STATUS, "completed") == "Completed"
+    assert mock_t2251_robovac.getRoboVacHumanReadableValue(RobovacCommand.STATUS, "Running") == "Running"
+    assert mock_t2251_robovac.getRoboVacHumanReadableValue(RobovacCommand.STATUS, "standby") == "Standby"
+    assert mock_t2251_robovac.getRoboVacHumanReadableValue(RobovacCommand.STATUS, "Sleeping") == "Sleeping"
+    assert mock_t2251_robovac.getRoboVacHumanReadableValue(RobovacCommand.STATUS, "recharge_needed") == "Recharge needed"
+
+
 def test_t2251_error_code_mapping(mock_t2251_robovac) -> None:
     """Test T2251 error code 0 maps to 'No error'."""
     assert mock_t2251_robovac.getRoboVacHumanReadableValue(RobovacCommand.ERROR, "0") == "No error"
