@@ -12,9 +12,23 @@ jobs:
     runs-on: ubuntu-latest
     name: runner / hacs
     steps:
-      - uses: hacs/action@d556e736723344f83838d08488c983a15381059a # 22.5.0
+      - name: Check out code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Run HACS validation
+        uses: hacs/action@d556e736723344f83838d08488c983a15381059a # 22.5.0
         with:
           category: integration
+
+  hassfest:
+    runs-on: ubuntu-latest
+    name: runner / hassfest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Run hassfest validation
+        uses: home-assistant/actions/hassfest@master
 
   check-markdown:
     runs-on: ubuntu-latest
@@ -62,7 +76,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     name: runner / test
-    needs: [check-markdown, check-links, lint, hacs]
+    needs: [check-markdown, check-links, lint, hacs, hassfest]
     steps:
       - name: Check out code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
