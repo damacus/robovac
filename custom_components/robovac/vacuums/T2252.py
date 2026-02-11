@@ -24,6 +24,7 @@ class T2252(RobovacModelDetails):
     commands = {
         RobovacCommand.START_PAUSE: {
             "code": 2,
+            "values": {"start": True, "pause": False},
         },
         RobovacCommand.DIRECTION: {
             "code": 3,
@@ -46,6 +47,14 @@ class T2252(RobovacModelDetails):
         },
         RobovacCommand.STATUS: {
             "code": 15,
+            "values": {
+                "Charging": "Charging",
+                "completed": "Completed",
+                "Running": "Running",
+                "standby": "Standby",
+                "Sleeping": "Sleeping",
+                "recharge_needed": "Recharge needed",
+            },
         },
         RobovacCommand.RETURN_HOME: {
             "code": 101,
