@@ -57,6 +57,6 @@
       "Test authentication errors",
       "Test timeout errors"
     ],
-    "passes": false
+    "passes": true
   }
 ]
