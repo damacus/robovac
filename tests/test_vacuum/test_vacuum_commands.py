@@ -2,8 +2,9 @@
 
 import pytest
 from typing import Any
-from unittest.mock import patch, MagicMock, call
+from unittest.mock import patch, MagicMock, AsyncMock, call
 
+from custom_components.robovac.robovac import RoboVac
 from custom_components.robovac.vacuum import RoboVacEntity
 
 
@@ -86,6 +87,55 @@ async def test_async_start_model_specific(mock_robovac, mock_vacuum_data: Any, m
         # Now that we've updated the implementation, L60 should send base64 value "BBoCCAE="
         # instead of "auto" for the MODE command
         mock_l60.async_set.assert_called_once_with({"152": "BBoCCAE="})
+
+
+@pytest.mark.asyncio
+async def test_async_start_sends_start_pause_for_boolean_models(
+    mock_vacuum_data,
+) -> None:
+    """Test async_start also sends START_PAUSE for models with boolean toggle.
+
+    GH-303: Models like T2128 use boolean START_PAUSE (True=start, False=pause).
+    async_start must send both MODE and START_PAUSE for these models.
+    """
+    with patch("custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None):
+        robovac = RoboVac(
+            model_code="T2128",
+            device_id="test_id",
+            host="192.168.1.100",
+            local_key="test_key",
+        )
+    robovac.async_set = AsyncMock(return_value=True)
+
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=robovac):
+        entity = RoboVacEntity(mock_vacuum_data)
+        await entity.async_start()
+
+        robovac.async_set.assert_called_once_with({"5": "Auto", "2": True})
+
+
+@pytest.mark.asyncio
+async def test_async_pause_sends_boolean_for_toggle_models(
+    mock_vacuum_data,
+) -> None:
+    """Test async_pause sends boolean False for models with boolean START_PAUSE.
+
+    GH-303: Models like T2128 need False (not string 'pause') sent to DPS code 2.
+    """
+    with patch("custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None):
+        robovac = RoboVac(
+            model_code="T2128",
+            device_id="test_id",
+            host="192.168.1.100",
+            local_key="test_key",
+        )
+    robovac.async_set = AsyncMock(return_value=True)
+
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=robovac):
+        entity = RoboVacEntity(mock_vacuum_data)
+        await entity.async_pause()
+
+        robovac.async_set.assert_called_once_with({"2": False})
 
 
 @pytest.mark.asyncio

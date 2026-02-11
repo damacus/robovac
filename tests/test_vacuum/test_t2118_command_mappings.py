@@ -70,6 +70,15 @@ def test_t2118_mode_human_readable_nosweep(mock_t2118_robovac) -> None:
     assert mock_t2118_robovac.getRoboVacHumanReadableValue(RobovacCommand.MODE, "Nosweep") == "Nosweep"
 
 
+def test_t2118_start_pause_values(mock_t2118_robovac) -> None:
+    """Test T2118 START_PAUSE maps 'start' to True and 'pause' to False.
+
+    GH-303: Older models use boolean toggle for START_PAUSE DPS code 2.
+    """
+    assert mock_t2118_robovac.getRoboVacCommandValue(RobovacCommand.START_PAUSE, "start") is True
+    assert mock_t2118_robovac.getRoboVacCommandValue(RobovacCommand.START_PAUSE, "pause") is False
+
+
 def test_t2118_model_has_commands(mock_t2118_robovac) -> None:
     """Test that T2118 model has required commands defined."""
     commands = mock_t2118_robovac.model_details.commands

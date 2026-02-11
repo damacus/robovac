@@ -222,7 +222,7 @@ class RoboVacEntity(StateVacuumEntity):
             return value == "True" or value.lower() == "true"
         return False
 
-    def _get_mode_command_data(self, mode: str) -> dict[str, str] | None:
+    def _get_mode_command_data(self, mode: str) -> dict[str, str | bool] | None:
         """Helper method to get mode command data for the vacuum.
 
         Converts a human-readable cleaning mode to the appropriate DPS command
@@ -232,8 +232,8 @@ class RoboVacEntity(StateVacuumEntity):
             mode: The cleaning mode to set (e.g., "auto", "spot", "edge", "small_room")
 
         Returns:
-            dict[str, str] | None: Dictionary with DPS code as key and model-specific
-                                  command value as value, or None if vacuum not initialized
+            dict[str, str | bool] | None: Dictionary with DPS code as key and model-specific
+                                          command value as value, or None if vacuum not initialized
         """
         if self.vacuum is None:
             return None
@@ -749,9 +749,16 @@ class RoboVacEntity(StateVacuumEntity):
             _LOGGER.error("Cannot start vacuum: vacuum not initialized")
             return
 
-        await self.vacuum.async_set({
+        payload: dict[str, Any] = {
             self._get_dps_code("MODE"): self.vacuum.getRoboVacCommandValue(RobovacCommand.MODE, "auto")
-        })
+        }
+
+        # For models with boolean START_PAUSE (e.g. T2118, T2128), also toggle start
+        start_value = self.vacuum.getRoboVacCommandValue(RobovacCommand.START_PAUSE, "start")
+        if start_value != "start":
+            payload[self._get_dps_code("START_PAUSE")] = start_value
+
+        await self.vacuum.async_set(payload)
 
     async def async_pause(self, **kwargs: Any) -> None:
         """Pause the vacuum cleaner.
