@@ -866,8 +866,8 @@ class RoboVacEntity(StateVacuumEntity):
             await self.vacuum.async_set({
                 self._get_dps_code("BOOST_IQ"): new_value
             })
-        elif command == "roomClean" and params is not None and isinstance(params, dict):
-            room_ids = params.get("roomIds", [1])
+        elif command in ("roomClean", "room_clean") and params is not None and isinstance(params, dict):
+            room_ids = params.get("roomIds") or params.get("room_ids", [1])
             count = params.get("count", 1)
             clean_request = {"roomIds": room_ids, "cleanTimes": count}
             method_call = {
@@ -879,6 +879,9 @@ class RoboVacEntity(StateVacuumEntity):
             base64_str = base64.b64encode(json_str.encode("utf8")).decode("utf8")
             _LOGGER.debug("roomClean call %s", json_str)
             await self.vacuum.async_set({TuyaCodes.ROOM_CLEAN: base64_str})
+            # Activate cleaning — the vacuum ACKs the room selection on DPS 124
+            # but requires DPS 2 = true to actually start navigating and cleaning.
+            await self.vacuum.async_set({TuyaCodes.START_PAUSE: True})
 
     async def async_will_remove_from_hass(self) -> None:
         """Handle removal from Home Assistant."""

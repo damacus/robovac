@@ -26,6 +26,7 @@ class T2276(RobovacModelDetails):
         | RoboVacEntityFeature.BOOST_IQ
         | RoboVacEntityFeature.CLEANING_TIME
         | RoboVacEntityFeature.CLEANING_AREA
+        | RoboVacEntityFeature.ROOM
     )
     commands = {
         RobovacCommand.START_PAUSE: {
