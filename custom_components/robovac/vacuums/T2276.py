@@ -36,6 +36,8 @@ class T2276(RobovacModelDetails):
         RobovacCommand.MODE: {
             "code": 5,
             "values": {
+                # T2276 uses lowercase "auto" (unlike T2128's "Auto"),
+                # confirmed via local Tuya protocol 3.5 packet capture.
                 "auto": "auto",
                 "small_room": "SmallRoom",
                 "spot": "Spot",
@@ -52,7 +54,7 @@ class T2276(RobovacModelDetails):
         RobovacCommand.FAN_SPEED: {
             "code": 102,
             "values": {
-                "quiet": "Quiet",
+                "pure": "Quiet",
                 "standard": "Standard",
                 "turbo": "Turbo",
                 "boost": "Boost",
