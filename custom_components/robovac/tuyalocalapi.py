@@ -1151,7 +1151,7 @@ class TuyaDevice:
                     self._backoff = True
                     self._queue_interval = min(
                         INITIAL_BACKOFF * (BACKOFF_MULTIPLIER ** (self._failures - 4)),
-                        600,
+                        30,
                     )
                     self._LOGGER.warn(
                         "{} failures, backing off for {} seconds".format(
@@ -1197,6 +1197,10 @@ class TuyaDevice:
         if self.version >= (3, 5):
             try:
                 await self._negotiate_session_key()
+                # Reset failure count on successful handshake so that a subsequent
+                # clean disconnect (EOF) doesn't compound with prior failures.
+                self._failures = 0
+                self._backoff = False
             except Exception as e:
                 self._LOGGER.error("Session key negotiation failed: %s", e)
                 await self.async_disconnect()
