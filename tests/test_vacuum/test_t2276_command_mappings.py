@@ -66,11 +66,8 @@ def test_t2276_start_pause_command_values(mock_t2276_robovac) -> None:
 
 def test_t2276_return_home_command_values(mock_t2276_robovac) -> None:
     """Test T2276 RETURN_HOME value mapping (boolean DPS 101)."""
-    # Boolean DPS — getRoboVacCommandValue returns the command as-is for bool DPS
-    assert (
-        mock_t2276_robovac.getRoboVacCommandValue(RobovacCommand.RETURN_HOME, "return")
-        == "return"
-    )
+    # DPS 101 is a boolean trigger — "return" maps to True
+    assert mock_t2276_robovac.getRoboVacCommandValue(RobovacCommand.RETURN_HOME, "return") is True
 
 
 def test_t2276_fan_speed_command_values(mock_t2276_robovac) -> None:

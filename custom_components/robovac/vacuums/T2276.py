@@ -50,6 +50,7 @@ class T2276(RobovacModelDetails):
         },
         RobovacCommand.RETURN_HOME: {
             "code": 101,
+            "values": {"return": True},
         },
         RobovacCommand.FAN_SPEED: {
             "code": 102,
@@ -62,6 +63,7 @@ class T2276(RobovacModelDetails):
         },
         RobovacCommand.LOCATE: {
             "code": 103,
+            "values": {"locate": True},
         },
         RobovacCommand.BATTERY: {
             "code": 104,

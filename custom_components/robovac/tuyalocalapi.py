@@ -653,7 +653,10 @@ class Message:
     UPDATEDPS = 0x12  # Request refresh of specific DPS
 
     # Commands that do NOT get the v3.4+/v3.5 version header prepended
-    NO_PROTOCOL_HEADER_CMDS = {0x0A, 0x10, 0x12, 0x09, 0x03, 0x04, 0x05}
+    # (matches TinyTuya's NO_PROTOCOL_HEADER_CMDS + 0x07/0x08).
+    # 0x07 (SET_COMMAND) is included because some v3.5 devices (e.g. T2276)
+    # accept v3.3-style SET commands over v3.5 framing without the header.
+    NO_PROTOCOL_HEADER_CMDS = {0x07, 0x08, 0x0A, 0x10, 0x12, 0x09, 0x03, 0x04, 0x05, 0x40}
 
     def __init__(
         self,
@@ -1036,13 +1039,15 @@ class Message:
         if cipher is not None and ciphertext:
             try:
                 payload_data = cipher.decrypt_gcm(iv, ciphertext, tag, aad=aad)
-                # v3.5 responses may have a 4-byte retcode prefix before JSON.
-                # Auto-detect: if first byte is not '{' but byte at offset 4
-                # is '{', strip the 4-byte retcode.
-                if (len(payload_data) > 4
-                        and payload_data[0:1] != b'{'
-                        and payload_data[4:5] == b'{'):
-                    payload_data = payload_data[4:]
+                # v3.5 responses may have binary prefixes before the JSON:
+                # - 4-byte retcode (e.g. \x00\x00\x00\x00)
+                # - 4-byte retcode + 15-byte version header (gratuitous
+                #   updates: retcode + "3.5" + 12 bytes + JSON)
+                # Find the first '{' to locate where JSON starts.
+                if payload_data and payload_data[0:1] != b'{':
+                    json_start = payload_data.find(b'{')
+                    if json_start > 0:
+                        payload_data = payload_data[json_start:]
                 try:
                     payload_text = payload_data.decode("utf8")
                     payload = json.loads(payload_text)
@@ -1102,12 +1107,14 @@ class TuyaDevice:
         self._handlers: dict[int, Callable[[Message], Coroutine]] = {
             Message.GRATUITOUS_UPDATE: self.async_gratuitous_update_state,
             Message.PING_COMMAND: self._async_pong_received,
-            # v3.5 devices use their own sequence numbers, so GET_COMMAND
+            # v3.5 devices use their own sequence numbers, so GET/SET
             # responses won't match the original request's listener.
             # Handle them as gratuitous state updates instead.
             Message.GET_COMMAND: self.async_gratuitous_update_state,
+            Message.SET_COMMAND: self.async_gratuitous_update_state,
             Message.GET_COMMAND_NEW: self.async_gratuitous_update_state,
             Message.SET_COMMAND_NEW: self.async_gratuitous_update_state,
+            Message.UPDATEDPS: self.async_gratuitous_update_state,
         }
         self._dps: dict[str, Any] = {}
         self._seqno = 0  # Incrementing sequence number for v3.5
@@ -1209,15 +1216,17 @@ class TuyaDevice:
         if self._connected is True or self._enabled is False:
             return
 
-        # Protocol 3.5 devices need time between connection attempts.
-        # Without this, multiple code paths (EOF handler, send retry,
-        # process_queue) hammer the device with rapid reconnects and
+        # Protocol 3.5 devices need a brief pause between connection
+        # attempts.  Without this, multiple code paths (EOF handler, send
+        # retry, process_queue) hammer the device with rapid reconnects and
         # every session key negotiation fails with "0 bytes read".
+        # Keep this short (5s) — the device itself idles out at ~30s, so a
+        # long cooldown means we reconnect to a stale connection every time.
         if self.version >= (3, 5):
             now = time.time()
             elapsed = now - self._last_connect_attempt
-            if elapsed < 30:
-                wait = 30 - elapsed
+            if elapsed < 5:
+                wait = 5 - elapsed
                 self._LOGGER.debug(
                     "Reconnect cooldown: waiting %.1fs before connecting to %s",
                     wait, self
@@ -1406,28 +1415,36 @@ class TuyaDevice:
         """Build a DPS map for device22-style status queries.
 
         Returns a dict with known DPS keys mapped to None.  If we already
-        have cached state, use those keys; otherwise request DPS 1 as a
-        minimal probe.
+        have cached state, use those keys; otherwise request common DPS
+        codes for the device model.
         """
         if self._dps:
             return {k: None for k in self._dps}
-        return {"1": None}
+        # Request common DPS codes that T2276 and similar vacuums use.
+        # This is better than requesting DPS 1 which doesn't exist on
+        # most vacuum models.
+        return {str(k): None for k in [2, 5, 15, 101, 102, 103, 104, 106]}
 
     async def async_get(self) -> None:
         """Get the current state of the device.
 
         This method retrieves the current state of the device.
         """
-        # Use the v3.3-style DP_QUERY (0x0a) for all devices.  For v3.5,
-        # DP_QUERY_NEW (0x10) returns "json obj data unvalid" and device22-style
-        # CONTROL_NEW (0x0d) gets no response at all.  The legacy 0x0a command
-        # with a simple gwId/devId payload reliably triggers the device to send
-        # its DPS state (tested on T2276 protocol 3.5).
+        if self.version >= (3, 4):
+            # v3.5 devices reject all known GET/query commands:
+            # - DP_QUERY (0x0a) → "json obj data unvalid"
+            # - DP_QUERY_NEW (0x10) → same
+            # - UPDATEDPS (0x12) → empty ACK, no DPS data (tested with
+            #   valid DPS IDs [2,5,15,101,102,103,104,106] — still empty)
+            #
+            # The only way to get DPS state is via gratuitous updates (0x08)
+            # the device sends after SET commands.  So just stay connected.
+            await self.async_connect()
+            return
         payload_dict = {"gwId": self.gateway_id, "devId": self.device_id}
         payload_bytes = json.dumps(payload_dict).encode('utf-8')
-        cmd = Message.GET_COMMAND
         encrypt = False if self.version < (3, 3) else True
-        message = Message(cmd, payload_bytes, encrypt=encrypt, device=self)
+        message = Message(Message.GET_COMMAND, payload_bytes, encrypt=encrypt, device=self)
         self._queue.append(message)
         response = await self.async_receive(message)
         if response is not None:
@@ -1452,6 +1469,27 @@ class TuyaDevice:
         payload_bytes = json.dumps(payload_dict).encode('utf-8')
         message = Message(
             cmd,
+            payload_bytes,
+            encrypt=True,
+            device=self,
+            expect_response=False,
+        )
+        self._queue.append(message)
+
+    async def _async_request_dps_update(self, dps_ids: list[str] | None = None) -> None:
+        """Request the device to send updated DPS values.
+
+        Sends UPDATEDPS (0x12) which asks the device to push the current
+        values for the specified DPS IDs.  This is how TinyTuya retrieves
+        state from v3.4+/v3.5 devices that don't respond to DP_QUERY.
+        """
+        if dps_ids:
+            payload_dict = {"dpId": [int(d) for d in dps_ids]}
+        else:
+            payload_dict = {"dpId": [int(d) for d in self._dps_to_request()]}
+        payload_bytes = json.dumps(payload_dict).encode('utf-8')
+        message = Message(
+            Message.UPDATEDPS,
             payload_bytes,
             encrypt=True,
             device=self,
@@ -1513,15 +1551,23 @@ class TuyaDevice:
         """Handle a received state message.
 
         This method handles a received state message from the device.
+        Supports both v3.3 format ({"dps": {...}}) and v3.5 format
+        ({"protocol": 4, "data": {"dps": {...}}}).
         """
         if (
             state_message is not None
             and state_message.payload is not None
             and isinstance(state_message.payload, dict)
-            and "dps" in state_message.payload
         ):
-            self._dps.update(state_message.payload["dps"])
-            self._LOGGER.debug("Received updated state {}: {}".format(self, self._dps))
+            payload = state_message.payload
+            # v3.5 gratuitous updates nest DPS under "data"
+            if "data" in payload and isinstance(payload["data"], dict):
+                dps = payload["data"].get("dps")
+            else:
+                dps = payload.get("dps")
+            if dps:
+                self._dps.update(dps)
+                self._LOGGER.debug("Received updated state {}: {}".format(self, self._dps))
 
     @property
     def state(self) -> dict[str, Any]:
