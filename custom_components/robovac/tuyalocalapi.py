@@ -76,6 +76,9 @@ MAGIC_SUFFIX_35_BYTES = struct.pack(">I", MAGIC_SUFFIX_35)
 # Format: prefix(4) + version(1) + reserved(1) + seq(4) + cmd(4) + len(4) = 18 bytes
 MESSAGE_PREFIX_FORMAT_35 = ">IBBIII"
 MESSAGE_SUFFIX_FORMAT_35 = ">16sI"  # 16-byte GCM tag + 4-byte suffix
+# v3.4+/v3.5 prepend a version header to the plaintext before encryption,
+# except for commands in NO_PROTOCOL_HEADER_CMDS.
+PROTOCOL_35_VERSION_HEADER = b"3.5" + b"\x00" * 12  # 15 bytes
 CRC_32_TABLE = [
     0x00000000,
     0x77073096,
@@ -644,6 +647,13 @@ class Message:
     GET_COMMAND = 0x0A
     SET_COMMAND = 0x07
     GRATUITOUS_UPDATE = 0x08
+    # v3.4+/v3.5 use new command codes for SET and GET
+    SET_COMMAND_NEW = 0x0D  # CONTROL_NEW
+    GET_COMMAND_NEW = 0x10  # DP_QUERY_NEW
+    UPDATEDPS = 0x12  # Request refresh of specific DPS
+
+    # Commands that do NOT get the v3.4+/v3.5 version header prepended
+    NO_PROTOCOL_HEADER_CMDS = {0x0A, 0x10, 0x12, 0x09, 0x03, 0x04, 0x05}
 
     def __init__(
         self,
@@ -772,6 +782,10 @@ class Message:
             raise InvalidMessage("Cannot create v3.5 message without a device")
 
         cipher = self.device.cipher
+
+        # v3.4+/v3.5: prepend version header for commands that need it
+        if self.command not in Message.NO_PROTOCOL_HEADER_CMDS:
+            payload_data = PROTOCOL_35_VERSION_HEADER + payload_data
 
         # Calculate payload size first (needed for header/AAD)
         # We need a preliminary encrypt to get ciphertext length, but since
@@ -1022,8 +1036,12 @@ class Message:
         if cipher is not None and ciphertext:
             try:
                 payload_data = cipher.decrypt_gcm(iv, ciphertext, tag, aad=aad)
-                # v3.5 data responses have a 4-byte retcode prefix before JSON
-                if len(payload_data) > 4 and payload_data[:4] == b'\x00\x00\x00\x00':
+                # v3.5 responses may have a 4-byte retcode prefix before JSON.
+                # Auto-detect: if first byte is not '{' but byte at offset 4
+                # is '{', strip the 4-byte retcode.
+                if (len(payload_data) > 4
+                        and payload_data[0:1] != b'{'
+                        and payload_data[4:5] == b'{'):
                     payload_data = payload_data[4:]
                 try:
                     payload_text = payload_data.decode("utf8")
@@ -1066,6 +1084,7 @@ class TuyaDevice:
         self.version = version
         self.timeout = timeout
         self.last_pong: float = 0.0
+        self._last_connect_attempt: float = 0.0
         self.ping_interval = ping_interval
         self.update_entity_state_cb = update_entity_state
 
@@ -1087,6 +1106,8 @@ class TuyaDevice:
             # responses won't match the original request's listener.
             # Handle them as gratuitous state updates instead.
             Message.GET_COMMAND: self.async_gratuitous_update_state,
+            Message.GET_COMMAND_NEW: self.async_gratuitous_update_state,
+            Message.SET_COMMAND_NEW: self.async_gratuitous_update_state,
         }
         self._dps: dict[str, Any] = {}
         self._seqno = 0  # Incrementing sequence number for v3.5
@@ -1160,6 +1181,10 @@ class TuyaDevice:
                     )
 
         await asyncio.sleep(self._queue_interval)
+        # After sleeping through the backoff period, allow pings to be
+        # queued again so the next cycle can attempt a reconnection.
+        if self._backoff:
+            self._backoff = False
         asyncio.create_task(self.process_queue())
 
     def clean_queue(self) -> None:
@@ -1178,9 +1203,27 @@ class TuyaDevice:
         """Connect to the device.
 
         This method establishes a connection to the device.
+        For protocol 3.5+, enforces a minimum cooldown between connection
+        attempts to give the device time to accept a new session.
         """
         if self._connected is True or self._enabled is False:
             return
+
+        # Protocol 3.5 devices need time between connection attempts.
+        # Without this, multiple code paths (EOF handler, send retry,
+        # process_queue) hammer the device with rapid reconnects and
+        # every session key negotiation fails with "0 bytes read".
+        if self.version >= (3, 5):
+            now = time.time()
+            elapsed = now - self._last_connect_attempt
+            if elapsed < 30:
+                wait = 30 - elapsed
+                self._LOGGER.debug(
+                    "Reconnect cooldown: waiting %.1fs before connecting to %s",
+                    wait, self
+                )
+                await asyncio.sleep(wait)
+            self._last_connect_attempt = time.time()
 
         self._LOGGER.debug("Connecting to {}".format(self))
         try:
@@ -1228,6 +1271,13 @@ class TuyaDevice:
         """
         local_nonce = os.urandom(16)
         real_key = self.cipher.real_key_bytes
+        # Session key negotiation MUST use the local key, not any previously
+        # negotiated session key.  Reset the cipher so that both our
+        # encryption (steps 1 & 3) and the response decryption (step 2,
+        # via Message.from_bytes → cipher.decrypt_gcm) use the local key.
+        self.cipher.key_bytes = real_key
+        self.cipher._aesgcm = AESGCM(real_key)
+        local_aesgcm = AESGCM(real_key)
 
         # Step 1: Build SESS_KEY_NEG_START directly (bypass Message class)
         if self.writer is None:
@@ -1240,7 +1290,7 @@ class TuyaDevice:
         aad = header[4:]  # 14 bytes
 
         iv = os.urandom(12)
-        ct_with_tag = self.cipher._aesgcm.encrypt(iv, local_nonce, aad)
+        ct_with_tag = local_aesgcm.encrypt(iv, local_nonce, aad)
         ciphertext = ct_with_tag[:-16]
         tag = ct_with_tag[-16:]
 
@@ -1306,7 +1356,7 @@ class TuyaDevice:
         header3 = struct.pack(">IBBIII", MAGIC_PREFIX_35, 0, 0, seq3, cmd3, payload_size3)
         aad3 = header3[4:]
         iv3 = os.urandom(12)
-        ct3_with_tag = self.cipher._aesgcm.encrypt(iv3, client_hmac, aad3)
+        ct3_with_tag = local_aesgcm.encrypt(iv3, client_hmac, aad3)
         ciphertext3 = ct3_with_tag[:-16]
         tag3 = ct3_with_tag[-16:]
         msg3_bytes = header3 + iv3 + ciphertext3 + struct.pack(">16sI", tag3, MAGIC_SUFFIX_35)
@@ -1352,15 +1402,32 @@ class TuyaDevice:
         if self.reader is not None and not self.reader.at_eof():
             self.reader.feed_eof()
 
+    def _dps_to_request(self) -> dict[str, None]:
+        """Build a DPS map for device22-style status queries.
+
+        Returns a dict with known DPS keys mapped to None.  If we already
+        have cached state, use those keys; otherwise request DPS 1 as a
+        minimal probe.
+        """
+        if self._dps:
+            return {k: None for k in self._dps}
+        return {"1": None}
+
     async def async_get(self) -> None:
         """Get the current state of the device.
 
         This method retrieves the current state of the device.
         """
+        # Use the v3.3-style DP_QUERY (0x0a) for all devices.  For v3.5,
+        # DP_QUERY_NEW (0x10) returns "json obj data unvalid" and device22-style
+        # CONTROL_NEW (0x0d) gets no response at all.  The legacy 0x0a command
+        # with a simple gwId/devId payload reliably triggers the device to send
+        # its DPS state (tested on T2276 protocol 3.5).
         payload_dict = {"gwId": self.gateway_id, "devId": self.device_id}
         payload_bytes = json.dumps(payload_dict).encode('utf-8')
+        cmd = Message.GET_COMMAND
         encrypt = False if self.version < (3, 3) else True
-        message = Message(Message.GET_COMMAND, payload_bytes, encrypt=encrypt, device=self)
+        message = Message(cmd, payload_bytes, encrypt=encrypt, device=self)
         self._queue.append(message)
         response = await self.async_receive(message)
         if response is not None:
@@ -1372,10 +1439,19 @@ class TuyaDevice:
         This method sets the state of the device.
         """
         t = int(time.time())
-        payload_dict = {"devId": self.device_id, "uid": "", "t": t, "dps": dps}
+        if self.version >= (3, 4):
+            payload_dict: dict[str, Any] = {
+                "protocol": 5,
+                "t": t,
+                "data": {"dps": dps},
+            }
+            cmd = Message.SET_COMMAND_NEW
+        else:
+            payload_dict = {"devId": self.device_id, "uid": "", "t": t, "dps": dps}
+            cmd = Message.SET_COMMAND
         payload_bytes = json.dumps(payload_dict).encode('utf-8')
         message = Message(
-            Message.SET_COMMAND,
+            cmd,
             payload_bytes,
             encrypt=True,
             device=self,
@@ -1393,27 +1469,12 @@ class TuyaDevice:
 
         if self._backoff is True:
             self._LOGGER.debug("Currently in backoff, not adding ping to queue")
-        elif self.version >= (3, 5) and self._connected and self.writer is not None:
-            # v3.5: build heartbeat directly and send immediately (bypass queue)
-            self.last_ping = time.time()
-            self._seqno += 1
-            seq = self._seqno
-            cmd = Message.PING_COMMAND  # 0x09
-            payload_data = json.dumps({"gwId": self.gateway_id, "devId": self.device_id}).encode("utf-8")
-            payload_size = 12 + len(payload_data) + 16  # IV + ct + tag
-            header = struct.pack(">IBBIII", MAGIC_PREFIX_35, 0, 0, seq, cmd, payload_size)
-            aad = header[4:]
-            iv = os.urandom(12)
-            ct_with_tag = self.cipher._aesgcm.encrypt(iv, payload_data, aad)
-            ciphertext = ct_with_tag[:-16]
-            tag = ct_with_tag[-16:]
-            msg_bytes = header + iv + ciphertext + struct.pack(">16sI", tag, MAGIC_SUFFIX_35)
-            self._LOGGER.debug("v3.5 heartbeat: seq=%d, %d bytes, hex=%s", seq, len(msg_bytes), msg_bytes.hex())
-            try:
-                self.writer.write(msg_bytes)
-                await self.writer.drain()
-            except Exception as e:
-                self._LOGGER.debug("v3.5 heartbeat write failed: %s", e)
+        elif self.version >= (3, 5):
+            # v3.5 devices (like T2276) don't support Tuya heartbeats — they
+            # close the TCP connection after receiving any ping, regardless of
+            # format.  Skip heartbeats entirely; the device will naturally EOF
+            # when idle, and process_queue will drive reconnection.
+            pass
         else:
             self.last_ping = time.time()
             encrypt = False if self.version < (3, 3) else True
@@ -1429,7 +1490,8 @@ class TuyaDevice:
 
         await asyncio.sleep(ping_interval)
         self._ping_task = asyncio.create_task(self.async_ping(self.ping_interval))
-        if self.last_pong < self.last_ping:
+        # v3.5 doesn't send heartbeats so skip the pong timeout check.
+        if self.version < (3, 5) and self.last_pong < self.last_ping:
             await self.async_disconnect()
 
     async def _async_pong_received(self, message: Message) -> None:
@@ -1511,7 +1573,7 @@ class TuyaDevice:
                     if len(e.partial) == 0:
                         self._LOGGER.debug("Connection closed by device (EOF)")
                         await self.async_disconnect()
-                        return  # Don't reschedule
+                        return  # Don't reschedule — process_queue will reconnect
             elif isinstance(e, ConnectionResetError):
                 self._LOGGER.debug(
                     "Connection reset: {}\n{}".format(e, traceback.format_exc())
