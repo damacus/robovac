@@ -18,6 +18,7 @@ This module provides the vacuum entity integration for Eufy Robovac devices.
 """
 from __future__ import annotations
 import ast
+import asyncio
 import base64
 from datetime import timedelta
 from enum import StrEnum
