@@ -1262,7 +1262,7 @@ class TuyaDevice:
 
         if self._ping_task is None:
             # Delay first ping to let initial data exchange complete
-            async def _start_ping():
+            async def _start_ping() -> None:
                 await asyncio.sleep(self.ping_interval)
                 self._ping_task = asyncio.create_task(self.async_ping(self.ping_interval))
             self._ping_task = asyncio.create_task(_start_ping())
