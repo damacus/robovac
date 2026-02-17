@@ -1,16 +1,16 @@
 """eufy Clean X8 Pro SES (T2276)
 
-WARNING: This model has known communication issues.
-Users report "Incomplete read" errors and empty data points.
-See docs/ISSUE_42_T2276_INVESTIGATION.md for details.
-
-If you have this model, please help by providing device data via GitHub Issue #42.
+Protocol 3.5 device using standard Tuya DPS codes (same structure as T2128).
+Previously misconfigured with protobuf-encoded DPS 152-173 which caused
+"Incomplete read" errors (Issue #42). The actual device responds on protocol
+3.5 with human-readable DPS values on codes 1-135.
 """
 from homeassistant.components.vacuum import VacuumEntityFeature
 from .base import RoboVacEntityFeature, RobovacCommand, RobovacModelDetails
 
 
 class T2276(RobovacModelDetails):
+    protocol_version = 3.5
     homeassistant_features = (
         VacuumEntityFeature.FAN_SPEED
         | VacuumEntityFeature.LOCATE
@@ -24,43 +24,63 @@ class T2276(RobovacModelDetails):
     robovac_features = (
         RoboVacEntityFeature.DO_NOT_DISTURB
         | RoboVacEntityFeature.BOOST_IQ
+        | RoboVacEntityFeature.CLEANING_TIME
+        | RoboVacEntityFeature.CLEANING_AREA
+        | RoboVacEntityFeature.ROOM
     )
     commands = {
+        RobovacCommand.START_PAUSE: {
+            "code": 2,
+            "values": {"start": True, "pause": False},
+        },
         RobovacCommand.MODE: {
-            "code": 152,
+            "code": 5,
             "values": {
-                "small_room": "AA==",
-                "pause": "AggN",
-                "edge": "AggG",
-                "auto": "BBoCCAE=",
-                "nosweep": "AggO",
+                # T2276 uses lowercase "auto" (unlike T2128's "Auto"),
+                # confirmed via local Tuya protocol 3.5 packet capture.
+                "auto": "auto",
+                "small_room": "SmallRoom",
+                "spot": "Spot",
+                "edge": "Edge",
+                "nosweep": "Nosweep",
             },
         },
         RobovacCommand.STATUS: {
-            "code": 173,
+            "code": 15,
         },
         RobovacCommand.RETURN_HOME: {
-            "code": 153,
-            "values": {
-                "return_home": "AggB",
-            }
+            "code": 101,
+            "values": {"return": True},
         },
         RobovacCommand.FAN_SPEED: {
-            "code": 154,
+            "code": 102,
             "values": {
-                "fan_speed": "AgkBCgIKAQoDCgEKBAoB",
-            }
+                "pure": "Quiet",
+                "standard": "Standard",
+                "turbo": "Turbo",
+                "boost": "Boost",
+            },
         },
         RobovacCommand.LOCATE: {
-            "code": 153,
-            "values": {
-                "locate": "AggC",
-            }
+            "code": 103,
+            "values": {"locate": True},
         },
         RobovacCommand.BATTERY: {
-            "code": 172,
+            "code": 104,
         },
         RobovacCommand.ERROR: {
-            "code": 169,
+            "code": 106,
+        },
+        RobovacCommand.DO_NOT_DISTURB: {
+            "code": 107,
+        },
+        RobovacCommand.CLEANING_TIME: {
+            "code": 109,
+        },
+        RobovacCommand.CLEANING_AREA: {
+            "code": 110,
+        },
+        RobovacCommand.BOOST_IQ: {
+            "code": 118,
         },
     }

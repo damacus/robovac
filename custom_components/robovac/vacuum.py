@@ -18,6 +18,7 @@ This module provides the vacuum entity integration for Eufy Robovac devices.
 """
 from __future__ import annotations
 import ast
+import asyncio
 import base64
 from datetime import timedelta
 from enum import StrEnum
@@ -734,9 +735,17 @@ class RoboVacEntity(StateVacuumEntity):
             _LOGGER.error("Cannot return to base: vacuum not initialized")
             return
 
-        await self.vacuum.async_set({
+        payload: dict[str, Any] = {
             self._get_dps_code("RETURN_HOME"): self.vacuum.getRoboVacCommandValue(RobovacCommand.RETURN_HOME, "return")
-        })
+        }
+
+        # For models with boolean START_PAUSE (e.g. T2128, T2276), DPS 2 is the
+        # execution trigger — without it, the device ACKs but doesn't physically act.
+        start_value = self.vacuum.getRoboVacCommandValue(RobovacCommand.START_PAUSE, "start")
+        if start_value != "start":
+            payload[self._get_dps_code("START_PAUSE")] = start_value
+
+        await self.vacuum.async_set(payload)
 
     async def async_start(self, **kwargs: Any) -> None:
         """Start the vacuum cleaner in auto mode.
@@ -866,8 +875,8 @@ class RoboVacEntity(StateVacuumEntity):
             await self.vacuum.async_set({
                 self._get_dps_code("BOOST_IQ"): new_value
             })
-        elif command == "roomClean" and params is not None and isinstance(params, dict):
-            room_ids = params.get("roomIds", [1])
+        elif command in ("roomClean", "room_clean") and params is not None and isinstance(params, dict):
+            room_ids = params.get("roomIds") or params.get("room_ids", [1])
             count = params.get("count", 1)
             clean_request = {"roomIds": room_ids, "cleanTimes": count}
             method_call = {
@@ -879,6 +888,11 @@ class RoboVacEntity(StateVacuumEntity):
             base64_str = base64.b64encode(json_str.encode("utf8")).decode("utf8")
             _LOGGER.debug("roomClean call %s", json_str)
             await self.vacuum.async_set({TuyaCodes.ROOM_CLEAN: base64_str})
+            # Wait for the vacuum to ACK DPS 124 before sending the start command.
+            # Without this delay, DPS 2 arrives before the room selection is processed
+            # and the vacuum ignores the start command.
+            await asyncio.sleep(1)
+            await self.vacuum.async_set({TuyaCodes.START_PAUSE: True})
 
     async def async_will_remove_from_hass(self) -> None:
         """Handle removal from Home Assistant."""
