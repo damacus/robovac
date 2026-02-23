@@ -285,7 +285,7 @@ class RoboVacEntity(StateVacuumEntity):
                     self._attr_tuya_state
                 )
                 return None
-        elif self._attr_tuya_state == "Charging" or self._attr_tuya_state == "completed":
+        elif self._attr_tuya_state == "Charging" or self._attr_tuya_state == "completed" or self._attr_tuya_state == "Completed":
             return VacuumActivity.DOCKED
         elif self._attr_tuya_state == "Recharge":
             return VacuumActivity.RETURNING
