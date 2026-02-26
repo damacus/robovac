@@ -52,6 +52,7 @@ class RobovacBatterySensor(SensorEntity):
         self.robovac_id = item[CONF_ID]
         self._attr_unique_id = f"{item[CONF_ID]}_battery"
         self._attr_name = "Battery"
+        self._attr_available = False  # Start as unavailable
 
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, item[CONF_ID])},
@@ -61,13 +62,89 @@ class RobovacBatterySensor(SensorEntity):
     async def async_update(self) -> None:
         """Update the sensor state."""
         try:
+            # Get the vacuum entity from hass data
             vacuum_entity = self.hass.data[DOMAIN][CONF_VACS].get(self.robovac_id)
-            if vacuum_entity and vacuum_entity.tuyastatus:
-                self._attr_native_value = vacuum_entity.tuyastatus.get(TuyaCodes.BATTERY_LEVEL)
-                self._attr_available = True
-            else:
-                _LOGGER.debug("Vacuum entity or status not available for %s", self.robovac_id)
+            
+            if not vacuum_entity:
+                _LOGGER.debug(
+                    "Vacuum entity not found for %s",
+                    self.robovac_id
+                )
                 self._attr_available = False
-        except Exception as ex:
-            _LOGGER.error("Failed to update battery sensor for %s: %s", self.robovac_id, ex)
+                return
+            
+            # Check if vacuum has tuyastatus data (from vacuum._dps)
+            if not vacuum_entity.tuyastatus:
+                _LOGGER.debug(
+                    "No tuyastatus available yet for %s. Waiting for connection...",
+                    self.robovac_id
+                )
+                self._attr_available = False
+                return
+            
+            # Get the model-specific battery DPS code
+            battery_dps_code = self._get_battery_dps_code(vacuum_entity)
+            
+            # Get battery value using the correct DPS code
+            battery_value = vacuum_entity.tuyastatus.get(battery_dps_code)
+            
+            if battery_value is not None:
+                self._attr_native_value = battery_value
+                self._attr_available = True
+                _LOGGER.debug(
+                    "Battery for %s: %s%% (DPS code: %s)",
+                    self.robovac_id,
+                    battery_value,
+                    battery_dps_code
+                )
+            else:
+                _LOGGER.debug(
+                    "Battery DPS code %s not in tuyastatus. Available codes: %s",
+                    battery_dps_code,
+                    list(vacuum_entity.tuyastatus.keys())
+                )
+                self._attr_available = False
+                
+        except KeyError as ex:
+            _LOGGER.error(
+                "Missing key in hass data for %s: %s",
+                self.robovac_id,
+                ex
+            )
             self._attr_available = False
+        except AttributeError as ex:
+            _LOGGER.error(
+                "Attribute error accessing vacuum for %s: %s",
+                self.robovac_id,
+                ex
+            )
+            self._attr_available = False
+        except Exception as ex:
+            _LOGGER.error(
+                "Unexpected error updating battery sensor for %s: %s",
+                self.robovac_id,
+                ex
+            )
+            self._attr_available = False
+
+    def _get_battery_dps_code(self, vacuum_entity) -> str:
+        """Get the correct DPS code for battery.
+        
+        Args:
+            vacuum_entity: The RoboVacEntity instance
+            
+        Returns:
+            The DPS code as a string (e.g., "163" for T2267, "104" for default)
+        """
+        try:
+            # Try to get the model-specific code from the vacuum
+            if hasattr(vacuum_entity, 'vacuum') and vacuum_entity.vacuum:
+                dps_codes = vacuum_entity.vacuum.getDpsCodes()
+                if "BATTERY_LEVEL" in dps_codes:
+                    code = dps_codes["BATTERY_LEVEL"]
+                    return code
+        except Exception as ex:
+            _LOGGER.debug("Could not get model-specific DPS code: %s", ex)
+        
+        # Fallback to default
+        return TuyaCodes.BATTERY_LEVEL
