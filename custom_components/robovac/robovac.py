@@ -198,7 +198,7 @@ class RoboVac(TuyaDevice):
 
         return codes
 
-    def getRoboVacCommandValue(self, command_name: RobovacCommand, value: str) -> str:
+    def getRoboVacCommandValue(self, command_name: RobovacCommand, value: str) -> str | bool:
         """Convert human-readable command value to model-specific device value.
 
         Translates user-friendly command values to the actual values that need to be
@@ -209,9 +209,9 @@ class RoboVac(TuyaDevice):
             value: The human-readable value (e.g., "auto", "edge", "Standard")
 
         Returns:
-            str: The model-specific value for the device (e.g., "BBoCCAE=" for L60 "auto" mode,
-                 "CAoCCAE=" for T2080 base64-encoded commands). Returns the original value
-                 if no mapping exists.
+            The model-specific value for the device. May be a string (e.g., "BBoCCAE="
+            for L60 "auto" mode) or a bool (e.g., True for START_PAUSE "start" on
+            T2128). Returns the original value if no mapping exists.
         """
         try:
             # Check if command_name is already a RobovacCommand enum
@@ -219,7 +219,10 @@ class RoboVac(TuyaDevice):
             values = self._get_command_values(cmd)
 
             if values is not None and value in values:
-                return str(values[value])
+                mapped = values[value]
+                if isinstance(mapped, bool):
+                    return mapped
+                return str(mapped)
 
         except (ValueError, KeyError):
             pass

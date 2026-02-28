@@ -76,6 +76,9 @@ MAGIC_SUFFIX_35_BYTES = struct.pack(">I", MAGIC_SUFFIX_35)
 # Format: prefix(4) + version(1) + reserved(1) + seq(4) + cmd(4) + len(4) = 18 bytes
 MESSAGE_PREFIX_FORMAT_35 = ">IBBIII"
 MESSAGE_SUFFIX_FORMAT_35 = ">16sI"  # 16-byte GCM tag + 4-byte suffix
+# v3.4+/v3.5 prepend a version header to the plaintext before encryption,
+# except for commands in NO_PROTOCOL_HEADER_CMDS.
+PROTOCOL_35_VERSION_HEADER = b"3.5" + b"\x00" * 12  # 15 bytes
 CRC_32_TABLE = [
     0x00000000,
     0x77073096,
@@ -389,6 +392,20 @@ class TuyaCipher:
         )
         # Initialize GCM cipher for Protocol 3.5
         self._aesgcm = AESGCM(self.key_bytes)
+        # Store the real (local) key for session key negotiation
+        self.real_key_bytes = self.key_bytes
+
+    def set_session_key(self, session_key: bytes) -> None:
+        """Switch cipher to use a negotiated session key.
+
+        After Protocol 3.5 session key negotiation, all subsequent
+        messages must be encrypted with the derived session key.
+        """
+        self.key_bytes = session_key
+        self.cipher = Cipher(
+            algorithms.AES(self.key_bytes), modes.ECB(), backend=openssl_backend
+        )
+        self._aesgcm = AESGCM(self.key_bytes)
 
     @property
     def is_gcm_mode(self) -> bool:
@@ -623,10 +640,23 @@ def crc(data: bytes) -> int:
 
 
 class Message:
+    SESS_KEY_NEG_START = 0x03
+    SESS_KEY_NEG_RESP = 0x04
+    SESS_KEY_NEG_FINISH = 0x05
     PING_COMMAND = 0x09
     GET_COMMAND = 0x0A
     SET_COMMAND = 0x07
     GRATUITOUS_UPDATE = 0x08
+    # v3.4+/v3.5 use new command codes for SET and GET
+    SET_COMMAND_NEW = 0x0D  # CONTROL_NEW
+    GET_COMMAND_NEW = 0x10  # DP_QUERY_NEW
+    UPDATEDPS = 0x12  # Request refresh of specific DPS
+
+    # Commands that do NOT get the v3.4+/v3.5 version header prepended
+    # (matches TinyTuya's NO_PROTOCOL_HEADER_CMDS + 0x07/0x08).
+    # 0x07 (SET_COMMAND) is included because some v3.5 devices (e.g. T2276)
+    # accept v3.3-style SET commands over v3.5 framing without the header.
+    NO_PROTOCOL_HEADER_CMDS = {0x07, 0x08, 0x0A, 0x10, 0x12, 0x09, 0x03, 0x04, 0x05, 0x40}
 
     def __init__(
         self,
@@ -693,6 +723,8 @@ class Message:
             A bytes object containing the message.
         """
         payload_data = self.payload
+        if payload_data is None:
+            payload_data = b""
         if isinstance(payload_data, dict):
             payload_data = json.dumps(payload_data, separators=(",", ":"))
         if not isinstance(payload_data, bytes):
@@ -754,22 +786,31 @@ class Message:
 
         cipher = self.device.cipher
 
-        # Generate IV and encrypt payload with GCM
-        iv, ciphertext, tag = cipher.encrypt_gcm(payload_data)
+        # v3.4+/v3.5: prepend version header for commands that need it
+        if self.command not in Message.NO_PROTOCOL_HEADER_CMDS:
+            payload_data = PROTOCOL_35_VERSION_HEADER + payload_data
 
-        # Calculate payload size: IV(12) + ciphertext + tag(16)
-        payload_size = 12 + len(ciphertext) + 16
+        # Calculate payload size first (needed for header/AAD)
+        # We need a preliminary encrypt to get ciphertext length, but since
+        # GCM doesn't pad, ciphertext length == plaintext length
+        payload_size = 12 + len(payload_data) + 16
 
         # Build header: prefix(4) + version(1) + reserved(1) + seq(4) + cmd(4) + len(4)
         header = struct.pack(
             MESSAGE_PREFIX_FORMAT_35,
             MAGIC_PREFIX_35,
-            0x00,  # version field (always 0x00)
-            0x00,  # reserved field (always 0x00)
+            0x00,  # version field
+            0x00,  # reserved field
             self.sequence,
             self.command,
             payload_size,
         )
+
+        # AAD = header bytes after prefix: version(1)+reserved(1)+seq(4)+cmd(4)+len(4) = 14 bytes
+        aad = header[4:]
+
+        # Encrypt payload with GCM using header as AAD
+        iv, ciphertext, tag = cipher.encrypt_gcm(payload_data, aad=aad)
 
         # Build footer: tag(16) + suffix(4)
         footer = struct.pack(MESSAGE_SUFFIX_FORMAT_35, tag, MAGIC_SUFFIX_35)
@@ -991,13 +1032,28 @@ class Message:
         if suffix != MAGIC_SUFFIX_35:
             raise InvalidMessage("Magic suffix 0x9966 missing from v3.5 message.")
 
-        # Decrypt payload using GCM
+        # Decrypt payload using GCM with header AAD
+        # AAD = header bytes after prefix: version(1)+reserved(1)+seq(4)+cmd(4)+len(4)
+        aad = data[4:header_size]
         payload = None
         if cipher is not None and ciphertext:
             try:
-                payload_data = cipher.decrypt_gcm(iv, ciphertext, tag)
-                payload_text = payload_data.decode("utf8")
-                payload = json.loads(payload_text)
+                payload_data = cipher.decrypt_gcm(iv, ciphertext, tag, aad=aad)
+                # v3.5 responses may have binary prefixes before the JSON:
+                # - 4-byte retcode (e.g. \x00\x00\x00\x00)
+                # - 4-byte retcode + 15-byte version header (gratuitous
+                #   updates: retcode + "3.5" + 12 bytes + JSON)
+                # Find the first '{' to locate where JSON starts.
+                if payload_data and payload_data[0:1] != b'{':
+                    json_start = payload_data.find(b'{')
+                    if json_start > 0:
+                        payload_data = payload_data[json_start:]
+                try:
+                    payload_text = payload_data.decode("utf8")
+                    payload = json.loads(payload_text)
+                except (UnicodeDecodeError, json.JSONDecodeError):
+                    # Binary payload (e.g. session key negotiation)
+                    payload = payload_data
             except Exception as e:
                 device._LOGGER.debug(f"v3.5 decryption failed: {e}")
                 raise InvalidMessage("GCM decryption/verification failed") from e
@@ -1033,6 +1089,7 @@ class TuyaDevice:
         self.version = version
         self.timeout = timeout
         self.last_pong: float = 0.0
+        self._last_connect_attempt: float = 0.0
         self.ping_interval = ping_interval
         self.update_entity_state_cb = update_entity_state
 
@@ -1050,8 +1107,17 @@ class TuyaDevice:
         self._handlers: dict[int, Callable[[Message], Coroutine]] = {
             Message.GRATUITOUS_UPDATE: self.async_gratuitous_update_state,
             Message.PING_COMMAND: self._async_pong_received,
+            # v3.5 devices use their own sequence numbers, so GET/SET
+            # responses won't match the original request's listener.
+            # Handle them as gratuitous state updates instead.
+            Message.GET_COMMAND: self.async_gratuitous_update_state,
+            Message.SET_COMMAND: self.async_gratuitous_update_state,
+            Message.GET_COMMAND_NEW: self.async_gratuitous_update_state,
+            Message.SET_COMMAND_NEW: self.async_gratuitous_update_state,
+            Message.UPDATEDPS: self.async_gratuitous_update_state,
         }
         self._dps: dict[str, Any] = {}
+        self._seqno = 0  # Incrementing sequence number for v3.5
         self._connected = False
         self._enabled = True
         self._queue: list[Message] = []
@@ -1113,7 +1179,7 @@ class TuyaDevice:
                     self._backoff = True
                     self._queue_interval = min(
                         INITIAL_BACKOFF * (BACKOFF_MULTIPLIER ** (self._failures - 4)),
-                        600,
+                        30,
                     )
                     self._LOGGER.warn(
                         "{} failures, backing off for {} seconds".format(
@@ -1122,6 +1188,10 @@ class TuyaDevice:
                     )
 
         await asyncio.sleep(self._queue_interval)
+        # After sleeping through the backoff period, allow pings to be
+        # queued again so the next cycle can attempt a reconnection.
+        if self._backoff:
+            self._backoff = False
         asyncio.create_task(self.process_queue())
 
     def clean_queue(self) -> None:
@@ -1140,27 +1210,178 @@ class TuyaDevice:
         """Connect to the device.
 
         This method establishes a connection to the device.
+        For protocol 3.5+, enforces a minimum cooldown between connection
+        attempts to give the device time to accept a new session.
         """
         if self._connected is True or self._enabled is False:
             return
 
-        sock = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM)
-        sock.settimeout(self.timeout)
+        # Protocol 3.5 devices need a brief pause between connection
+        # attempts.  Without this, multiple code paths (EOF handler, send
+        # retry, process_queue) hammer the device with rapid reconnects and
+        # every session key negotiation fails with "0 bytes read".
+        # Keep this short (5s) — the device itself idles out at ~30s, so a
+        # long cooldown means we reconnect to a stale connection every time.
+        if self.version >= (3, 5):
+            now = time.time()
+            elapsed = now - self._last_connect_attempt
+            if elapsed < 5:
+                wait = 5 - elapsed
+                self._LOGGER.debug(
+                    "Reconnect cooldown: waiting %.1fs before connecting to %s",
+                    wait, self
+                )
+                await asyncio.sleep(wait)
+            self._last_connect_attempt = time.time()
+
         self._LOGGER.debug("Connecting to {}".format(self))
         try:
-            sock.connect((self.host, self.port))
-        except (socket.timeout, TimeoutError):
+            self.reader, self.writer = await asyncio.wait_for(
+                asyncio.open_connection(self.host, self.port),
+                timeout=self.timeout,
+            )
+        except (asyncio.TimeoutError, OSError) as e:
             self._dps[self.model_details.commands[RobovacCommand.ERROR]] = ("CONNECTION_FAILED")
-            raise ConnectionTimeoutException("Connection timed out")
-        loop = asyncio.get_running_loop()
-        loop.create_connection
-        self.reader, self.writer = await asyncio.open_connection(sock=sock)
+            raise ConnectionTimeoutException("Connection timed out: {}".format(e))
         self._connected = True
 
+        # Protocol 3.5 requires session key negotiation before any communication
+        if self.version >= (3, 5):
+            try:
+                await self._negotiate_session_key()
+                # Reset failure count on successful handshake so that a subsequent
+                # clean disconnect (EOF) doesn't compound with prior failures.
+                self._failures = 0
+                self._backoff = False
+            except Exception as e:
+                self._LOGGER.error("Session key negotiation failed: %s", e)
+                await self.async_disconnect()
+                raise ConnectionFailedException(
+                    "Session key negotiation failed: {}".format(e)
+                )
+
         if self._ping_task is None:
-            self._ping_task = asyncio.create_task(self.async_ping(self.ping_interval))
+            # Delay first ping to let initial data exchange complete
+            async def _start_ping() -> None:
+                await asyncio.sleep(self.ping_interval)
+                self._ping_task = asyncio.create_task(self.async_ping(self.ping_interval))
+            self._ping_task = asyncio.create_task(_start_ping())
 
         asyncio.create_task(self._async_handle_message())
+
+    async def _negotiate_session_key(self) -> None:
+        """Negotiate a session key with a Protocol 3.5 device.
+
+        Performs the 3-step handshake:
+        1. Send SESS_KEY_NEG_START with 16-byte client nonce
+        2. Receive SESS_KEY_NEG_RESP with 16-byte device nonce + HMAC
+        3. Send SESS_KEY_NEG_FINISH with HMAC of device nonce
+        4. Derive session key from both nonces
+        """
+        local_nonce = os.urandom(16)
+        real_key = self.cipher.real_key_bytes
+        # Session key negotiation MUST use the local key, not any previously
+        # negotiated session key.  Reset the cipher so that both our
+        # encryption (steps 1 & 3) and the response decryption (step 2,
+        # via Message.from_bytes → cipher.decrypt_gcm) use the local key.
+        self.cipher.key_bytes = real_key
+        self.cipher._aesgcm = AESGCM(real_key)
+        local_aesgcm = AESGCM(real_key)
+
+        # Step 1: Build SESS_KEY_NEG_START directly (bypass Message class)
+        if self.writer is None:
+            raise ConnectionFailedException("Writer not initialized")
+
+        seq = 1
+        cmd = Message.SESS_KEY_NEG_START  # 0x03
+        payload_size = 12 + len(local_nonce) + 16  # IV + ct + tag
+        header = struct.pack(">IBBIII", MAGIC_PREFIX_35, 0, 0, seq, cmd, payload_size)
+        aad = header[4:]  # 14 bytes
+
+        iv = os.urandom(12)
+        ct_with_tag = local_aesgcm.encrypt(iv, local_nonce, aad)
+        ciphertext = ct_with_tag[:-16]
+        tag = ct_with_tag[-16:]
+
+        msg_bytes = header + iv + ciphertext + struct.pack(">16sI", tag, MAGIC_SUFFIX_35)
+
+        self.writer.write(msg_bytes)
+        await self.writer.drain()
+
+        # Step 2: Read device response
+        suffix = MAGIC_SUFFIX_35_BYTES
+        try:
+            raw = await asyncio.wait_for(
+                self.reader.readuntil(suffix), timeout=self.timeout
+            )
+        except asyncio.TimeoutError:
+            raise
+        except asyncio.IncompleteReadError:
+            raise
+        except Exception:
+            raise
+
+        resp = Message.from_bytes(self, raw, self.cipher)
+
+        if resp.command != Message.SESS_KEY_NEG_RESP:
+            raise InvalidMessage(
+                "Expected SESS_KEY_NEG_RESP (0x04), got 0x{:02x}".format(resp.command)
+            )
+
+        payload = resp.payload
+        if isinstance(payload, str):
+            payload = payload.encode("utf-8")
+
+        # Device response is decrypted by _from_bytes_v35.
+        # Strip 4-byte return code prefix if present (v3.5 responses include it).
+        if len(payload) >= 52:
+            payload = payload[4:]
+
+        if len(payload) < 48:
+            raise InvalidMessage(
+                "SESS_KEY_NEG_RESP payload too short: {} bytes".format(len(payload))
+            )
+
+        remote_nonce = payload[:16]
+        device_hmac = payload[16:48]
+
+        # Verify device HMAC: device proves it has our local key by
+        # computing HMAC-SHA256(local_key, client_nonce)
+        h = crypto_hmac.HMAC(real_key, SHA256(), backend=openssl_backend)
+        h.update(local_nonce)
+        expected_hmac = h.finalize()
+
+        if device_hmac != expected_hmac:
+            raise InvalidMessage("Device HMAC verification failed")
+
+        # Step 3: Build SESS_KEY_NEG_FINISH directly (seq=2 to match tinytuya)
+        h2 = crypto_hmac.HMAC(real_key, SHA256(), backend=openssl_backend)
+        h2.update(remote_nonce)
+        client_hmac = h2.finalize()
+
+        seq3 = 2
+        cmd3 = Message.SESS_KEY_NEG_FINISH  # 0x05
+        payload_size3 = 12 + len(client_hmac) + 16  # IV + ct + tag
+        header3 = struct.pack(">IBBIII", MAGIC_PREFIX_35, 0, 0, seq3, cmd3, payload_size3)
+        aad3 = header3[4:]
+        iv3 = os.urandom(12)
+        ct3_with_tag = local_aesgcm.encrypt(iv3, client_hmac, aad3)
+        ciphertext3 = ct3_with_tag[:-16]
+        tag3 = ct3_with_tag[-16:]
+        msg3_bytes = header3 + iv3 + ciphertext3 + struct.pack(">16sI", tag3, MAGIC_SUFFIX_35)
+
+        self.writer.write(msg3_bytes)
+        await self.writer.drain()
+
+        # Step 4: Derive session key (XOR nonces, then AES-GCM encrypt)
+        xored = bytes(a ^ b for a, b in zip(local_nonce, remote_nonce))
+        aesgcm = AESGCM(real_key)
+        ct_with_tag = aesgcm.encrypt(local_nonce[:12], xored, None)
+        session_key = ct_with_tag[:16]
+
+        self.cipher.set_session_key(session_key)
+        self._LOGGER.debug("Session key negotiated successfully for %s", self)
+        await asyncio.sleep(0.1)
 
     async def async_disable(self) -> None:
         """Disable the device.
@@ -1190,11 +1411,36 @@ class TuyaDevice:
         if self.reader is not None and not self.reader.at_eof():
             self.reader.feed_eof()
 
+    def _dps_to_request(self) -> dict[str, None]:
+        """Build a DPS map for device22-style status queries.
+
+        Returns a dict with known DPS keys mapped to None.  If we already
+        have cached state, use those keys; otherwise request common DPS
+        codes for the device model.
+        """
+        if self._dps:
+            return {k: None for k in self._dps}
+        # Request common DPS codes that T2276 and similar vacuums use.
+        # This is better than requesting DPS 1 which doesn't exist on
+        # most vacuum models.
+        return {str(k): None for k in [2, 5, 15, 101, 102, 103, 104, 106]}
+
     async def async_get(self) -> None:
         """Get the current state of the device.
 
         This method retrieves the current state of the device.
         """
+        if self.version >= (3, 4):
+            # v3.5 devices reject all known GET/query commands:
+            # - DP_QUERY (0x0a) → "json obj data unvalid"
+            # - DP_QUERY_NEW (0x10) → same
+            # - UPDATEDPS (0x12) → empty ACK, no DPS data (tested with
+            #   valid DPS IDs [2,5,15,101,102,103,104,106] — still empty)
+            #
+            # The only way to get DPS state is via gratuitous updates (0x08)
+            # the device sends after SET commands.  So just stay connected.
+            await self.async_connect()
+            return
         payload_dict = {"gwId": self.gateway_id, "devId": self.device_id}
         payload_bytes = json.dumps(payload_dict).encode('utf-8')
         encrypt = False if self.version < (3, 3) else True
@@ -1210,10 +1456,40 @@ class TuyaDevice:
         This method sets the state of the device.
         """
         t = int(time.time())
-        payload_dict = {"devId": self.device_id, "uid": "", "t": t, "dps": dps}
+        if self.version >= (3, 4):
+            payload_dict: dict[str, Any] = {
+                "protocol": 5,
+                "t": t,
+                "data": {"dps": dps},
+            }
+            cmd = Message.SET_COMMAND_NEW
+        else:
+            payload_dict = {"devId": self.device_id, "uid": "", "t": t, "dps": dps}
+            cmd = Message.SET_COMMAND
         payload_bytes = json.dumps(payload_dict).encode('utf-8')
         message = Message(
-            Message.SET_COMMAND,
+            cmd,
+            payload_bytes,
+            encrypt=True,
+            device=self,
+            expect_response=False,
+        )
+        self._queue.append(message)
+
+    async def _async_request_dps_update(self, dps_ids: list[str] | None = None) -> None:
+        """Request the device to send updated DPS values.
+
+        Sends UPDATEDPS (0x12) which asks the device to push the current
+        values for the specified DPS IDs.  This is how TinyTuya retrieves
+        state from v3.4+/v3.5 devices that don't respond to DP_QUERY.
+        """
+        if dps_ids:
+            payload_dict = {"dpId": [int(d) for d in dps_ids]}
+        else:
+            payload_dict = {"dpId": [int(d) for d in self._dps_to_request()]}
+        payload_bytes = json.dumps(payload_dict).encode('utf-8')
+        message = Message(
+            Message.UPDATEDPS,
             payload_bytes,
             encrypt=True,
             device=self,
@@ -1231,6 +1507,12 @@ class TuyaDevice:
 
         if self._backoff is True:
             self._LOGGER.debug("Currently in backoff, not adding ping to queue")
+        elif self.version >= (3, 5):
+            # v3.5 devices (like T2276) don't support Tuya heartbeats — they
+            # close the TCP connection after receiving any ping, regardless of
+            # format.  Skip heartbeats entirely; the device will naturally EOF
+            # when idle, and process_queue will drive reconnection.
+            pass
         else:
             self.last_ping = time.time()
             encrypt = False if self.version < (3, 3) else True
@@ -1246,7 +1528,8 @@ class TuyaDevice:
 
         await asyncio.sleep(ping_interval)
         self._ping_task = asyncio.create_task(self.async_ping(self.ping_interval))
-        if self.last_pong < self.last_ping:
+        # v3.5 doesn't send heartbeats so skip the pong timeout check.
+        if self.version < (3, 5) and self.last_pong < self.last_ping:
             await self.async_disconnect()
 
     async def _async_pong_received(self, message: Message) -> None:
@@ -1268,15 +1551,23 @@ class TuyaDevice:
         """Handle a received state message.
 
         This method handles a received state message from the device.
+        Supports both v3.3 format ({"dps": {...}}) and v3.5 format
+        ({"protocol": 4, "data": {"dps": {...}}}).
         """
         if (
             state_message is not None
             and state_message.payload is not None
             and isinstance(state_message.payload, dict)
-            and "dps" in state_message.payload
         ):
-            self._dps.update(state_message.payload["dps"])
-            self._LOGGER.debug("Received updated state {}: {}".format(self, self._dps))
+            payload = state_message.payload
+            # v3.5 gratuitous updates nest DPS under "data"
+            if "data" in payload and isinstance(payload["data"], dict):
+                dps = payload["data"].get("dps")
+            else:
+                dps = payload.get("dps")
+            if dps:
+                self._dps.update(dps)
+                self._LOGGER.debug("Received updated state {}: {}".format(self, self._dps))
 
     @property
     def state(self) -> dict[str, Any]:
@@ -1307,8 +1598,9 @@ class TuyaDevice:
             return
 
         try:
+            suffix = MAGIC_SUFFIX_35_BYTES if self.version >= (3, 5) else MAGIC_SUFFIX_BYTES
             self._response_task = asyncio.create_task(
-                self.reader.readuntil(MAGIC_SUFFIX_BYTES)
+                self.reader.readuntil(suffix)
             )
             await self._response_task
             response_data = self._response_task.result()
@@ -1320,7 +1612,14 @@ class TuyaDevice:
                 self._LOGGER.debug("Failed to decrypt message from {}".format(self))
             elif isinstance(e, asyncio.IncompleteReadError):
                 if self._connected:
-                    self._LOGGER.debug("Incomplete read")
+                    self._LOGGER.debug(
+                        "Incomplete read (%d bytes partial): %s",
+                        len(e.partial), e.partial[:40].hex() if e.partial else "empty"
+                    )
+                    if len(e.partial) == 0:
+                        self._LOGGER.debug("Connection closed by device (EOF)")
+                        await self.async_disconnect()
+                        return  # Don't reschedule — process_queue will reconnect
             elif isinstance(e, ConnectionResetError):
                 self._LOGGER.debug(
                     "Connection reset: {}\n{}".format(e, traceback.format_exc())
