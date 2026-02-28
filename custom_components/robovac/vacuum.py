@@ -789,7 +789,18 @@ class RoboVacEntity(StateVacuumEntity):
         Args:
             **kwargs: Additional arguments passed from Home Assistant.
         """
-        await self.async_return_to_base()
+        if self.vacuum is None:
+            _LOGGER.error("Cannot stop vacuum: vacuum not initialized")
+            return
+
+        # Use STOP command if model supports it, otherwise fall back to return_to_base
+        stop_code = self._get_dps_code("STOP")
+        if stop_code:
+            await self.vacuum.async_set({
+                stop_code: self.vacuum.getRoboVacCommandValue(RobovacCommand.STOP, "stop")
+            })
+        else:
+            await self.async_return_to_base()
 
     async def async_clean_spot(self, **kwargs: Any) -> None:
         """Perform a spot clean.
