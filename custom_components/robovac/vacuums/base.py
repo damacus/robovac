@@ -75,3 +75,4 @@ class RobovacModelDetails(Protocol):
     # List of tuples: (prefix, suffix, human_readable_status)
     # Example: [("DA", "FSAA==", "Positioning")] matches any base64 starting with DA, ending with FSAA==
     status_patterns: List[tuple[str, str, str]] | None = None
+    error_patterns: List[tuple[str, str, str]] | None = None

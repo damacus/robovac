@@ -71,7 +71,7 @@ class TestT2320CommandMappings:
         assert dps_codes.get("LOCATE") == "160"  # Fixed: was 153 (conflict with RETURN_HOME)
         assert dps_codes.get("STATUS") == "177"  # T2320 uses different STATUS code than T2267
         assert dps_codes.get("BATTERY_LEVEL") == "172"
-        assert dps_codes.get("ERROR_CODE") == "177"  # T2320 uses same ERROR code as STATUS
+        assert dps_codes.get("ERROR_CODE") == "177"
 
     def test_status_command_exists(self, t2320_robovac):
         """Test STATUS command is defined for state polling."""

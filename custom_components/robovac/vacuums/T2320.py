@@ -25,7 +25,7 @@ class T2320(RobovacModelDetails):
     )
     commands = {
         RobovacCommand.START_PAUSE: {
-            "code": 152,  # Same as MODE, uses protobuf-encoded values like T2267
+            "code": 152,  # Uses protobuf-encoded values
             "values": {
                 "pause": "AggN",  # Protobuf: ModeCtrlRequest.Method.PAUSE_TASK
                 "resume": "AggO",  # Protobuf: ModeCtrlRequest.Method.RESUME_TASK
@@ -44,7 +44,7 @@ class T2320(RobovacModelDetails):
         RobovacCommand.STATUS: {
             "code": 177,
             "values": {
-                # Protobuf-encoded status values (similar to T2080/T2267)
+                # Protobuf-encoded status values
                 # Cleaning states
                 "BgoAEAUyAA==": "Auto Cleaning",
                 "BgoAEAVSAA==": "Positioning",
@@ -126,9 +126,6 @@ class T2320(RobovacModelDetails):
         },
         RobovacCommand.BATTERY: {
             "code": 172,
-        },
-        RobovacCommand.ERROR: {
-            "code": 169,
         },
         RobovacCommand.BOOST_IQ: {
             "code": 159,

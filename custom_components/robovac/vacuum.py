@@ -757,13 +757,16 @@ class RoboVacEntity(StateVacuumEntity):
         }
 
         # Some models use a separate START_PAUSE DPS code to trigger cleaning
-        # MODE sets the cleaning mode, START_PAUSE triggers the action
-        # Only add START_PAUSE if the model explicitly defines it with a different code
+        # Only add START_PAUSE if the model defines it with a different code than MODE
         model_dps_codes = self.vacuum.getDpsCodes()
         if "START_PAUSE" in model_dps_codes:
             start_pause_code = model_dps_codes["START_PAUSE"]
             if start_pause_code != mode_code:
                 start_value = self.vacuum.getRoboVacCommandValue(RobovacCommand.START_PAUSE, "start")
+                # Coerce "True"/"False" back to bool since getRoboVacCommandValue
+                # stringifies all values, but some models use boolean START_PAUSE
+                if isinstance(start_value, str) and start_value in ("True", "False"):
+                    start_value = start_value == "True"
                 if start_value != "start":
                     # Model has a mapped "start" value for START_PAUSE, include it
                     payload[start_pause_code] = start_value

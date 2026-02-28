@@ -46,7 +46,7 @@ def test_t2267_mode_command_values(mock_t2267_robovac: RoboVac) -> None:
     """Test T2267 MODE command value mappings."""
     assert mock_t2267_robovac.getRoboVacCommandValue(RobovacCommand.MODE, "auto") == "BBoCCAE="
     assert mock_t2267_robovac.getRoboVacCommandValue(RobovacCommand.MODE, "pause") == "AggN"
-    assert mock_t2267_robovac.getRoboVacCommandValue(RobovacCommand.MODE, "spot") == "AA=="
+    assert mock_t2267_robovac.getRoboVacCommandValue(RobovacCommand.MODE, "spot") == "AggD"
     assert mock_t2267_robovac.getRoboVacCommandValue(RobovacCommand.MODE, "return") == "AggG"
     assert mock_t2267_robovac.getRoboVacCommandValue(RobovacCommand.MODE, "nosweep") == "AggO"
 

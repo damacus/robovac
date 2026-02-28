@@ -130,7 +130,7 @@ def test_getDpsCodes_extraction_method() -> None:
         assert t2320_dps_codes["BATTERY_LEVEL"] == "172"  # Non-default code
         assert t2320_dps_codes["BATTERY_LEVEL"] != TuyaCodes.BATTERY_LEVEL
         assert "ERROR_CODE" in t2320_dps_codes
-        assert t2320_dps_codes["ERROR_CODE"] == "177"  # T2320 uses same ERROR code as STATUS
+        assert t2320_dps_codes["ERROR_CODE"] == "177"
         assert t2320_dps_codes["ERROR_CODE"] != TuyaCodes.ERROR_CODE
 
 
