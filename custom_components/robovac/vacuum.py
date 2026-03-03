@@ -375,6 +375,7 @@ class RoboVacEntity(StateVacuumEntity):
         self.tuyastatus: dict[str, Any] | None = None
         self._last_no_data_warning_time: float = 0
         self._no_data_warning_logged: bool = False
+        self._consumables_codes_cache: list[str] | None = None
 
         # Initialize the RoboVac connection
         try:
@@ -595,6 +596,11 @@ class RoboVacEntity(StateVacuumEntity):
         Returns:
             A list of DPS codes for consumables
         """
+        # ⚡ Bolt optimization: Use cached consumables codes to avoid rebuilding the list
+        # and splitting strings on every update cycle.
+        if self._consumables_codes_cache is not None:
+            return self._consumables_codes_cache
+
         if self.vacuum is None:
             return TUYA_CONSUMABLES_CODES
 
@@ -606,10 +612,13 @@ class RoboVacEntity(StateVacuumEntity):
             # Model-specific consumables can be a list or comma-separated string
             consumables = model_dps_codes["CONSUMABLES"]
             if isinstance(consumables, str):
-                return [code.strip() for code in consumables.split(",")]
-            return consumables
+                self._consumables_codes_cache = [code.strip() for code in consumables.split(",")]
+            else:
+                self._consumables_codes_cache = list(consumables)
+            return self._consumables_codes_cache
 
         # Fall back to default codes
+        self._consumables_codes_cache = TUYA_CONSUMABLES_CODES
         return TUYA_CONSUMABLES_CODES
 
     def _update_state_and_error(self) -> None:
