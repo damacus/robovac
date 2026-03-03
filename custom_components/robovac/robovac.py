@@ -81,6 +81,7 @@ class RoboVac(TuyaDevice):
 
         self.model_code = model_code
         self.model_details = current_model_details
+        self._dps_codes_cache: dict[str, str] | None = None
 
     def getHomeAssistantFeatures(self) -> int:
         """Get the Home Assistant supported features for this vacuum model.
@@ -172,6 +173,12 @@ class RoboVac(TuyaDevice):
             dict[str, str]: Dictionary mapping DPS code names (e.g., "BATTERY_LEVEL", "ERROR_CODE")
                            to their numeric string values (e.g., "104", "106") for Tuya communication
         """
+        # ⚡ Bolt optimization: The command definitions are static for a given model.
+        # By caching the extracted DPS codes, we avoid rebuilding this dictionary
+        # (iterating over commands and checking types) on every status update or dispatch.
+        if self._dps_codes_cache is not None:
+            return self._dps_codes_cache
+
         # Map command names to DPS code names
         command_to_dps = {
             "BATTERY": "BATTERY_LEVEL",
@@ -196,6 +203,7 @@ class RoboVac(TuyaDevice):
                 # For direct values, use the value itself
                 codes[dps_name] = str(value)
 
+        self._dps_codes_cache = codes
         return codes
 
     def getRoboVacCommandValue(self, command_name: RobovacCommand, value: str) -> str | bool:
