@@ -94,14 +94,23 @@ class RobovacBatterySensor(SensorEntity):
             battery_value = vacuum_entity.tuyastatus.get(battery_dps_code)
 
             if battery_value is not None:
-                self._attr_native_value = battery_value
-                self._attr_available = True
-                _LOGGER.debug(
-                    "Battery for %s: %s%% (DPS code: %s)",
-                    self.robovac_id,
-                    battery_value,
-                    battery_dps_code
-                )
+                try:
+                    self._attr_native_value = int(battery_value)
+                    self._attr_available = True
+                    _LOGGER.debug(
+                        "Battery for %s: %s%% (DPS code: %s)",
+                        self.robovac_id,
+                        self._attr_native_value,
+                        battery_dps_code
+                    )
+                except (ValueError, TypeError) as ex:
+                    _LOGGER.error(
+                        "Invalid battery value %s for %s: %s",
+                        battery_value,
+                        self.robovac_id,
+                        ex
+                    )
+                    self._attr_available = False
             else:
                 _LOGGER.debug(
                     "Battery DPS code %s not in tuyastatus. Available codes: %s",
