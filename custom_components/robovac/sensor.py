@@ -88,20 +88,30 @@ class RobovacBatterySensor(SensorEntity):
                 return
 
             # Get the model-specific battery DPS code
-            battery_dps_code = self._get_battery_dps_code(vacuum_entity)
+            battery_dps_code = vacuum_entity.get_dps_code(TuyaCodes.BATTERY_LEVEL)
 
             # Get battery value using the correct DPS code
             battery_value = vacuum_entity.tuyastatus.get(battery_dps_code)
 
             if battery_value is not None:
-                self._attr_native_value = battery_value
-                self._attr_available = True
-                _LOGGER.debug(
-                    "Battery for %s: %s%% (DPS code: %s)",
-                    self.robovac_id,
-                    battery_value,
-                    battery_dps_code
-                )
+                try:
+                    # Some models might send stringified numbers or floats
+                    self._attr_native_value = int(float(battery_value))
+                    self._attr_available = True
+                    _LOGGER.debug(
+                        "Battery for %s: %s%% (DPS code: %s)",
+                        self.robovac_id,
+                        self._attr_native_value,
+                        battery_dps_code
+                    )
+                except (ValueError, TypeError) as ex:
+                    _LOGGER.error(
+                        "Invalid battery value %s for %s: %s",
+                        battery_value,
+                        self.robovac_id,
+                        ex
+                    )
+                    self._attr_available = False
             else:
                 _LOGGER.debug(
                     "Battery DPS code %s not in tuyastatus. Available codes: %s",
@@ -131,25 +141,3 @@ class RobovacBatterySensor(SensorEntity):
                 ex
             )
             self._attr_available = False
-
-    def _get_battery_dps_code(self, vacuum_entity: RoboVacEntity) -> str:
-        """Get the correct DPS code for battery.
-
-        Args:
-            vacuum_entity: The RoboVacEntity instance
-
-        Returns:
-            The DPS code as a string (e.g., "163" for T2267, "104" for default)
-        """
-        try:
-            # Try to get the model-specific code from the vacuum
-            if vacuum_entity.vacuum:
-                dps_codes = vacuum_entity.vacuum.getDpsCodes()
-                if "BATTERY_LEVEL" in dps_codes:
-                    code: str = dps_codes["BATTERY_LEVEL"]
-                    return code
-        except Exception as ex:
-            _LOGGER.debug("Could not get model-specific DPS code: %s", ex)
-
-        # Fallback to default
-        return str(TuyaCodes.BATTERY_LEVEL)

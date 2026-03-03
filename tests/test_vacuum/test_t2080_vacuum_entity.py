@@ -57,7 +57,7 @@ def mock_t2080_robovac() -> RoboVac:
     mock.getHomeAssistantFeatures.return_value = 255
     mock.getRoboVacFeatures.return_value = 511
     mock.getFanSpeeds.return_value = ["quiet", "standard", "turbo", "max"]
-    mock._get_dps_code.return_value = "153"  # STATUS code for T2080
+    mock.getDpsCodes.return_value = {"STATUS": "153"}
 
     return mock
 
@@ -175,7 +175,7 @@ async def test_t2080_update_state_uses_human_readable_values(mock_t2080_robovac,
             "152": "BBoCCAE=",  # Encoded "auto" mode
         }
 
-        # Mock _get_dps_code to return the right codes
+        # Mock get_dps_code to return the right codes
         def mock_get_dps_code(command_name):
             if command_name == "STATUS":
                 return "153"
@@ -185,7 +185,7 @@ async def test_t2080_update_state_uses_human_readable_values(mock_t2080_robovac,
                 return "152"
             return None
 
-        entity._get_dps_code = mock_get_dps_code
+        entity.get_dps_code = mock_get_dps_code
 
         # Call the private methods that update state
         entity._update_state_and_error()
