@@ -124,13 +124,13 @@ def test_getDpsCodes_extraction_method() -> None:
 
         # Verify T2320 has different codes too
         assert "STATUS" in t2320_dps_codes
-        assert t2320_dps_codes["STATUS"] == "173"  # Non-default code
+        assert t2320_dps_codes["STATUS"] == "177"  # T2320 uses different STATUS code than T2267
         assert t2320_dps_codes["STATUS"] != TuyaCodes.STATUS
         assert "BATTERY_LEVEL" in t2320_dps_codes
         assert t2320_dps_codes["BATTERY_LEVEL"] == "172"  # Non-default code
         assert t2320_dps_codes["BATTERY_LEVEL"] != TuyaCodes.BATTERY_LEVEL
         assert "ERROR_CODE" in t2320_dps_codes
-        assert t2320_dps_codes["ERROR_CODE"] == "169"  # Non-default code
+        assert t2320_dps_codes["ERROR_CODE"] == "177"
         assert t2320_dps_codes["ERROR_CODE"] != TuyaCodes.ERROR_CODE
 
 

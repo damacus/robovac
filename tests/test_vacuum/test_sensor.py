@@ -39,7 +39,8 @@ async def test_battery_sensor_update_success():
 
     # Create mock vacuum entity
     mock_vacuum_entity = MagicMock()
-    mock_vacuum_entity.tuyastatus = {TuyaCodes.BATTERY_LEVEL: 85}
+    mock_vacuum_entity._get_dps_code.return_value = TuyaCodes.BATTERY_LEVEL.value
+    mock_vacuum_entity.tuyastatus = {TuyaCodes.BATTERY_LEVEL.value: 85}
 
     # Create mock hass data structure
     mock_hass = MagicMock()

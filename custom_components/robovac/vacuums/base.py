@@ -21,6 +21,7 @@ class RoboVacEntityFeature(IntEnum):
 
 class RobovacCommand(StrEnum):
     START_PAUSE = "start_pause"
+    STOP = "stop"
     DIRECTION = "direction"
     MODE = "mode"
     STATUS = "status"
@@ -70,3 +71,8 @@ class RobovacModelDetails(Protocol):
     commands: Dict[RobovacCommand, Any]
     dps_codes: Dict[str, str] = {}  # Optional model-specific DPS codes
     activity_mapping: Dict[str, VacuumActivity] | None = None
+    # Optional patterns for STATUS codes with dynamic content (e.g., timestamps)
+    # List of tuples: (prefix, suffix, human_readable_status)
+    # Example: [("DA", "FSAA==", "Positioning")] matches any base64 starting with DA, ending with FSAA==
+    status_patterns: List[tuple[str, str, str]] | None = None
+    error_patterns: List[tuple[str, str, str]] | None = None
