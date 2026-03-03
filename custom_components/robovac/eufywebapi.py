@@ -48,7 +48,9 @@ class EufyLogon:
         }
 
         try:
-            return requests.post(login_url, json=login_auth, headers=eufyheaders)
+            # Create a local copy of headers to prevent cross-session data leakage
+            headers = eufyheaders.copy()
+            return requests.post(login_url, json=login_auth, headers=headers, timeout=10)
         except requests.exceptions.ConnectionError:
             return None
 
@@ -66,11 +68,13 @@ class EufyLogon:
             Response object or None if connection error occurs.
         """
         setting_url = url + "/v1/user/setting"
-        eufyheaders["token"] = token
-        eufyheaders["id"] = userid
+        # Create a local copy of headers to prevent cross-session data leakage
+        headers = eufyheaders.copy()
+        headers["token"] = token
+        headers["id"] = userid
         try:
             return requests.request(
-                "GET", setting_url, headers=eufyheaders, timeout=1.5
+                "GET", setting_url, headers=headers, timeout=10
             )
         except requests.exceptions.ConnectionError:
             return None
@@ -89,9 +93,11 @@ class EufyLogon:
             Response object or None if connection error occurs.
         """
         device_url = url + "/v1/device/v2"
-        eufyheaders["token"] = token
-        eufyheaders["id"] = userid
+        # Create a local copy of headers to prevent cross-session data leakage
+        headers = eufyheaders.copy()
+        headers["token"] = token
+        headers["id"] = userid
         try:
-            return requests.request("GET", device_url, headers=eufyheaders)
+            return requests.request("GET", device_url, headers=headers, timeout=10)
         except requests.exceptions.ConnectionError:
             return None
