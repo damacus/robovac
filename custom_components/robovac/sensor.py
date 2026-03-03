@@ -1,5 +1,7 @@
+from __future__ import annotations
 import logging
 from datetime import timedelta
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
 from homeassistant.config_entries import ConfigEntry
@@ -10,6 +12,9 @@ from homeassistant.helpers.device_registry import DeviceInfo
 
 from .const import CONF_VACS, DOMAIN, REFRESH_RATE
 from .vacuums.base import TuyaCodes
+
+if TYPE_CHECKING:
+    from .vacuum import RoboVacEntity
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -42,7 +47,7 @@ class RobovacBatterySensor(SensorEntity):
     _attr_native_unit_of_measurement = PERCENTAGE
     _attr_should_poll = True
 
-    def __init__(self, item: dict) -> None:
+    def __init__(self, item: dict[str, Any]) -> None:
         """Initialize the sensor.
 
         Args:
@@ -63,8 +68,8 @@ class RobovacBatterySensor(SensorEntity):
         """Update the sensor state."""
         try:
             # Get the vacuum entity from hass data
-            vacuum_entity = self.hass.data[DOMAIN][CONF_VACS].get(self.robovac_id)
-            
+            vacuum_entity: RoboVacEntity | None = self.hass.data[DOMAIN][CONF_VACS].get(self.robovac_id)
+
             if not vacuum_entity:
                 _LOGGER.debug(
                     "Vacuum entity not found for %s",
@@ -72,7 +77,7 @@ class RobovacBatterySensor(SensorEntity):
                 )
                 self._attr_available = False
                 return
-            
+
             # Check if vacuum has tuyastatus data (from vacuum._dps)
             if not vacuum_entity.tuyastatus:
                 _LOGGER.debug(
@@ -81,13 +86,13 @@ class RobovacBatterySensor(SensorEntity):
                 )
                 self._attr_available = False
                 return
-            
+
             # Get the model-specific battery DPS code
             battery_dps_code = self._get_battery_dps_code(vacuum_entity)
-            
+
             # Get battery value using the correct DPS code
             battery_value = vacuum_entity.tuyastatus.get(battery_dps_code)
-            
+
             if battery_value is not None:
                 self._attr_native_value = battery_value
                 self._attr_available = True
@@ -104,7 +109,7 @@ class RobovacBatterySensor(SensorEntity):
                     list(vacuum_entity.tuyastatus.keys())
                 )
                 self._attr_available = False
-                
+
         except KeyError as ex:
             _LOGGER.error(
                 "Missing key in hass data for %s: %s",
@@ -127,24 +132,24 @@ class RobovacBatterySensor(SensorEntity):
             )
             self._attr_available = False
 
-    def _get_battery_dps_code(self, vacuum_entity) -> str:
+    def _get_battery_dps_code(self, vacuum_entity: RoboVacEntity) -> str:
         """Get the correct DPS code for battery.
-        
+
         Args:
             vacuum_entity: The RoboVacEntity instance
-            
+
         Returns:
             The DPS code as a string (e.g., "163" for T2267, "104" for default)
         """
         try:
             # Try to get the model-specific code from the vacuum
-            if hasattr(vacuum_entity, 'vacuum') and vacuum_entity.vacuum:
+            if vacuum_entity.vacuum:
                 dps_codes = vacuum_entity.vacuum.getDpsCodes()
                 if "BATTERY_LEVEL" in dps_codes:
-                    code = dps_codes["BATTERY_LEVEL"]
+                    code: str = dps_codes["BATTERY_LEVEL"]
                     return code
         except Exception as ex:
             _LOGGER.debug("Could not get model-specific DPS code: %s", ex)
-        
+
         # Fallback to default
-        return TuyaCodes.BATTERY_LEVEL
+        return str(TuyaCodes.BATTERY_LEVEL)
