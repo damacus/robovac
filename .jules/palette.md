@@ -1,0 +1,3 @@
+## 2024-05-18 - Home Assistant Config Flow Form Fields Helpet Text
+**Learning:** Home Assistant supports providing inline helper text directly beneath the configuration and options flow form fields using the `data_description` object within `strings.json` and `translations/*.json`.
+**Action:** Use this to provide better descriptions of the fields rather than putting the explanation in the description box on top.
