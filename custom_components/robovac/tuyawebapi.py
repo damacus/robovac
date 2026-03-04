@@ -269,6 +269,7 @@ class TuyaAPISession:
                     "sign": self.get_signature(query_params, encoded_post_data),
                 },
                 data={"postData": encoded_post_data} if encoded_post_data else None,
+                timeout=10.0,
             )
             resp.raise_for_status()
             response_data: Dict[str, Any] = resp.json()

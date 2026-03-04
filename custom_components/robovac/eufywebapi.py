@@ -48,7 +48,9 @@ class EufyLogon:
         }
 
         try:
-            return requests.post(login_url, json=login_auth, headers=eufyheaders)
+            return requests.post(
+                login_url, json=login_auth, headers=eufyheaders, timeout=10.0
+            )
         except requests.exceptions.ConnectionError:
             return None
 
@@ -92,6 +94,8 @@ class EufyLogon:
         eufyheaders["token"] = token
         eufyheaders["id"] = userid
         try:
-            return requests.request("GET", device_url, headers=eufyheaders)
+            return requests.request(
+                "GET", device_url, headers=eufyheaders, timeout=10.0
+            )
         except requests.exceptions.ConnectionError:
             return None
