@@ -129,5 +129,10 @@ async def test_battery_sensor_get_dps_code_alias(mock_vacuum_data):
         assert entity.get_dps_code(TuyaCodes.BATTERY_LEVEL) == "104"
         # Test model-specific
         mock_robovac.getDpsCodes.return_value = {"BATTERY_LEVEL": "163"}
+        # Clear the cache for the specific lookups
+        entity._dps_codes_memo.pop("BATTERY_LEVEL", None)
         assert entity.get_dps_code("BATTERY") == "163"
+        # Clear the cache again before calling with TuyaCodes.BATTERY_LEVEL
+        # because the internal lookup name is "BATTERY_LEVEL" again.
+        entity._dps_codes_memo.pop("BATTERY_LEVEL", None)
         assert entity.get_dps_code(TuyaCodes.BATTERY_LEVEL) == "163"
