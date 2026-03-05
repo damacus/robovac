@@ -15,6 +15,10 @@
                     "password": "Password",
                     "username": "Username"
                 },
+                "data_description": {
+                    "username": "The email address associated with your Eufy account.",
+                    "password": "The password used to log in to the Eufy app."
+                },
                 "description": "Enter your Eufy account details"
             }
         }
@@ -34,7 +38,8 @@
                     "ip_address": "IP Address"
                 },
                 "data_description": {
-                    "ip_address": "Leave blank if autodiscovery is enabled. Otherwise, enter the static IP address of your vacuum."
+                    "autodiscovery": "Automatically find the vacuum on the network.",
+                    "ip_address": "The static IP address of your vacuum on your local network (optional if autodiscovery is enabled)."
                 },
                 "description": "Autodiscovery will automatically update the IP address"
             }
