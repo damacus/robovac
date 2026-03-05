@@ -33,6 +33,9 @@
                     "autodiscovery": "Enable autodiscovery",
                     "ip_address": "IP Address"
                 },
+                "data_description": {
+                    "ip_address": "Leave blank if autodiscovery is enabled. Otherwise, enter the static IP address of your vacuum."
+                },
                 "description": "Autodiscovery will automatically update the IP address"
             }
         }
