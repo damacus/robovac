@@ -68,11 +68,12 @@ class EufyLogon:
             Response object or None if connection error occurs.
         """
         setting_url = url + "/v1/user/setting"
-        eufyheaders["token"] = token
-        eufyheaders["id"] = userid
+        headers = eufyheaders.copy()
+        headers["token"] = token
+        headers["id"] = userid
         try:
             return requests.request(
-                "GET", setting_url, headers=eufyheaders, timeout=1.5
+                "GET", setting_url, headers=headers, timeout=1.5
             )
         except requests.exceptions.ConnectionError:
             return None
@@ -91,11 +92,12 @@ class EufyLogon:
             Response object or None if connection error occurs.
         """
         device_url = url + "/v1/device/v2"
-        eufyheaders["token"] = token
-        eufyheaders["id"] = userid
+        headers = eufyheaders.copy()
+        headers["token"] = token
+        headers["id"] = userid
         try:
             return requests.request(
-                "GET", device_url, headers=eufyheaders, timeout=10.0
+                "GET", device_url, headers=headers, timeout=10.0
             )
         except requests.exceptions.ConnectionError:
             return None
