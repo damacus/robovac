@@ -376,6 +376,7 @@ class RoboVacEntity(StateVacuumEntity):
         self._last_no_data_warning_time: float = 0
         self._no_data_warning_logged: bool = False
         self._consumables_codes_cache: list[str] | None = None
+        self._dps_codes_memo: dict[str, str] = {}
 
         # Initialize the RoboVac connection
         try:
@@ -570,23 +571,32 @@ class RoboVacEntity(StateVacuumEntity):
             }
             lookup_name = mapping.get(code_name, code_name)
 
+        # ⚡ Bolt optimization: The DPS code string for a given lookup_name is static
+        # for a specific model. By caching the extracted DPS string, we avoid rebuilding the
+        # dictionary and performing the lookup on every data update and command dispatch.
+        if lookup_name in self._dps_codes_memo:
+            return self._dps_codes_memo[lookup_name]
+
+        result = ""
         if self.vacuum is not None:
             try:
                 model_dps_codes = self.vacuum.getDpsCodes()
                 if isinstance(model_dps_codes, dict) and lookup_name in model_dps_codes:
-                    return str(model_dps_codes[lookup_name])
+                    result = str(model_dps_codes[lookup_name])
             except Exception as ex:
                 _LOGGER.debug("Error getting model-specific DPS code for %s: %s", lookup_name, ex)
 
-        # Fallback to defaults in TuyaCodes
-        try:
-            enum_value = getattr(TuyaCodes, lookup_name, None)
-            if enum_value:
-                return str(enum_value.value)
-        except Exception:
-            pass
+        if not result:
+            # Fallback to defaults in TuyaCodes
+            try:
+                enum_value = getattr(TuyaCodes, lookup_name, None)
+                if enum_value:
+                    result = str(enum_value.value)
+            except Exception:
+                pass
 
-        return ""
+        self._dps_codes_memo[lookup_name] = result
+        return result
 
     def _get_consumables_codes(self) -> list[str]:
         """Get the consumables DPS codes.
