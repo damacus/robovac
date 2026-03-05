@@ -15,6 +15,10 @@
                     "password": "Passwort",
                     "username": "Benutzername"
                 },
+                "data_description": {
+                    "username": "Die mit Ihrem Eufy-Konto verknüpfte E-Mail-Adresse.",
+                    "password": "Das Passwort, mit dem Sie sich in der Eufy-App anmelden."
+                },
                 "description": "Geben Sie Ihre Eufy-Kontodaten ein"
             }
         }
@@ -32,6 +36,10 @@
                 "data": {
                     "autodiscovery": "Autodiscovery aktivieren",
                     "ip_address": "IP-Adresse"
+                },
+                "data_description": {
+                    "autodiscovery": "Den Staubsauger automatisch im Netzwerk finden.",
+                    "ip_address": "Die statische IP-Adresse Ihres Staubsaugers in Ihrem lokalen Netzwerk (optional, wenn Autodiscovery aktiviert ist)."
                 },
                 "description": "Autodiscovery aktualisiert die IP-Adresse automatisch"
             }

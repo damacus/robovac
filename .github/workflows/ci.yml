@@ -28,7 +28,7 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Run hassfest validation
-        uses: home-assistant/actions/hassfest@master
+        uses: homeassistant/actions/hassfest@master
 
   check-markdown:
     runs-on: ubuntu-latest
