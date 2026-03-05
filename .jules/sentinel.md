@@ -1,0 +1,4 @@
+## 2024-05-14 - Global State Mutation & Incomplete Exception Handling in Requests
+**Vulnerability:** Global HTTP headers dictionary mutated per request (`eufyheaders["token"] = token`); `requests` calls lacked proper timeouts or only caught `ConnectionError`.
+**Learning:** Mutating global dictionaries creates race conditions and cross-session data leakage in long-running Home Assistant integrations. Not catching `requests.exceptions.RequestException` (or `Timeout`) when adding timeouts leaves unhandled exceptions that can crash integrations or expose internal states.
+**Prevention:** Always create a local copy of global configuration objects (e.g., `headers = eufyheaders.copy()`) before modifying them for a request. Always enforce a timeout on external API requests (e.g., `timeout=10`) to mitigate DoS risks, and always use `requests.exceptions.RequestException` to comprehensively catch network and timeout failures securely.
