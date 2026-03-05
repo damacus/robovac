@@ -51,7 +51,7 @@ class EufyLogon:
             # Create a local copy of headers to prevent cross-session data leakage
             headers = eufyheaders.copy()
             return requests.post(login_url, json=login_auth, headers=headers, timeout=10)
-        except requests.exceptions.ConnectionError:
+        except requests.exceptions.RequestException:
             return None
 
     def get_user_settings(
@@ -76,7 +76,7 @@ class EufyLogon:
             return requests.request(
                 "GET", setting_url, headers=headers, timeout=10
             )
-        except requests.exceptions.ConnectionError:
+        except requests.exceptions.RequestException:
             return None
 
     def get_device_info(
@@ -99,5 +99,5 @@ class EufyLogon:
         headers["id"] = userid
         try:
             return requests.request("GET", device_url, headers=headers, timeout=10)
-        except requests.exceptions.ConnectionError:
+        except requests.exceptions.RequestException:
             return None
