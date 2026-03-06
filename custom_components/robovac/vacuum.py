@@ -72,6 +72,10 @@ _LOGGER = logging.getLogger(__name__)
 SCAN_INTERVAL = timedelta(seconds=REFRESH_RATE)
 UPDATE_RETRIES = 3
 
+# ⚡ Bolt optimization: Pre-calculate valid VacuumActivity values into a set
+# to avoid O(n) list comprehension on every property getter access
+VACUUM_ACTIVITY_VALUES = {activity.value for activity in VacuumActivity}
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -264,7 +268,7 @@ class RoboVacEntity(StateVacuumEntity):
                 )
             )
             return VacuumActivity.ERROR
-        elif self._attr_tuya_state in [activity.value for activity in VacuumActivity]:
+        elif self._attr_tuya_state in VACUUM_ACTIVITY_VALUES:
             # Particularly at system startup, the state may be set to a
             # VacuumActivity value directly, so we can return it as is.
             return cast(VacuumActivity, self._attr_tuya_state)
