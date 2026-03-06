@@ -29,6 +29,9 @@
                 "title": "Staubsauger verwalten",
                 "data": {
                     "selected_vacuum": "Wählen Sie den zu bearbeitenden Staubsauger aus"
+                },
+                "data_description": {
+                    "selected_vacuum": "Wählen Sie das Eufy RoboVac-Gerät, das Sie konfigurieren möchten, aus der Liste der erkannten Staubsauger."
                 }
             },
             "edit": {

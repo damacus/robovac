@@ -29,6 +29,9 @@
                 "title": "Rheoli sugnwyr llwch",
                 "data": {
                     "selected_vacuum": "Dewiswch y sugnwr llwch i'w olygu"
+                },
+                "data_description": {
+                    "selected_vacuum": "Dewiswch y ddyfais Eufy RoboVac rydych chi am ei ffurfweddu o'r rhestr o sugnwyr llwch a ddarganfuwyd."
                 }
             },
             "edit": {
