@@ -380,6 +380,7 @@ class RoboVacEntity(StateVacuumEntity):
         self._no_data_warning_logged: bool = False
         self._consumables_codes_cache: list[str] | None = None
         self._dps_codes_memo: dict[str, str] = {}
+        self._last_consumable_data: str | None = None
 
         # Initialize the RoboVac connection
         try:
@@ -736,18 +737,22 @@ class RoboVacEntity(StateVacuumEntity):
                 ):
                     consumable_data = self.tuyastatus.get(CONSUMABLE_CODE)
                     if isinstance(consumable_data, str):
-                        try:
-                            consumables = json.loads(
-                                base64.b64decode(consumable_data).decode("ascii")
-                            )
-                            if (
-                                isinstance(consumables, dict)
-                                and isinstance(consumables.get("consumable"), dict)
-                                and "duration" in consumables["consumable"]
-                            ):
-                                self._attr_consumables = consumables["consumable"]["duration"]
-                        except Exception as e:
-                            _LOGGER.warning("Failed to decode consumable data: %s", str(e))
+                        # ⚡ Bolt optimization: Avoid expensive base64 decode and json.loads on
+                        # every state update by memoizing the parsed result based on the raw base64 string.
+                        if self._last_consumable_data != consumable_data:
+                            self._last_consumable_data = consumable_data
+                            try:
+                                consumables = json.loads(
+                                    base64.b64decode(consumable_data).decode("ascii")
+                                )
+                                if (
+                                    isinstance(consumables, dict)
+                                    and isinstance(consumables.get("consumable"), dict)
+                                    and "duration" in consumables["consumable"]
+                                ):
+                                    self._attr_consumables = consumables["consumable"]["duration"]
+                            except Exception as e:
+                                _LOGGER.warning("Failed to decode consumable data: %s", str(e))
 
     async def async_locate(self, **kwargs: Any) -> None:
         """Locate the vacuum cleaner.
