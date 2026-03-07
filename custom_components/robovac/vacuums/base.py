@@ -1,6 +1,6 @@
 from homeassistant.components.vacuum import VacuumActivity
 from enum import IntEnum, StrEnum
-from typing import Protocol, Dict, List, Any, Type, Optional
+from typing import Any, Dict, Protocol
 
 
 class RoboVacEntityFeature(IntEnum):
