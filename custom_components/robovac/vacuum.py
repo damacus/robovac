@@ -75,10 +75,6 @@ UPDATE_RETRIES = 3
 # to avoid O(n) list comprehension on every property getter access
 VACUUM_ACTIVITY_VALUES = {activity.value for activity in VacuumActivity}
 
-# ⚡ Bolt optimization: Pre-calculate no-error codes into a set
-# to avoid O(n) list allocation and lookup on every property getter access
-NO_ERROR_CODES = {0, "no_error", "No error"}
-
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -263,7 +259,7 @@ class RoboVacEntity(StateVacuumEntity):
             return None
         elif (
             self.error_code is not None
-            and self.error_code not in NO_ERROR_CODES
+            and self.error_code not in [0, "no_error", "No error"]
         ):
             _LOGGER.debug(
                 "State changed to error. Error message: {}".format(
@@ -312,7 +308,7 @@ class RoboVacEntity(StateVacuumEntity):
         """Return the device-specific state attributes of this vacuum."""
         data: dict[str, Any] = {}
 
-        if self._attr_error_code is not None and self._attr_error_code not in NO_ERROR_CODES:
+        if self._attr_error_code is not None and self._attr_error_code not in [0, "no_error"]:
             data[ATTR_ERROR] = getErrorMessage(self._attr_error_code)
         if (
             self.robovac_supported is not None
@@ -384,6 +380,7 @@ class RoboVacEntity(StateVacuumEntity):
         self._no_data_warning_logged: bool = False
         self._consumables_codes_cache: list[str] | None = None
         self._dps_codes_memo: dict[str, str] = {}
+        self._last_consumable_data: str | None = None
 
         # Initialize the RoboVac connection
         try:
@@ -740,18 +737,22 @@ class RoboVacEntity(StateVacuumEntity):
                 ):
                     consumable_data = self.tuyastatus.get(CONSUMABLE_CODE)
                     if isinstance(consumable_data, str):
-                        try:
-                            consumables = json.loads(
-                                base64.b64decode(consumable_data).decode("ascii")
-                            )
-                            if (
-                                isinstance(consumables, dict)
-                                and isinstance(consumables.get("consumable"), dict)
-                                and "duration" in consumables["consumable"]
-                            ):
-                                self._attr_consumables = consumables["consumable"]["duration"]
-                        except Exception as e:
-                            _LOGGER.warning("Failed to decode consumable data: %s", str(e))
+                        # ⚡ Bolt optimization: Avoid expensive base64 decode and json.loads on
+                        # every state update by memoizing the parsed result based on the raw base64 string.
+                        if self._last_consumable_data != consumable_data:
+                            self._last_consumable_data = consumable_data
+                            try:
+                                consumables = json.loads(
+                                    base64.b64decode(consumable_data).decode("ascii")
+                                )
+                                if (
+                                    isinstance(consumables, dict)
+                                    and isinstance(consumables.get("consumable"), dict)
+                                    and "duration" in consumables["consumable"]
+                                ):
+                                    self._attr_consumables = consumables["consumable"]["duration"]
+                            except Exception as e:
+                                _LOGGER.warning("Failed to decode consumable data: %s", str(e))
 
     async def async_locate(self, **kwargs: Any) -> None:
         """Locate the vacuum cleaner.
