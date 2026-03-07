@@ -742,7 +742,7 @@ class RoboVacEntity(StateVacuumEntity):
                             )
                             if (
                                 isinstance(consumables, dict)
-                                and "consumable" in consumables
+                                and isinstance(consumables.get("consumable"), dict)
                                 and "duration" in consumables["consumable"]
                             ):
                                 self._attr_consumables = consumables["consumable"]["duration"]

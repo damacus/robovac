@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 from custom_components.robovac.vacuum import RoboVacEntity
 from custom_components.robovac.vacuums.base import RoboVacEntityFeature
 
+
 @pytest.mark.asyncio
 async def test_consumables_parsing_json(mock_robovac, mock_vacuum_data):
     """Test that consumables data in JSON format is correctly parsed."""
@@ -20,6 +21,7 @@ async def test_consumables_parsing_json(mock_robovac, mock_vacuum_data):
         entity.update_entity_values()
 
         assert entity._attr_consumables == 200
+
 
 @pytest.mark.asyncio
 async def test_consumables_parsing_invalid(mock_robovac, mock_vacuum_data):
