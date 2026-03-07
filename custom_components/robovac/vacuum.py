@@ -17,7 +17,6 @@
 This module provides the vacuum entity integration for Eufy Robovac devices.
 """
 from __future__ import annotations
-import ast
 import asyncio
 import base64
 from datetime import timedelta
@@ -738,11 +737,12 @@ class RoboVacEntity(StateVacuumEntity):
                     consumable_data = self.tuyastatus.get(CONSUMABLE_CODE)
                     if isinstance(consumable_data, str):
                         try:
-                            consumables = ast.literal_eval(
+                            consumables = json.loads(
                                 base64.b64decode(consumable_data).decode("ascii")
                             )
                             if (
-                                "consumable" in consumables
+                                isinstance(consumables, dict)
+                                and isinstance(consumables.get("consumable"), dict)
                                 and "duration" in consumables["consumable"]
                             ):
                                 self._attr_consumables = consumables["consumable"]["duration"]
