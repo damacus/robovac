@@ -75,6 +75,10 @@ UPDATE_RETRIES = 3
 # to avoid O(n) list comprehension on every property getter access
 VACUUM_ACTIVITY_VALUES = {activity.value for activity in VacuumActivity}
 
+# ⚡ Bolt optimization: Pre-calculate no-error codes into a set
+# to avoid O(n) list allocation and lookup on every property getter access
+NO_ERROR_CODES = {0, "no_error", "No error"}
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -259,7 +263,7 @@ class RoboVacEntity(StateVacuumEntity):
             return None
         elif (
             self.error_code is not None
-            and self.error_code not in [0, "no_error", "No error"]
+            and self.error_code not in NO_ERROR_CODES
         ):
             _LOGGER.debug(
                 "State changed to error. Error message: {}".format(
@@ -308,7 +312,7 @@ class RoboVacEntity(StateVacuumEntity):
         """Return the device-specific state attributes of this vacuum."""
         data: dict[str, Any] = {}
 
-        if self._attr_error_code is not None and self._attr_error_code not in [0, "no_error"]:
+        if self._attr_error_code is not None and self._attr_error_code not in NO_ERROR_CODES:
             data[ATTR_ERROR] = getErrorMessage(self._attr_error_code)
         if (
             self.robovac_supported is not None
