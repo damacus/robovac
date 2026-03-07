@@ -29,6 +29,9 @@
                 "title": "Manage vacuums",
                 "data": {
                     "selected_vacuum": "Select the Vacuum to edit"
+                },
+                "data_description": {
+                    "selected_vacuum": "Choose the Eufy RoboVac device you wish to configure from the list of discovered vacuums."
                 }
             },
             "edit": {

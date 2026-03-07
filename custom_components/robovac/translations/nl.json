@@ -29,6 +29,9 @@
                 "title": "Stofzuigers beheren",
                 "data": {
                     "selected_vacuum": "Selecteer de te bewerken stofzuiger"
+                },
+                "data_description": {
+                    "selected_vacuum": "Kies het Eufy RoboVac-apparaat dat u wilt configureren uit de lijst met ontdekte stofzuigers."
                 }
             },
             "edit": {

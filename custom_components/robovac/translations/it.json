@@ -29,6 +29,9 @@
                 "title": "Gestisci aspirapolvere",
                 "data": {
                     "selected_vacuum": "Seleziona l'aspirapolvere da modificare"
+                },
+                "data_description": {
+                    "selected_vacuum": "Scegli il dispositivo Eufy RoboVac che desideri configurare dall'elenco degli aspirapolvere rilevati."
                 }
             },
             "edit": {

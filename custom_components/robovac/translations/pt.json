@@ -29,6 +29,9 @@
                 "title": "Gerenciar aspiradores",
                 "data": {
                     "selected_vacuum": "Selecione o aspirador para editar"
+                },
+                "data_description": {
+                    "selected_vacuum": "Escolha o dispositivo Eufy RoboVac que deseja configurar na lista de aspiradores descobertos."
                 }
             },
             "edit": {
