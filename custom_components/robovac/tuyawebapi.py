@@ -14,7 +14,7 @@ from hashlib import md5, sha256
 import hmac
 import json
 import math
-import random
+import secrets
 import string
 import time
 import uuid
@@ -177,7 +177,7 @@ class TuyaAPISession:
         base64_characters = string.ascii_letters + string.digits
         device_id_dependent_part = "8534c8ec0ed0"
         return device_id_dependent_part + "".join(
-            random.choice(base64_characters)
+            secrets.choice(base64_characters)
             for _ in range(expected_length - len(device_id_dependent_part))
         )
 
