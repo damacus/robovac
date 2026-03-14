@@ -1,6 +1,7 @@
 import pytest
 from custom_components.robovac.tuyawebapi import TuyaAPISession
 
+
 def test_generate_new_device_id():
     """Test generating a new device ID."""
     device_id = TuyaAPISession.generate_new_device_id()
@@ -13,6 +14,7 @@ def test_generate_new_device_id():
     allowed_chars = string.ascii_letters + string.digits
     for char in device_id:
         assert char in allowed_chars, f"Invalid character '{char}' in device ID"
+
 
 def test_get_signature():
     """Test generating a signature for the Tuya API request."""
