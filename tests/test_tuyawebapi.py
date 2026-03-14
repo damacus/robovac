@@ -1,4 +1,5 @@
 import pytest
+from unittest.mock import patch, MagicMock
 from custom_components.robovac.tuyawebapi import TuyaAPISession
 
 
@@ -34,3 +35,46 @@ def test_get_signature():
     assert len(signature) == 64  # SHA256 hex digest length
     # Check that signature is hex
     int(signature, 16)
+
+
+def test_unpadded_rsa():
+    from custom_components.robovac.tuyawebapi import unpadded_rsa
+    # Small numbers for fast testing
+    # Plaintext "A" = 65
+    res = unpadded_rsa(3, 33, b"A")
+    assert isinstance(res, bytes)
+
+
+def test_shuffled_md5():
+    from custom_components.robovac.tuyawebapi import shuffled_md5
+    res = shuffled_md5("test")
+    assert isinstance(res, str)
+    assert len(res) == 32
+
+
+@patch("custom_components.robovac.tuyawebapi.requests.Session.post")
+def test_tuya_api_session_request(mock_post):
+    """Test _request method of TuyaAPISession."""
+    mock_response = MagicMock()
+    mock_response.json.return_value = {"result": {"success": True}}
+    mock_response.raise_for_status.return_value = None
+    mock_post.return_value = mock_response
+
+    session = TuyaAPISession("username", "EU", "Europe/London", "44")
+    # Setting session ID so it doesn't try to acquire one
+    session.session_id = "test_sid"
+
+    res = session._request("test.action", version="1.0", data={"key": "value"})
+    assert res == {"success": True}
+    mock_post.assert_called_once()
+
+    # Check that query string gets sign
+    args, kwargs = mock_post.call_args
+    assert "sign" in kwargs["params"]
+
+
+def test_tuya_api_session_determine_password():
+    session = TuyaAPISession("username", "EU", "Europe/London", "44")
+    res = session.determine_password("username")
+    assert isinstance(res, str)
+    assert len(res) == 32
