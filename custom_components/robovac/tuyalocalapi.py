@@ -137,6 +137,8 @@ class TuyaCipher:
         self._aesgcm = AESGCM(self.key_bytes)
         # Store the real (local) key for session key negotiation
         self.real_key_bytes = self.key_bytes
+        # ⚡ Bolt optimization: Pre-calculate the version string as bytes to avoid decoding every packet
+        self._version_bytes = ".".join(map(str, self.version)).encode("utf8")
 
     def set_session_key(self, session_key: bytes) -> None:
         """Switch cipher to use a negotiated session key.
@@ -255,13 +257,11 @@ class TuyaCipher:
         Returns:
             The prefix size.
         """
-        try:
-            version = tuple(map(int, encrypted_data[:3].decode("utf8").split(".")))
-        except ValueError:
-            version = (0, 0)
-        if version != self.version:
+        if not encrypted_data.startswith(self._version_bytes):
             return 0
-        if version < (3, 3):
+
+        if self.version < (3, 3):
+            # 3.1 header length is 19 bytes: version (3 bytes) + MD5 hash (16 bytes)
             hash = encrypted_data[3:19].decode("ascii")
             expected_hash = self.hash(encrypted_data[19:])
             if hash != expected_hash:
