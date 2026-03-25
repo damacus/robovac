@@ -14,7 +14,7 @@ from .vacuums import ROBOVAC_MODELS
 # Series detection patterns
 SERIES_PATTERNS = {
     "C": r"^T2(103|123)$",
-    "G": r"^T2(150|261)$",
+    "G": r"^T2(150|210|212|261)$",
     "L": r"^T2(2[67][0-9]|278|320)$",
     "X": r"^T2(080|117|118|119|120|128|130|132|181|190|192|193|194|25[0-9]|262)$",
 }

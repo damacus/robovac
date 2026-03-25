@@ -12,6 +12,8 @@ from .T2128 import T2128
 from .T2130 import T2130
 from .T2132 import T2132
 from .T2150 import T2150
+from .T2210 import T2210
+from .T2212 import T2212
 from .T2181 import T2181
 from .T2190 import T2190
 from .T2192 import T2192
@@ -58,6 +60,8 @@ ROBOVAC_MODELS: Dict[str, Type[RobovacModelDetails]] = {
     "T2253": T2253,
     "T2254": T2254,
     "T2150": T2150,
+    "T2210": T2210,
+    "T2212": T2212,
     "T2255": T2255,
     "T2259": T2259,
     "T2270": T2270,
