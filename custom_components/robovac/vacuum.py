@@ -82,6 +82,17 @@ _LOGGER = logging.getLogger(__name__)
 SCAN_INTERVAL = timedelta(seconds=REFRESH_RATE)
 UPDATE_RETRIES = 3
 
+# Per-model room discovery strategies.
+# Add new entries as models expose room metadata in different DPS payload formats.
+ROOM_DISCOVERY_STRATEGIES: dict[str, dict[str, Any]] = {
+    "T2320": {
+        "local_dps_key": "ROOM_META",
+        "local_dps_fallback": "165",
+        "local_decoder": "_decode_t2320_room_meta_payload",
+        "cloud_fetcher": "_fetch_room_names_from_tuya_cloud",
+    }
+}
+
 # ⚡ Bolt optimization: Pre-calculate valid VacuumActivity values into a set
 # to avoid O(n) list comprehension on every property getter access
 VACUUM_ACTIVITY_VALUES = {activity.value for activity in VacuumActivity}
@@ -498,11 +509,7 @@ class RoboVacEntity(StateVacuumEntity):
             )
             return
 
-        if (
-            self.model_code is not None
-            and self.model_code.startswith("T2320")
-            and not self._attr_room_names
-        ):
+        if self._supports_room_discovery() and not self._attr_room_names:
             await self._async_fetch_room_names_from_cloud_once()
 
         # Skip update if the IP address is not set
@@ -965,22 +972,54 @@ class RoboVacEntity(StateVacuumEntity):
                 break
         raise ValueError("invalid varint")
 
+    def _get_room_discovery_strategy(self) -> dict[str, Any] | None:
+        """Return the room discovery strategy for the current model."""
+        if not self.model_code:
+            return None
+
+        for model_prefix, strategy in ROOM_DISCOVERY_STRATEGIES.items():
+            if self.model_code.startswith(model_prefix):
+                return strategy
+        return None
+
+    def _supports_room_discovery(self) -> bool:
+        """Return whether room discovery is configured for this model."""
+        return self._get_room_discovery_strategy() is not None
+
+    def _discover_rooms_from_local_dps(self) -> dict[str, dict[str, Any]]:
+        """Discover room metadata from local DPS values using strategy."""
+        strategy = self._get_room_discovery_strategy()
+        if not strategy or self.tuyastatus is None:
+            return {}
+
+        decoder_name = strategy.get("local_decoder")
+        if not isinstance(decoder_name, str):
+            return {}
+        decoder = getattr(self, decoder_name, None)
+        if not callable(decoder):
+            return {}
+
+        dps_key_name = strategy.get("local_dps_key", "ROOM_META")
+        room_meta_code = self.get_dps_code(str(dps_key_name)) or str(
+            strategy.get("local_dps_fallback", "")
+        )
+        if not room_meta_code:
+            return {}
+
+        parsed = decoder(self.tuyastatus.get(room_meta_code))
+        if not isinstance(parsed, dict):
+            return {}
+        _LOGGER.debug("Discovered %d local rooms for %s", len(parsed), self._attr_name)
+        return parsed
+
     def _update_room_names_from_device_payload(self) -> None:
-        """Update room metadata from local DPS payloads for T2320."""
-        if (
-            self.model_code is None
-            or not self.model_code.startswith("T2320")
-            or self.tuyastatus is None
-        ):
+        """Update room metadata from local DPS payloads."""
+        if not self._supports_room_discovery():
             return
 
-        room_meta_code = self.get_dps_code("ROOM_META") or "165"
-        if room_meta_code:
-            parsed = self._decode_t2320_room_meta_payload(
-                self.tuyastatus.get(room_meta_code)
-            )
-            if parsed:
-                self._merge_room_entries(parsed)
+        parsed = self._discover_rooms_from_local_dps()
+        if parsed:
+            self._merge_room_entries(parsed)
 
     def _fetch_room_names_from_tuya_cloud(self) -> dict[str, dict[str, Any]]:
         """Fetch T2320 room names from Tuya cloud DPS values."""
@@ -1040,8 +1079,29 @@ class RoboVacEntity(StateVacuumEntity):
             entry["source"] = "cloud"
         return parsed
 
+    def _discover_rooms_from_cloud(self) -> dict[str, dict[str, Any]]:
+        """Discover room metadata from cloud using strategy."""
+        strategy = self._get_room_discovery_strategy()
+        if not strategy:
+            return {}
+
+        fetcher_name = strategy.get("cloud_fetcher")
+        if not isinstance(fetcher_name, str):
+            return {}
+        fetcher = getattr(self, fetcher_name, None)
+        if not callable(fetcher):
+            return {}
+
+        parsed = fetcher()
+        if not isinstance(parsed, dict):
+            return {}
+        _LOGGER.debug("Discovered %d cloud rooms for %s", len(parsed), self._attr_name)
+        return parsed
+
     async def _async_fetch_room_names_from_cloud_once(self) -> None:
-        """Bootstrap T2320 room metadata from cloud one time."""
+        """Bootstrap room metadata from cloud one time."""
+        if not self._supports_room_discovery():
+            return
         if self._cloud_room_lookup_attempted:
             return
         self._cloud_room_lookup_attempted = True
@@ -1050,7 +1110,7 @@ class RoboVacEntity(StateVacuumEntity):
 
         try:
             cloud_rooms = await self.hass.async_add_executor_job(
-                self._fetch_room_names_from_tuya_cloud
+                self._discover_rooms_from_cloud
             )
         except Exception:
             return
