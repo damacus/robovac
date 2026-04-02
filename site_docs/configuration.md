@@ -11,31 +11,29 @@
 
 You'll need the following information to configure your vacuum:
 
-- **Device ID**: Your vacuum's unique identifier
-- **Local Key**: The encryption key for local communication
-- **IP Address**: Your vacuum's local IP address
+- **Email**: Your Eufy account email address
+- **Password**: Your Eufy account password
+
+The integration automatically retrieves your device ID, local key, model,
+and other device details from Eufy's API after you log in. You do not need
+to find these manually.
+
+Optionally, you can provide a static **IP Address** if you disable
+autodiscovery (see Options below).
 
 ## Supported Models
 
 See the full list of [Supported Models](supported-models.md) with protocol
 versions and model series information.
 
-## Finding Your Local Key
+## Options
 
-The local key can be obtained using various methods:
+After setup, per-device options can be configured:
 
-1. **Tuya IoT Platform**: Register as a developer and link your device
-2. **Third-party tools**: Use tools like `tuya-cli` to extract the key
-
-## Protocol Version
-
-Some vacuums require a specific protocol version:
-
-- **Protocol 3.3**: Most older models
-- **Protocol 3.4**: Newer models with enhanced security
-- **Protocol 3.5**: Latest models
-
-If you're unsure, start with 3.3 and adjust if needed.
+- **Autodiscovery** (default: enabled): Automatically detects your vacuum's
+  IP address on the local network. Disable this if you want to specify a
+  static IP address.
+- **IP Address**: Manual IP address to use when autodiscovery is disabled.
 
 ## Troubleshooting
 
