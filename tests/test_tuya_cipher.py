@@ -322,3 +322,39 @@ class TestMessageFromBytes:
 
         with pytest.raises(InvalidMessage, match="Magic suffix missing"):
             Message.from_bytes(device, bytes(raw_message), cipher)
+
+class TestTuyaCipherEncryptAndHash:
+    """Test encryption and hashing to ensure complete coverage."""
+
+    def test_encrypt_v33(self) -> None:
+        """Test encryption for version 3.3."""
+        cipher = TuyaCipher("1234567890123456", (3, 3))
+        data = b"test payload"
+        # For v3.3+, prefix is just the version bytes + 12 nulls (for SET) or just version bytes.
+        # But wait, looking at encrypt for v3.3 (which is version >= 3.3):
+        encrypted = cipher.encrypt(7, data) # SET_COMMAND
+        assert encrypted.startswith(b"3.3" + b"\x00" * 12)
+
+    def test_encrypt_v31(self) -> None:
+        """Test encryption for version 3.1."""
+        cipher = TuyaCipher("1234567890123456", (3, 1))
+        data = b"test payload"
+        encrypted = cipher.encrypt(7, data)
+        assert encrypted.startswith(b"3.1")
+        # Should also contain the hash
+        hash_val = cipher.hash(b"some data")
+        assert len(hash_val) == 16
+
+    def test_hash(self) -> None:
+        """Test hash generation."""
+        cipher = TuyaCipher("1234567890123456", (3, 3))
+        hash_val = cipher.hash(b"test data")
+        assert isinstance(hash_val, str)
+        assert len(hash_val) == 16
+
+    def test_set_session_key(self) -> None:
+        """Test setting the session key."""
+        cipher = TuyaCipher("1234567890123456", (3, 5))
+        new_key = b"0987654321098765"
+        cipher.set_session_key(new_key)
+        assert cipher.key_bytes == new_key
