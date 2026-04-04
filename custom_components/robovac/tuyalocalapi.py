@@ -637,11 +637,11 @@ class Message:
         except struct.error as e:
             raise InvalidMessage("Unable to unpack return code.") from e
         if return_code >> 8:
-            payload_data = data[header_size : header_size + payload_size - suffix_size]
+            payload_data = data[header_size:header_size + payload_size - suffix_size]
             return_code = None
         else:
             payload_data = data[
-                header_size + struct.calcsize(">I") : header_size
+                header_size + struct.calcsize(">I"):header_size
                 + payload_size
                 - suffix_size
             ]
@@ -754,7 +754,7 @@ class Message:
             raise InvalidMessage("Magic prefix 0x6699 missing from v3.5 message.")
 
         # Extract IV (12 bytes after header)
-        iv = data[header_size : header_size + 12]
+        iv = data[header_size:header_size + 12]
         if len(iv) != 12:
             raise InvalidMessage("Invalid IV length in v3.5 message.")
 
@@ -762,11 +762,11 @@ class Message:
         # payload_size = IV(12) + ciphertext + tag(16)
         ciphertext_len = payload_size - 12 - 16
         ciphertext_start = header_size + 12
-        ciphertext = data[ciphertext_start : ciphertext_start + ciphertext_len]
+        ciphertext = data[ciphertext_start:ciphertext_start + ciphertext_len]
 
         # Extract tag (16 bytes before suffix)
         tag_start = ciphertext_start + ciphertext_len
-        tag = data[tag_start : tag_start + 16]
+        tag = data[tag_start:tag_start + 16]
         if len(tag) != 16:
             raise InvalidMessage("Invalid GCM tag length in v3.5 message.")
 
