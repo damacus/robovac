@@ -184,7 +184,10 @@ class TestMessageFromBytes:
     """Test Message.from_bytes() for different protocol versions."""
 
     def _create_v33_message(
-        self, cipher: TuyaCipher, command: int = 1, payload: bytes = b'{"dps":{"1":true}}'
+        self,
+        cipher: TuyaCipher,
+        command: int = 1,
+        payload: bytes = b'{"dps":{"1":true}}',
     ) -> bytes:
         """Helper to create a valid v3.3 message."""
         encrypted_payload = cipher.encrypt(command, payload)
@@ -205,7 +208,10 @@ class TestMessageFromBytes:
         return header + encrypted_payload + footer
 
     def _create_v34_message(
-        self, cipher: TuyaCipher, command: int = 1, payload: bytes = b'{"dps":{"1":true}}'
+        self,
+        cipher: TuyaCipher,
+        command: int = 1,
+        payload: bytes = b'{"dps":{"1":true}}',
     ) -> bytes:
         """Helper to create a valid v3.4 message."""
         encrypted_payload = cipher.encrypt(command, payload)
@@ -323,6 +329,7 @@ class TestMessageFromBytes:
         with pytest.raises(InvalidMessage, match="Magic suffix missing"):
             Message.from_bytes(device, bytes(raw_message), cipher)
 
+
 class TestTuyaCipherEncryptAndHash:
     """Test encryption and hashing to ensure complete coverage."""
 
@@ -332,7 +339,7 @@ class TestTuyaCipherEncryptAndHash:
         data = b"test payload"
         # For v3.3+, prefix is just the version bytes + 12 nulls (for SET) or just version bytes.
         # But wait, looking at encrypt for v3.3 (which is version >= 3.3):
-        encrypted = cipher.encrypt(7, data) # SET_COMMAND
+        encrypted = cipher.encrypt(7, data)  # SET_COMMAND
         assert encrypted.startswith(b"3.3" + b"\x00" * 12)
 
     def test_encrypt_v31(self) -> None:
