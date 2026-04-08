@@ -1,4 +1,4 @@
-cryptography==46.0.6
+cryptography==46.0.7
 homeassistant==2026.4.1
 requests==2.33.1
 setuptools==82.0.1
