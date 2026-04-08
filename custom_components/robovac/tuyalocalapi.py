@@ -138,7 +138,8 @@ class TuyaCipher:
         # Store the real (local) key for session key negotiation
         self.real_key_bytes = self.key_bytes
         # ⚡ Bolt optimization: Pre-calculate the version string as bytes to avoid decoding every packet
-        self._version_bytes = ".".join(map(str, self.version)).encode("utf8")
+        self._version_string = ".".join(map(str, self.version))
+        self._version_bytes = self._version_string.encode("utf8")
 
     def set_session_key(self, session_key: bytes) -> None:
         """Switch cipher to use a negotiated session key.
@@ -291,7 +292,7 @@ class TuyaCipher:
         data_to_decrypt = data[prefix_size:]
 
         # Check if data might already be JSON (unencrypted)
-        if data_to_decrypt and data_to_decrypt[0:1] == b'{':
+        if data_to_decrypt and data_to_decrypt[0:1] == b"{":
             return data_to_decrypt
 
         # Check if data length is valid for AES (must be multiple of 16)
@@ -339,7 +340,7 @@ class TuyaCipher:
             encrypted_data = encryptor.update(padded_data)
             encrypted_data += encryptor.finalize()
 
-        prefix = ".".join(map(str, self.version)).encode("utf8")
+        prefix = self._version_bytes
         if self.version < (3, 3):
             payload = base64.b64encode(encrypted_data)
             hash_value = self.hash(payload)
@@ -365,7 +366,7 @@ class TuyaCipher:
         """
         digest = Hash(MD5(), backend=openssl_backend)
         to_hash = "data={}||lpv={}||{}".format(
-            data.decode("ascii"), ".".join(map(str, self.version)), self.key
+            data.decode("ascii"), self._version_string, self.key
         )
         digest.update(to_hash.encode("utf8"))
         intermediate = digest.finalize().hex()
@@ -395,7 +396,18 @@ class Message:
     # (matches TinyTuya's NO_PROTOCOL_HEADER_CMDS + 0x07/0x08).
     # 0x07 (SET_COMMAND) is included because some v3.5 devices (e.g. T2276)
     # accept v3.3-style SET commands over v3.5 framing without the header.
-    NO_PROTOCOL_HEADER_CMDS = {0x07, 0x08, 0x0A, 0x10, 0x12, 0x09, 0x03, 0x04, 0x05, 0x40}
+    NO_PROTOCOL_HEADER_CMDS = {
+        0x07,
+        0x08,
+        0x0A,
+        0x10,
+        0x12,
+        0x09,
+        0x03,
+        0x04,
+        0x05,
+        0x40,
+    }
 
     def __init__(
         self,
@@ -403,7 +415,7 @@ class Message:
         payload: bytes | None = None,
         sequence: int | None = None,
         encrypt: bool = False,
-        device: 'TuyaDevice | None' = None,
+        device: "TuyaDevice | None" = None,
         expect_response: bool = True,
         ttl: int = 5,
     ):
@@ -577,10 +589,7 @@ class Message:
 
     @classmethod
     def from_bytes(
-        cls,
-        device: "TuyaDevice",
-        data: bytes,
-        cipher: Optional[TuyaCipher] = None
+        cls, device: "TuyaDevice", data: bytes, cipher: Optional[TuyaCipher] = None
     ) -> "Message":
         """Create a message from bytes.
 
@@ -613,9 +622,13 @@ class Message:
 
         # Calculate suffix size based on protocol version
         if is_v34:
-            suffix_size = struct.calcsize(MESSAGE_SUFFIX_FORMAT_34)  # 32-byte HMAC + 4-byte suffix
+            suffix_size = struct.calcsize(
+                MESSAGE_SUFFIX_FORMAT_34
+            )  # 32-byte HMAC + 4-byte suffix
         else:
-            suffix_size = struct.calcsize(MESSAGE_SUFFIX_FORMAT)  # 4-byte CRC + 4-byte suffix
+            suffix_size = struct.calcsize(
+                MESSAGE_SUFFIX_FORMAT
+            )  # 4-byte CRC + 4-byte suffix
 
         # check for an optional return code
         header_size = struct.calcsize(MESSAGE_PREFIX_FORMAT)
@@ -624,16 +637,11 @@ class Message:
         except struct.error as e:
             raise InvalidMessage("Unable to unpack return code.") from e
         if return_code >> 8:
-            payload_data = data[
-                header_size:header_size
-                + payload_size
-                - suffix_size
-            ]
+            payload_data = data[header_size:header_size + payload_size - suffix_size]
             return_code = None
         else:
             payload_data = data[
-                header_size
-                + struct.calcsize(">I"):header_size
+                header_size + struct.calcsize(">I"):header_size
                 + payload_size
                 - suffix_size
             ]
@@ -654,11 +662,15 @@ class Message:
 
             # Verify HMAC-SHA256 - cipher is required for v3.4
             if cipher is None:
-                raise InvalidMessage("Missing cipher for v3.4 message; cannot verify HMAC")
+                raise InvalidMessage(
+                    "Missing cipher for v3.4 message; cannot verify HMAC"
+                )
 
             data_to_verify = data[: header_size + payload_size - suffix_size]
             if not cipher.verify_hmac(data_to_verify, expected_hmac):
-                device._LOGGER.debug(f"HMAC verification failed. Expected: {expected_hmac.hex()}")
+                device._LOGGER.debug(
+                    f"HMAC verification failed. Expected: {expected_hmac.hex()}"
+                )
                 raise InvalidMessage("HMAC check failed")
         else:
             # Protocol 3.3 and earlier use CRC32
@@ -677,9 +689,7 @@ class Message:
             if data is None:
                 raise InvalidMessage("Data cannot be None")
 
-            actual_crc = crc(
-                data[: header_size + payload_size - suffix_size]
-            )
+            actual_crc = crc(data[: header_size + payload_size - suffix_size])
             if expected_crc != actual_crc:
                 raise InvalidMessage("CRC check failed")
 
@@ -697,7 +707,8 @@ class Message:
                 device._LOGGER.error(
                     "Decryption failed - the local key may be incorrect or has changed. "
                     "Try removing and re-adding the integration to refresh the key. "
-                    "Error: %s", e
+                    "Error: %s",
+                    e,
                 )
                 raise MessageDecodeFailed() from e
             try:
@@ -706,7 +717,8 @@ class Message:
                 device._LOGGER.debug(payload_data.hex())
                 device._LOGGER.error(
                     "Failed to parse decrypted data as JSON - the local key may be "
-                    "incorrect. Try removing and re-adding the integration. Error: %s", e
+                    "incorrect. Try removing and re-adding the integration. Error: %s",
+                    e,
                 )
                 raise MessageDecodeFailed() from e
 
@@ -714,10 +726,7 @@ class Message:
 
     @classmethod
     def _from_bytes_v35(
-        cls,
-        device: "TuyaDevice",
-        data: bytes,
-        cipher: Optional[TuyaCipher] = None
+        cls, device: "TuyaDevice", data: bytes, cipher: Optional[TuyaCipher] = None
     ) -> "Message":
         """Create a message from Protocol 3.5 bytes.
 
@@ -783,8 +792,8 @@ class Message:
                 # - 4-byte retcode + 15-byte version header (gratuitous
                 #   updates: retcode + "3.5" + 12 bytes + JSON)
                 # Find the first '{' to locate where JSON starts.
-                if payload_data and payload_data[0:1] != b'{':
-                    json_start = payload_data.find(b'{')
+                if payload_data and payload_data[0:1] != b"{":
+                    json_start = payload_data.find(b"{")
                     if json_start > 0:
                         payload_data = payload_data[json_start:]
                 try:
@@ -968,7 +977,8 @@ class TuyaDevice:
                 wait = 5 - elapsed
                 self._LOGGER.debug(
                     "Reconnect cooldown: waiting %.1fs before connecting to %s",
-                    wait, self
+                    wait,
+                    self,
                 )
                 await asyncio.sleep(wait)
             self._last_connect_attempt = time.time()
@@ -980,7 +990,9 @@ class TuyaDevice:
                 timeout=self.timeout,
             )
         except (asyncio.TimeoutError, OSError) as e:
-            self._dps[self.model_details.commands[RobovacCommand.ERROR]] = ("CONNECTION_FAILED")
+            self._dps[self.model_details.commands[RobovacCommand.ERROR]] = (
+                "CONNECTION_FAILED"
+            )
             raise ConnectionTimeoutException("Connection timed out: {}".format(e))
         self._connected = True
 
@@ -1003,7 +1015,10 @@ class TuyaDevice:
             # Delay first ping to let initial data exchange complete
             async def _start_ping() -> None:
                 await asyncio.sleep(self.ping_interval)
-                self._ping_task = asyncio.create_task(self.async_ping(self.ping_interval))
+                self._ping_task = asyncio.create_task(
+                    self.async_ping(self.ping_interval)
+                )
+
             self._ping_task = asyncio.create_task(_start_ping())
 
         asyncio.create_task(self._async_handle_message())
@@ -1042,7 +1057,9 @@ class TuyaDevice:
         ciphertext = ct_with_tag[:-16]
         tag = ct_with_tag[-16:]
 
-        msg_bytes = header + iv + ciphertext + struct.pack(">16sI", tag, MAGIC_SUFFIX_35)
+        msg_bytes = (
+            header + iv + ciphertext + struct.pack(">16sI", tag, MAGIC_SUFFIX_35)
+        )
 
         self.writer.write(msg_bytes)
         await self.writer.drain()
@@ -1101,13 +1118,17 @@ class TuyaDevice:
         seq3 = 2
         cmd3 = Message.SESS_KEY_NEG_FINISH  # 0x05
         payload_size3 = 12 + len(client_hmac) + 16  # IV + ct + tag
-        header3 = struct.pack(">IBBIII", MAGIC_PREFIX_35, 0, 0, seq3, cmd3, payload_size3)
+        header3 = struct.pack(
+            ">IBBIII", MAGIC_PREFIX_35, 0, 0, seq3, cmd3, payload_size3
+        )
         aad3 = header3[4:]
         iv3 = os.urandom(12)
         ct3_with_tag = local_aesgcm.encrypt(iv3, client_hmac, aad3)
         ciphertext3 = ct3_with_tag[:-16]
         tag3 = ct3_with_tag[-16:]
-        msg3_bytes = header3 + iv3 + ciphertext3 + struct.pack(">16sI", tag3, MAGIC_SUFFIX_35)
+        msg3_bytes = (
+            header3 + iv3 + ciphertext3 + struct.pack(">16sI", tag3, MAGIC_SUFFIX_35)
+        )
 
         self.writer.write(msg3_bytes)
         await self.writer.drain()
@@ -1181,9 +1202,11 @@ class TuyaDevice:
             await self.async_connect()
             return
         payload_dict = {"gwId": self.gateway_id, "devId": self.device_id}
-        payload_bytes = json.dumps(payload_dict).encode('utf-8')
+        payload_bytes = json.dumps(payload_dict).encode("utf-8")
         encrypt = False if self.version < (3, 3) else True
-        message = Message(Message.GET_COMMAND, payload_bytes, encrypt=encrypt, device=self)
+        message = Message(
+            Message.GET_COMMAND, payload_bytes, encrypt=encrypt, device=self
+        )
         self._queue.append(message)
         response = await self.async_receive(message)
         if response is not None:
@@ -1205,7 +1228,7 @@ class TuyaDevice:
         else:
             payload_dict = {"devId": self.device_id, "uid": "", "t": t, "dps": dps}
             cmd = Message.SET_COMMAND
-        payload_bytes = json.dumps(payload_dict).encode('utf-8')
+        payload_bytes = json.dumps(payload_dict).encode("utf-8")
         message = Message(
             cmd,
             payload_bytes,
@@ -1226,7 +1249,7 @@ class TuyaDevice:
             payload_dict = {"dpId": [int(d) for d in dps_ids]}
         else:
             payload_dict = {"dpId": [int(d) for d in self._dps_to_request()]}
-        payload_bytes = json.dumps(payload_dict).encode('utf-8')
+        payload_bytes = json.dumps(payload_dict).encode("utf-8")
         message = Message(
             Message.UPDATEDPS,
             payload_bytes,
@@ -1306,7 +1329,9 @@ class TuyaDevice:
                 dps = payload.get("dps")
             if dps:
                 self._dps.update(dps)
-                self._LOGGER.debug("Received updated state {}: {}".format(self, self._dps))
+                self._LOGGER.debug(
+                    "Received updated state {}: {}".format(self, self._dps)
+                )
 
     @property
     def state(self) -> dict[str, Any]:
@@ -1337,10 +1362,10 @@ class TuyaDevice:
             return
 
         try:
-            suffix = MAGIC_SUFFIX_35_BYTES if self.version >= (3, 5) else MAGIC_SUFFIX_BYTES
-            self._response_task = asyncio.create_task(
-                self.reader.readuntil(suffix)
+            suffix = (
+                MAGIC_SUFFIX_35_BYTES if self.version >= (3, 5) else MAGIC_SUFFIX_BYTES
             )
+            self._response_task = asyncio.create_task(self.reader.readuntil(suffix))
             await self._response_task
             response_data = self._response_task.result()
             message = Message.from_bytes(self, response_data, self.cipher)
@@ -1353,7 +1378,8 @@ class TuyaDevice:
                 if self._connected:
                     self._LOGGER.debug(
                         "Incomplete read (%d bytes partial): %s",
-                        len(e.partial), e.partial[:40].hex() if e.partial else "empty"
+                        len(e.partial),
+                        e.partial[:40].hex() if e.partial else "empty",
                     )
                     if len(e.partial) == 0:
                         self._LOGGER.debug("Connection closed by device (EOF)")
@@ -1416,9 +1442,7 @@ class TuyaDevice:
             elif isinstance(e, asyncio.IncompleteReadError):
                 self._LOGGER.debug(
                     "Retrying send due to error. Incomplete read from: {} : {}."
-                    " Partial data received: {!r}".format(
-                        self, e, e.partial
-                    )
+                    " Partial data received: {!r}".format(self, e, e.partial)
                 )
             else:
                 self._LOGGER.debug(
@@ -1435,9 +1459,11 @@ class TuyaDevice:
         if self._connected is False:
             return None
 
-        has_listener = (message.expect_response is True
-                        and hasattr(message, 'listener')
-                        and message.listener is not None)
+        has_listener = (
+            message.expect_response is True
+            and hasattr(message, "listener")
+            and message.listener is not None
+        )
         if has_listener:
             try:
                 # We've already checked that message.listener is not None
