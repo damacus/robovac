@@ -36,6 +36,8 @@ ERROR_MESSAGES = {
     "S_brush_stuck": "Side brush stuck",
 }
 
+from .proto_decode import T2277_ERROR_CODES
+
 
 def getErrorMessage(code: str | int) -> str:
     """Get the error message for a given error code.
@@ -47,3 +49,15 @@ def getErrorMessage(code: str | int) -> str:
         The error message string or the original code if not found.
     """
     return ERROR_MESSAGES.get(code, str(code))
+
+
+def getT2277ErrorMessage(code: int) -> str:
+    """Get the error message for a T2277 model using uint32 error codes.
+
+    Args:
+        code: The uint32 error code to look up.
+
+    Returns:
+        The error message string or "Unknown error {code}" if not found.
+    """
+    return T2277_ERROR_CODES.get(code, f"Unknown error {code}")

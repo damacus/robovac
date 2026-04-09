@@ -208,9 +208,20 @@ class RoboVac(TuyaDevice):
             str: The human-readable value (e.g., "Auto cleaning", "Returning home", "auto").
                  Returns the original value if no mapping exists.
         """
+        values = None
         try:
             # Check if command_name is already a RobovacCommand enum
             cmd = command_name if isinstance(command_name, RobovacCommand) else RobovacCommand(command_name)
+
+            # Try model-specific protobuf decode first
+            if hasattr(self.model_details, 'decode_dps'):
+                cmd_entry = self.model_details.commands.get(cmd)
+                if isinstance(cmd_entry, dict) and "code" in cmd_entry:
+                    dps_code = cmd_entry["code"]
+                    decoded = self.model_details.decode_dps(dps_code, str(value))
+                    if decoded is not None:
+                        return decoded
+
             values = self._get_command_values(cmd)
 
             if values is not None:

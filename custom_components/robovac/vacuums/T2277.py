@@ -9,8 +9,11 @@
 #       The current approach cannot handle new firmware variants that encode the same
 #       logical state with different seq/suction values in field_2, and will always
 #       produce unknown-value warnings for unseen base64 strings.
+import logging
 from homeassistant.components.vacuum import VacuumEntityFeature
 from .base import RoboVacEntityFeature, RobovacCommand, RobovacModelDetails
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class T2277(RobovacModelDetails):
@@ -228,23 +231,30 @@ class T2277(RobovacModelDetails):
         RobovacCommand.BATTERY: {
             "code": 163,
         },
-        # TODO: Re-enable ERROR (DPS 177) with proper protobuf parsing.
-        #       The base64 string lookup approach cannot work here because field_1 is
-        #       a CLOCK_MONOTONIC nanosecond uptime timestamp that changes every packet.
-        #
-        #       Correct decode approach for ErrorCode (error_code.proto):
-        #         1. Strip length prefix byte
-        #         2. Decode protobuf:
-        #            field_1 [uint64] last_time — nanoseconds since boot (CLOCK_MONOTONIC), ignore
-        #            field_3 [repeated uint32] warn — active warning codes (varint list)
-        #            field_10 [message] new_code — newly triggered codes since last report:
-        #              field_1 [repeated uint32] error
-        #              field_2 [repeated uint32] warn
-        #         3. Look up each code against ErrorCodeList enum (error_code_list_t2265.proto):
-        #            e.g. 2213=SIDE_BRUSH_STUCK, 7000=ROBOT_TRAPPED
-        #         4. Return empty / "no_error" when field_3 is absent or empty
-        #
-        # RobovacCommand.ERROR: {
-        #    "code": 177,
-        # },
+        RobovacCommand.ERROR: {
+            # DPS code 177. Decoded by decode_dps() via proto_decode.decode_error_code().
+            # Proto schema (error_code.proto — ErrorCode):
+            #   field_1 [uint64]          last_time  — CLOCK_MONOTONIC ns uptime, ignored
+            #   field_3 [repeated uint32] warn       — currently active warning codes
+            #   field_10 [message]        new_code   — newly triggered codes:
+            #     field_1 [repeated uint32] error
+            #     field_2 [repeated uint32] warn
+            # Codes are looked up in errors.T2277_ERROR_CODES (from proto_decode.py).
+            "code": 177,
+        },
     }
+
+    @classmethod
+    def decode_dps(cls, dps_code: int, raw_b64: str) -> str | None:
+        """Decode a T2277 DPS value using protobuf. Returns None to fall back to lookup table."""
+        from .proto_decode import decode_mode_ctrl, decode_work_status, decode_error_code
+        try:
+            if dps_code == 152:
+                return decode_mode_ctrl(raw_b64)
+            if dps_code == 153:
+                return decode_work_status(raw_b64)
+            if dps_code == 177:
+                return decode_error_code(raw_b64)
+        except Exception as exc:
+            _LOGGER.warning("proto_decode failed for DPS %d value %r: %s", dps_code, raw_b64, exc)
+        return None
