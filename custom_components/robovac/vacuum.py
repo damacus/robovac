@@ -289,9 +289,9 @@ class RoboVacEntity(StateVacuumEntity):
                     self._attr_tuya_state
                 )
                 return None
-        elif self._attr_tuya_state == "Charging" or self._attr_tuya_state == "completed":
+        elif self._attr_tuya_state == "Charging" or self._attr_tuya_state == "completed" or self._attr_tuya_state == "recharging":
             return VacuumActivity.DOCKED
-        elif self._attr_tuya_state == "Recharge":
+        elif self._attr_tuya_state == "Recharge" or self._attr_tuya_state == "going_to_recharge":
             return VacuumActivity.RETURNING
         elif self._attr_tuya_state == "Sleeping" or self._attr_tuya_state == "standby":
             return VacuumActivity.IDLE
@@ -682,7 +682,12 @@ class RoboVacEntity(StateVacuumEntity):
                 self._attr_fan_speed = "Pure"
 
     def _update_cleaning_stats(self) -> None:
-        """Update cleaning statistics (area and time)."""
+        """Update cleaning statistics and settings attributes.
+
+        Note: auto_return, do_not_disturb, and boost_iq are device settings that
+        exist independently of cleaning_time. They are updated unconditionally
+        whenever tuyastatus is available.
+        """
         if self.tuyastatus is None:
             return
 
@@ -696,15 +701,17 @@ class RoboVacEntity(StateVacuumEntity):
         if cleaning_time is not None:
             self._attr_cleaning_time = str(cleaning_time)
 
-            # Update other attributes using model-specific DPS codes
-            auto_return = self.tuyastatus.get(self._get_dps_code("AUTO_RETURN"))
-            self._attr_auto_return = str(auto_return) if auto_return is not None else None
+        # Update device settings — these are independent of cleaning_time and
+        # must not be nested inside the cleaning_time block or they will only
+        # update when cleaning_time is present in the payload.
+        auto_return = self.tuyastatus.get(self._get_dps_code("AUTO_RETURN"))
+        self._attr_auto_return = str(auto_return) if auto_return is not None else None
 
-            do_not_disturb = self.tuyastatus.get(self._get_dps_code("DO_NOT_DISTURB"))
-            self._attr_do_not_disturb = str(do_not_disturb) if do_not_disturb is not None else None
+        do_not_disturb = self.tuyastatus.get(self._get_dps_code("DO_NOT_DISTURB"))
+        self._attr_do_not_disturb = str(do_not_disturb) if do_not_disturb is not None else None
 
-            boost_iq = self.tuyastatus.get(self._get_dps_code("BOOST_IQ"))
-            self._attr_boost_iq = str(boost_iq) if boost_iq is not None else None
+        boost_iq = self.tuyastatus.get(self._get_dps_code("BOOST_IQ"))
+        self._attr_boost_iq = str(boost_iq) if boost_iq is not None else None
 
         # Handle consumables
         if (
