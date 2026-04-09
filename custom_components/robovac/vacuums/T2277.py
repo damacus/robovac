@@ -247,7 +247,7 @@ class T2277(RobovacModelDetails):
     @classmethod
     def decode_dps(cls, dps_code: int, raw_b64: str) -> str | None:
         """Decode a T2277 DPS value using protobuf. Returns None to fall back to lookup table."""
-        from .proto_decode import decode_mode_ctrl, decode_work_status, decode_error_code
+        from ..proto_decode import decode_mode_ctrl, decode_work_status, decode_error_code
         try:
             if dps_code == 152:
                 return decode_mode_ctrl(raw_b64)
