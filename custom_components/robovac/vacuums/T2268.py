@@ -4,8 +4,7 @@ from .base import RoboVacEntityFeature, RobovacCommand, RobovacModelDetails
 
 class T2268(RobovacModelDetails):
     homeassistant_features = (
-        VacuumEntityFeature.BATTERY
-        | VacuumEntityFeature.CLEAN_SPOT
+        VacuumEntityFeature.CLEAN_SPOT
         | VacuumEntityFeature.FAN_SPEED
         | VacuumEntityFeature.LOCATE
         | VacuumEntityFeature.PAUSE
@@ -58,7 +57,7 @@ class T2268(RobovacModelDetails):
         RobovacCommand.FAN_SPEED: {
             "code": 102,
             "values": {
-                "pure": "Pure",
+                "pure": "Quiet",
                 "standard": "Standard",
                 "turbo": "Turbo",
                 "max": "Max",

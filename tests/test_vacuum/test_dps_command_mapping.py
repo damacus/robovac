@@ -168,7 +168,7 @@ async def test_vacuum_update_uses_correct_dps_codes() -> None:
         entity.update_entity_values()
 
         # Check that the correct values were extracted
-        assert entity._attr_battery_level == 75
+        # Battery level is now handled by separate sensor entity
         assert entity._attr_tuya_state == "Cleaning"
         assert entity._attr_error_code == 0
         assert entity._attr_mode == "auto"

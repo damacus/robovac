@@ -8,3 +8,4 @@ config:
 ignores:
   - .github/copilot-instructions.md
   - .windsurf/workflows/*.md
+  - .jules/*.md

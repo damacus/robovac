@@ -5,8 +5,7 @@ from .base import RoboVacEntityFeature, RobovacCommand, RobovacModelDetails
 
 class T2251(RobovacModelDetails):
     homeassistant_features = (
-        VacuumEntityFeature.BATTERY
-        | VacuumEntityFeature.CLEAN_SPOT
+        VacuumEntityFeature.CLEAN_SPOT
         | VacuumEntityFeature.FAN_SPEED
         | VacuumEntityFeature.LOCATE
         | VacuumEntityFeature.PAUSE
@@ -47,6 +46,14 @@ class T2251(RobovacModelDetails):
         },
         RobovacCommand.STATUS: {
             "code": 15,
+            "values": {
+                "Charging": "Charging",
+                "completed": "Completed",
+                "Running": "Running",
+                "standby": "Standby",
+                "Sleeping": "Sleeping",
+                "recharge_needed": "Recharge needed",
+            },
         },
         RobovacCommand.RETURN_HOME: {
             "code": 101,
@@ -68,5 +75,8 @@ class T2251(RobovacModelDetails):
         },
         RobovacCommand.ERROR: {
             "code": 106,
+            "values": {
+                "0": "No error",
+            },
         },
     }

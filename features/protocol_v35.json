@@ -1,0 +1,72 @@
+[
+    {
+        "id": "PROTO-001",
+        "category": "protocol",
+        "area": "communication",
+        "description": "Add Protocol 3.5 support to tuyalocalapi",
+        "steps": [
+            "Research Protocol 3.5 encryption differences from 3.4",
+            "Implement Protocol 3.5 message parsing",
+            "Add Protocol 3.5 encryption/decryption",
+            "Add auto-detection for Protocol 3.5 devices"
+        ],
+        "passes": false,
+        "context": "docs/PROTOCOL_VERSION_ISSUE.md"
+    },
+    {
+        "id": "PROTO-002",
+        "category": "protocol",
+        "area": "communication",
+        "description": "Fix T2276 (X8 Pro SES) communication issues",
+        "steps": [
+            "Analyze 'Incomplete read' errors in tuyalocalapi",
+            "Compare with kevinbird15's working implementation",
+            "Test different protocol version configurations",
+            "Verify DPS codes are correct for T2276"
+        ],
+        "passes": false,
+        "context": "docs/ISSUE_42_T2276_INVESTIGATION.md"
+    },
+    {
+        "id": "PROTO-003",
+        "category": "protocol",
+        "area": "communication",
+        "description": "Improve local key refresh mechanism",
+        "steps": [
+            "Detect stale/expired local keys",
+            "Add automatic key refresh from Eufy API",
+            "Improve error messaging for key mismatch",
+            "Add user-friendly recovery flow"
+        ],
+        "passes": false,
+        "context": "docs/PROTOCOL_VERSION_ISSUE.md"
+    },
+    {
+        "id": "PROTO-004",
+        "category": "protocol",
+        "area": "communication",
+        "description": "Add detailed protocol debugging capabilities",
+        "steps": [
+            "Add raw message logging option",
+            "Log protocol version detection results",
+            "Add encryption/decryption debug output",
+            "Document debugging process for users"
+        ],
+        "passes": false,
+        "context": "docs/ISSUE_42_T2276_INVESTIGATION.md"
+    },
+    {
+        "id": "PROTO-005",
+        "category": "protocol",
+        "area": "communication",
+        "description": "Handle empty data points gracefully",
+        "steps": [
+            "Detect empty DPS responses",
+            "Implement retry logic for empty responses",
+            "Add warning logging for persistent empty responses",
+            "Prevent entity state corruption from empty data"
+        ],
+        "passes": false,
+        "context": "docs/ISSUE_42_T2276_INVESTIGATION.md"
+    }
+]

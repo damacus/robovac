@@ -1,0 +1,3 @@
+## 2024-05-19 - Improved configuration options flow clarity
+**Learning:** Found that options flow fields like 'selected_vacuum' lack description data in some Home Assistant integrations, which can confuse users. Adding a 'data_description' element to 'strings.json' (and translation files) provides helpful inline helper text that makes the configuration process much more accessible and intuitive.
+**Action:** Always check `strings.json` and `translations/*.json` for missing `data_description` helpers on configuration and options flow fields, especially for lists or abstract selections like `selected_vacuum`.

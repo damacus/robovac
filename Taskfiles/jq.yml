@@ -1,0 +1,106 @@
+---
+version: 3
+tasks:
+  update-field:
+    desc: Update a field in a JSON file by ID
+    summary: |
+      Updates a specific field in a JSON array by matching an ID.
+
+      Usage:
+        task jq:update-field FILE=tests.json ID=VAC-002 FIELD=passes VALUE=true
+
+      Examples:
+        # Mark a test as passing
+        task jq:update-field FILE=features/vacuum_models.json ID=VAC-001 FIELD=passes VALUE=true
+
+        # Update a description
+        task jq:update-field FILE=features/core_functionality.json ID=CORE-001 FIELD=description VALUE='"New description"'
+
+      Note: String values must be wrapped in quotes, e.g., VALUE='"my string"'
+            Boolean/numeric values are passed directly, e.g., VALUE=true or VALUE=42
+    requires:
+      vars: [FILE, ID, FIELD, VALUE]
+    cmds:
+      - |
+        jq --arg targetId "{{ .ID }}" --argjson value {{ .VALUE }} 'map(if .id == $targetId then .{{ .FIELD }} = $value else . end)' "{{ .FILE }}" | sponge "{{ .FILE }}"
+
+  query:
+    desc: Run a jq query on a JSON file
+    summary: |
+      Run an arbitrary jq query on a JSON file.
+
+      Usage:
+        task jq:query FILE=tests.json QUERY='.[] | select(.passes == false) | .description'
+
+      Examples:
+        # Get all failing test descriptions
+        task jq:query FILE=features/vacuum_models.json QUERY='.[] | select(.passes == false) | .description'
+
+        # Get IDs of all items in a category
+        task jq:query FILE=features/core_functionality.json QUERY='.[] | select(.category == "functional") | .id'
+    requires:
+      vars: [FILE, QUERY]
+    cmds:
+      - |
+        jq '{{ .QUERY }}' "{{ .FILE }}"
+
+  list-failing:
+    desc: List all items with passes=false
+    summary: |
+      Lists descriptions of all items where passes is false.
+
+      Usage:
+        task jq:list-failing FILE=vacuum_models
+    requires:
+      vars: [FILE]
+    cmds:
+      - |
+        jq -r '.[] | select(.passes == false) | "\(.id): \(.description)"' "features/{{ .FILE }}.json"
+
+  failing-by-area:
+    desc: Show failing tests grouped by area
+    summary: |
+      Shows count of failing tests by area, sorted by priority.
+
+      Usage:
+        task jq:failing-by-area
+    cmds:
+      - |
+        jq -s '[.[][] | select(.passes == false)] | map(.area) | group_by(.) | map({area: .[0], count: length}) | sort_by(.count) | reverse' features/*.json
+
+  failing-by-category:
+    desc: Show failing tests grouped by category
+    summary: |
+      Shows count of failing tests by category (functional, quality, etc.).
+
+      Usage:
+        task jq:failing-by-category
+    cmds:
+      - |
+        jq -s '[.[][] | select(.passes == false)] | group_by(.category) | map({category: .[0].category, count: length}) | sort_by(.count) | reverse' features/*.json
+
+  next-features:
+    desc: Show next 10 failing features to work on
+    summary: |
+      Lists the next 10 failing features by area and ID.
+
+      Usage:
+        task jq:next-features
+    cmds:
+      - |
+        jq -s '[.[][] | select(.passes == false)] | sort_by(.area, .id) | .[0:10] | .[] | "\(.area)/\(.id): \(.description)"' features/*.json
+
+  count-remaining:
+    desc: Count remaining failing tests
+    summary: |
+      Counts total failing tests across all feature files.
+
+      Usage:
+        task jq:count-remaining
+    cmds:
+      - |
+        echo "Failing tests by area:"
+        jq -s '[.[][] | select(.passes == false)] | group_by(.area) | map({area: .[0].area, count: length})' features/*.json
+        echo ""
+        echo "Total failing:"
+        jq -s '[.[][] | select(.passes == false)] | length' features/*.json

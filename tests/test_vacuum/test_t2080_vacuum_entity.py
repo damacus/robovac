@@ -1,15 +1,17 @@
 """Tests for T2080 vacuum entity integration with activity mapping."""
 
 import pytest
+from typing import Any
 from unittest.mock import patch, MagicMock
 
 from homeassistant.components.vacuum import VacuumActivity
 from custom_components.robovac.vacuum import RoboVacEntity
 from custom_components.robovac.vacuums.base import RobovacCommand
+from custom_components.robovac.robovac import RoboVac
 
 
 @pytest.fixture
-def mock_t2080_robovac():
+def mock_t2080_robovac() -> RoboVac:
     """Create a mock T2080 RoboVac instance."""
     mock = MagicMock()
 
@@ -55,13 +57,13 @@ def mock_t2080_robovac():
     mock.getHomeAssistantFeatures.return_value = 255
     mock.getRoboVacFeatures.return_value = 511
     mock.getFanSpeeds.return_value = ["quiet", "standard", "turbo", "max"]
-    mock._get_dps_code.return_value = "153"  # STATUS code for T2080
+    mock.getDpsCodes.return_value = {"STATUS": "153"}
 
     return mock
 
 
 @pytest.fixture
-def mock_t2080_vacuum_data():
+def mock_t2080_vacuum_data() -> RoboVac:
     """Create mock T2080 vacuum configuration data."""
     from homeassistant.const import (
         CONF_ACCESS_TOKEN,
@@ -85,7 +87,7 @@ def mock_t2080_vacuum_data():
 
 
 @pytest.mark.asyncio
-async def test_t2080_activity_with_activity_mapping(mock_t2080_robovac, mock_t2080_vacuum_data):
+async def test_t2080_activity_with_activity_mapping(mock_t2080_robovac, mock_t2080_vacuum_data) -> None:
     """Test T2080 activity property uses activity mapping when available."""
     with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_t2080_robovac):
         entity = RoboVacEntity(mock_t2080_vacuum_data)
@@ -115,7 +117,7 @@ async def test_t2080_activity_with_activity_mapping(mock_t2080_robovac, mock_t20
 
 
 @pytest.mark.asyncio
-async def test_t2080_activity_with_error_overrides_mapping(mock_t2080_robovac, mock_t2080_vacuum_data):
+async def test_t2080_activity_with_error_overrides_mapping(mock_t2080_robovac, mock_t2080_vacuum_data) -> None:
     """Test that error state overrides activity mapping."""
     with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_t2080_robovac):
         entity = RoboVacEntity(mock_t2080_vacuum_data)
@@ -129,7 +131,7 @@ async def test_t2080_activity_with_error_overrides_mapping(mock_t2080_robovac, m
 
 
 @pytest.mark.asyncio
-async def test_t2080_activity_with_none_state(mock_t2080_robovac, mock_t2080_vacuum_data):
+async def test_t2080_activity_with_none_state(mock_t2080_robovac, mock_t2080_vacuum_data) -> None:
     """Test T2080 activity property returns None for None/0 state."""
     with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_t2080_robovac):
         entity = RoboVacEntity(mock_t2080_vacuum_data)
@@ -146,7 +148,7 @@ async def test_t2080_activity_with_none_state(mock_t2080_robovac, mock_t2080_vac
 
 
 @pytest.mark.asyncio
-async def test_t2080_activity_unknown_state_not_in_mapping(mock_t2080_robovac, mock_t2080_vacuum_data):
+async def test_t2080_activity_unknown_state_not_in_mapping(mock_t2080_robovac, mock_t2080_vacuum_data) -> None:
     """Test T2080 activity property returns None for unknown states when activity mapping exists."""
     with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_t2080_robovac):
         entity = RoboVacEntity(mock_t2080_vacuum_data)
@@ -161,7 +163,7 @@ async def test_t2080_activity_unknown_state_not_in_mapping(mock_t2080_robovac, m
 
 
 @pytest.mark.asyncio
-async def test_t2080_update_state_uses_human_readable_values(mock_t2080_robovac, mock_t2080_vacuum_data):
+async def test_t2080_update_state_uses_human_readable_values(mock_t2080_robovac, mock_t2080_vacuum_data) -> None:
     """Test that T2080 state updates use human-readable values."""
     with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_t2080_robovac):
         entity = RoboVacEntity(mock_t2080_vacuum_data)
@@ -173,7 +175,7 @@ async def test_t2080_update_state_uses_human_readable_values(mock_t2080_robovac,
             "152": "BBoCCAE=",  # Encoded "auto" mode
         }
 
-        # Mock _get_dps_code to return the right codes
+        # Mock get_dps_code to return the right codes
         def mock_get_dps_code(command_name):
             if command_name == "STATUS":
                 return "153"
@@ -183,7 +185,7 @@ async def test_t2080_update_state_uses_human_readable_values(mock_t2080_robovac,
                 return "152"
             return None
 
-        entity._get_dps_code = mock_get_dps_code
+        entity.get_dps_code = mock_get_dps_code
 
         # Call the private methods that update state
         entity._update_state_and_error()
@@ -199,7 +201,7 @@ async def test_t2080_update_state_uses_human_readable_values(mock_t2080_robovac,
 
 
 @pytest.mark.asyncio
-async def test_t2080_initialization_sets_activity_mapping(mock_t2080_robovac, mock_t2080_vacuum_data):
+async def test_t2080_initialization_sets_activity_mapping(mock_t2080_robovac, mock_t2080_vacuum_data) -> None:
     """Test that T2080 entity initialization sets activity mapping attribute."""
     with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_t2080_robovac):
         entity = RoboVacEntity(mock_t2080_vacuum_data)

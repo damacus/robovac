@@ -6,6 +6,7 @@ from unittest.mock import patch, MagicMock, call, AsyncMock
 
 from custom_components.robovac.robovac import RoboVac
 from custom_components.robovac.vacuum import RoboVacEntity
+from custom_components.robovac.vacuums.base import RobovacCommand
 from homeassistant.const import (
     CONF_NAME,
     CONF_ID,
@@ -18,7 +19,7 @@ from homeassistant.const import (
 
 
 @pytest.mark.asyncio
-async def test_l60_start_command_uses_correct_dps_value():
+async def test_l60_start_command_uses_correct_dps_value() -> None:
     """Test that L60 model sends the correct base64 encoded value for DPS 152 when starting."""
     # Setup mock vacuum data for L60 model
     mock_vacuum_data = {
@@ -40,8 +41,13 @@ async def test_l60_start_command_uses_correct_dps_value():
         "BATTERY_LEVEL": "163",
         "ERROR_CODE": "177"
     }
-    # Mock the getRoboVacCommandValue to return the correct base64 value
-    mock_robovac.getRoboVacCommandValue.return_value = "BBoCCAE="
+    # Mock getRoboVacCommandValue to return base64 for MODE, passthrough for others
+
+    def l60_command_value(command_name: RobovacCommand, value: str) -> str:
+        if command_name == RobovacCommand.MODE:
+            return "BBoCCAE="
+        return value
+    mock_robovac.getRoboVacCommandValue.side_effect = l60_command_value
     # Make async_set an AsyncMock so it can be awaited
     mock_robovac.async_set = AsyncMock()
 

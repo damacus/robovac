@@ -1,0 +1,58 @@
+[
+  {
+    "id": "TEST-001",
+    "category": "quality",
+    "area": "testing",
+    "description": "All vacuum models have test coverage",
+    "steps": [
+      "Verify test file exists for each model",
+      "Run pytest with coverage",
+      "Check coverage report"
+    ],
+    "passes": false
+  },
+  {
+    "id": "TEST-002",
+    "category": "quality",
+    "area": "testing",
+    "description": "DPS command mapping tests pass",
+    "steps": [
+      "Run test_dps_command_mapping.py",
+      "Verify all assertions pass"
+    ],
+    "passes": true
+  },
+  {
+    "id": "TEST-003",
+    "category": "quality",
+    "area": "testing",
+    "description": "Activity mapping tests pass",
+    "steps": [
+      "Run test_get_robovac_activity_mapping.py",
+      "Verify all assertions pass"
+    ],
+    "passes": true
+  },
+  {
+    "id": "TEST-004",
+    "category": "quality",
+    "area": "testing",
+    "description": "Human readable value tests pass",
+    "steps": [
+      "Run test_get_robovac_human_readable_value.py",
+      "Verify debug logging behavior"
+    ],
+    "passes": true
+  },
+  {
+    "id": "TEST-005",
+    "category": "quality",
+    "area": "testing",
+    "description": "Config flow tests pass",
+    "steps": [
+      "Run test_config_flow.py",
+      "Verify all assertions pass"
+    ],
+    "passes": true
+  }
+]

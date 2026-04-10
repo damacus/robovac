@@ -2,6 +2,7 @@ from typing import Any, cast
 from collections.abc import Mapping
 from homeassistant.components.vacuum import VacuumActivity
 
+from .case_insensitive_lookup import case_insensitive_lookup
 from .tuyalocalapi import TuyaDevice
 from .vacuums import ROBOVAC_MODELS
 from .vacuums.base import RobovacCommand, RobovacModelDetails
@@ -46,10 +47,41 @@ class RoboVac(TuyaDevice):
             )
         current_model_details = ROBOVAC_MODELS[model_code]
 
+        # Determine protocol version: prefer model-defined, else default to (3, 3)
+        def _coerce_version(v: Any) -> tuple[int, int]:
+            try:
+                # Already a tuple[int,int]
+                if isinstance(v, tuple) and len(v) == 2:
+                    major, minor = v
+                    return (int(major), int(minor))
+                # Float like 3.4 or 3.5
+                if isinstance(v, float) or isinstance(v, int):
+                    major = int(v)
+                    minor = int(round((float(v) - major) * 10))
+                    return (major, minor)
+                # String like "3.5"
+                if isinstance(v, str):
+                    parts = v.split(".")
+                    if len(parts) >= 2:
+                        return (int(parts[0]), int(parts[1]))
+                    return (int(parts[0]), 0)
+            except Exception:
+                pass
+            # Fallback default
+            return (3, 3)
+
+        # Only honor protocol_version if explicitly set on the model class.
+        # Using __dict__ avoids inheriting the Protocol's typed default (3.1).
+        model_version: Any = current_model_details.__dict__.get("protocol_version", None)
+        coerced_version = _coerce_version(model_version) if model_version is not None else (3, 3)
+        if "version" not in kwargs:
+            kwargs["version"] = coerced_version
+
         super().__init__(current_model_details, *args, **kwargs)
 
         self.model_code = model_code
         self.model_details = current_model_details
+        self._dps_codes_cache: dict[str, str] | None = None
 
     def getHomeAssistantFeatures(self) -> int:
         """Get the Home Assistant supported features for this vacuum model.
@@ -110,16 +142,17 @@ class RoboVac(TuyaDevice):
         """Get the supported fan speeds for this vacuum model.
 
         Returns:
-            list[str]: List of human-readable fan speed names (e.g., ["Standard", "Boost IQ", "Max"])
+            list[str]: List of human-readable fan speed names (e.g., ["Pure", "Standard", "Max"])
                       Returns empty list if fan speed control is not supported by this model.
         """
         values = self._get_command_values(RobovacCommand.FAN_SPEED)
         if values is None:
             return []
 
-        # Return the values from the dictionary (the display names)
-        # This preserves existing behavior for tests
-        return list(values.values())
+        # Return the keys title-cased as display names for the UI
+        # This ensures user-friendly names like "Pure" are shown even when
+        # the device uses different internal values like "Quiet"
+        return [key.replace("_", " ").title() for key in values.keys()]
 
     def getSupportedCommands(self) -> list[str]:
         """Get the list of supported commands for this vacuum model.
@@ -140,6 +173,12 @@ class RoboVac(TuyaDevice):
             dict[str, str]: Dictionary mapping DPS code names (e.g., "BATTERY_LEVEL", "ERROR_CODE")
                            to their numeric string values (e.g., "104", "106") for Tuya communication
         """
+        # ⚡ Bolt optimization: The command definitions are static for a given model.
+        # By caching the extracted DPS codes, we avoid rebuilding this dictionary
+        # (iterating over commands and checking types) on every status update or dispatch.
+        if self._dps_codes_cache is not None:
+            return self._dps_codes_cache
+
         # Map command names to DPS code names
         command_to_dps = {
             "BATTERY": "BATTERY_LEVEL",
@@ -164,9 +203,10 @@ class RoboVac(TuyaDevice):
                 # For direct values, use the value itself
                 codes[dps_name] = str(value)
 
+        self._dps_codes_cache = codes
         return codes
 
-    def getRoboVacCommandValue(self, command_name: RobovacCommand, value: str) -> str:
+    def getRoboVacCommandValue(self, command_name: RobovacCommand, value: str) -> str | bool:
         """Convert human-readable command value to model-specific device value.
 
         Translates user-friendly command values to the actual values that need to be
@@ -177,9 +217,9 @@ class RoboVac(TuyaDevice):
             value: The human-readable value (e.g., "auto", "edge", "Standard")
 
         Returns:
-            str: The model-specific value for the device (e.g., "BBoCCAE=" for L60 "auto" mode,
-                 "CAoCCAE=" for T2080 base64-encoded commands). Returns the original value
-                 if no mapping exists.
+            The model-specific value for the device. May be a string (e.g., "BBoCCAE="
+            for L60 "auto" mode) or a bool (e.g., True for START_PAUSE "start" on
+            T2128). Returns the original value if no mapping exists.
         """
         try:
             # Check if command_name is already a RobovacCommand enum
@@ -187,7 +227,10 @@ class RoboVac(TuyaDevice):
             values = self._get_command_values(cmd)
 
             if values is not None and value in values:
-                return str(values[value])
+                mapped = values[value]
+                if isinstance(mapped, bool):
+                    return mapped
+                return str(mapped)
 
         except (ValueError, KeyError):
             pass
@@ -225,19 +268,23 @@ class RoboVac(TuyaDevice):
             values = self._get_command_values(cmd)
 
             if values is not None:
-                # Direct lookup: the input value should be a key in the values dict
-                if str(value) in values:
-                    return str(values[value])
+                # Try case-insensitive lookup
+                result = case_insensitive_lookup(values, value)
+                if result is not None:
+                    return str(result)
+
+                # Only log if values dict exists but value not found
+                _LOGGER.debug(
+                    "Command %s with value %r (type: %s) not found for model %s. "
+                    "Available keys: %r",
+                    command_name,
+                    value,
+                    type(value).__name__,
+                    self.model_code,
+                    list(values.keys()),
+                )
 
         except (ValueError, KeyError):
             pass
 
-        _LOGGER.warning(
-            "Command %s with value %s not found for model %s. Available values: %s. "
-            "If you know the status the Eufy app was showing at this time, please report that to the component maintainers.",
-            command_name,
-            value,
-            self.model_code,
-            list(values.keys()) if values else "None",
-        )
         return value

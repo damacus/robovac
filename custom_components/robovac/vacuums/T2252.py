@@ -5,8 +5,7 @@ from .base import RoboVacEntityFeature, RobovacCommand, RobovacModelDetails
 
 class T2252(RobovacModelDetails):
     homeassistant_features = (
-        VacuumEntityFeature.BATTERY
-        | VacuumEntityFeature.CLEAN_SPOT
+        VacuumEntityFeature.CLEAN_SPOT
         | VacuumEntityFeature.FAN_SPEED
         | VacuumEntityFeature.LOCATE
         | VacuumEntityFeature.PAUSE
@@ -25,6 +24,7 @@ class T2252(RobovacModelDetails):
     commands = {
         RobovacCommand.START_PAUSE: {
             "code": 2,
+            "values": {"start": True, "pause": False},
         },
         RobovacCommand.DIRECTION: {
             "code": 3,
@@ -38,15 +38,23 @@ class T2252(RobovacModelDetails):
         RobovacCommand.MODE: {
             "code": 5,
             "values": {
-                "Auto": "Auto",
-                "SmallRoom": "SmallRoom",
-                "Spot": "Spot",
-                "Edge": "Edge",
-                "Nosweep": "Nosweep",
+                "auto": "Auto",
+                "small_room": "SmallRoom",
+                "spot": "Spot",
+                "edge": "Edge",
+                "nosweep": "Nosweep",
             },
         },
         RobovacCommand.STATUS: {
             "code": 15,
+            "values": {
+                "Charging": "Charging",
+                "completed": "Completed",
+                "Running": "Running",
+                "standby": "Standby",
+                "Sleeping": "Sleeping",
+                "recharge_needed": "Recharge needed",
+            },
         },
         RobovacCommand.RETURN_HOME: {
             "code": 101,
@@ -54,10 +62,10 @@ class T2252(RobovacModelDetails):
         RobovacCommand.FAN_SPEED: {
             "code": 102,
             "values": {
-                "Standard": "Standard",
-                "Turbo": "Turbo",
-                "Max": "Max",
-                "Boost_IQ": "Boost_IQ",
+                "standard": "Standard",
+                "turbo": "Turbo",
+                "max": "Max",
+                "boost_iq": "Boost_IQ",
             },
         },
         RobovacCommand.LOCATE: {
@@ -68,5 +76,9 @@ class T2252(RobovacModelDetails):
         },
         RobovacCommand.ERROR: {
             "code": 106,
+            "values": {
+                # Error code mappings
+                "0": "No error",
+            },
         },
     }

@@ -15,6 +15,10 @@
                     "password": "Password",
                     "username": "Username"
                 },
+                "data_description": {
+                    "username": "The email address associated with your Eufy account.",
+                    "password": "The password used to log in to the Eufy app."
+                },
                 "description": "Enter your Eufy account details"
             }
         }
@@ -25,6 +29,9 @@
                 "title": "Manage vacuums",
                 "data": {
                     "selected_vacuum": "Select the Vacuum to edit"
+                },
+                "data_description": {
+                    "selected_vacuum": "Choose the Eufy RoboVac device you wish to configure from the list of discovered vacuums."
                 }
             },
             "edit": {
@@ -32,6 +39,10 @@
                 "data": {
                     "autodiscovery": "Enable autodiscovery",
                     "ip_address": "IP Address"
+                },
+                "data_description": {
+                    "autodiscovery": "Automatically find the vacuum on the network.",
+                    "ip_address": "The static IP address of your vacuum on your local network (optional if autodiscovery is enabled)."
                 },
                 "description": "Autodiscovery will automatically update the IP address"
             }

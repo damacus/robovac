@@ -5,8 +5,7 @@ from .base import RoboVacEntityFeature, RobovacCommand, RobovacModelDetails
 
 class T2254(RobovacModelDetails):
     homeassistant_features = (
-        VacuumEntityFeature.BATTERY
-        | VacuumEntityFeature.CLEAN_SPOT
+        VacuumEntityFeature.CLEAN_SPOT
         | VacuumEntityFeature.FAN_SPEED
         | VacuumEntityFeature.LOCATE
         | VacuumEntityFeature.PAUSE
@@ -68,5 +67,8 @@ class T2254(RobovacModelDetails):
         },
         RobovacCommand.ERROR: {
             "code": 106,
+            "values": {
+                "0": "No error",
+            },
         },
     }

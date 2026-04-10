@@ -17,7 +17,7 @@
 This module provides the vacuum entity integration for Eufy Robovac devices.
 """
 from __future__ import annotations
-import ast
+import asyncio
 import base64
 from datetime import timedelta
 from enum import StrEnum
@@ -70,6 +70,10 @@ ATTR_MODE = "mode"
 _LOGGER = logging.getLogger(__name__)
 SCAN_INTERVAL = timedelta(seconds=REFRESH_RATE)
 UPDATE_RETRIES = 3
+
+# ⚡ Bolt optimization: Pre-calculate valid VacuumActivity values into a set
+# to avoid O(n) list comprehension on every property getter access
+VACUUM_ACTIVITY_VALUES = {activity.value for activity in VacuumActivity}
 
 
 async def async_setup_entry(
@@ -222,7 +226,7 @@ class RoboVacEntity(StateVacuumEntity):
             return value == "True" or value.lower() == "true"
         return False
 
-    def _get_mode_command_data(self, mode: str) -> dict[str, str] | None:
+    def _get_mode_command_data(self, mode: str) -> dict[str, str | bool] | None:
         """Helper method to get mode command data for the vacuum.
 
         Converts a human-readable cleaning mode to the appropriate DPS command
@@ -232,14 +236,14 @@ class RoboVacEntity(StateVacuumEntity):
             mode: The cleaning mode to set (e.g., "auto", "spot", "edge", "small_room")
 
         Returns:
-            dict[str, str] | None: Dictionary with DPS code as key and model-specific
-                                  command value as value, or None if vacuum not initialized
+            dict[str, str | bool] | None: Dictionary with DPS code as key and model-specific
+                                          command value as value, or None if vacuum not initialized
         """
         if self.vacuum is None:
             return None
 
         return {
-            self._get_dps_code("MODE"): self.vacuum.getRoboVacCommandValue(RobovacCommand.MODE, mode)
+            self.get_dps_code("MODE"): self.vacuum.getRoboVacCommandValue(RobovacCommand.MODE, mode)
         }
 
     @property
@@ -254,13 +258,8 @@ class RoboVacEntity(StateVacuumEntity):
             # 0 is a default set when we don't have a state
             return None
         elif (
-            type(self.error_code) is not None
-            and self.error_code
-            and self.error_code
-            not in [
-                0,
-                "no_error",
-            ]
+            self.error_code is not None
+            and self.error_code not in [0, "no_error", "No error"]
         ):
             _LOGGER.debug(
                 "State changed to error. Error message: {}".format(
@@ -268,7 +267,7 @@ class RoboVacEntity(StateVacuumEntity):
                 )
             )
             return VacuumActivity.ERROR
-        elif self._attr_tuya_state in [activity.value for activity in VacuumActivity]:
+        elif self._attr_tuya_state in VACUUM_ACTIVITY_VALUES:
             # Particularly at system startup, the state may be set to a
             # VacuumActivity value directly, so we can return it as is.
             return cast(VacuumActivity, self._attr_tuya_state)
@@ -289,7 +288,7 @@ class RoboVacEntity(StateVacuumEntity):
                     self._attr_tuya_state
                 )
                 return None
-        elif self._attr_tuya_state == "Charging" or self._attr_tuya_state == "completed" or self._attr_tuya_state == "recharging":
+        elif self._attr_tuya_state == "Charging" or self._attr_tuya_state == "completed" or self._attr_tuya_state == "Completed" or self._attr_tuya_state == "recharging":
             return VacuumActivity.DOCKED
         elif self._attr_tuya_state == "Recharge" or self._attr_tuya_state == "going_to_recharge":
             return VacuumActivity.RETURNING
@@ -369,7 +368,6 @@ class RoboVacEntity(StateVacuumEntity):
         super().__init__()
 
         # Initialize basic attributes
-        self._attr_battery_level = 0
         self._attr_name = item[CONF_NAME]
         self._attr_unique_id = item[CONF_ID]
         self._attr_model_code = item[CONF_MODEL]
@@ -380,6 +378,9 @@ class RoboVacEntity(StateVacuumEntity):
         self.tuyastatus: dict[str, Any] | None = None
         self._last_no_data_warning_time: float = 0
         self._no_data_warning_logged: bool = False
+        self._consumables_codes_cache: list[str] | None = None
+        self._dps_codes_memo: dict[str, str] = {}
+        self._last_consumable_data: str | None = None
 
         # Initialize the RoboVac connection
         try:
@@ -545,34 +546,61 @@ class RoboVacEntity(StateVacuumEntity):
         _LOGGER.debug("Updating entity values from data points: %s", self.tuyastatus)
 
         # Update common attributes for all models
-        self._update_battery_level()
         self._update_state_and_error()
         self._update_mode_and_fan_speed()
 
         # Update model-specific attributes
         self._update_cleaning_stats()
 
-    def _get_dps_code(self, code_name: str) -> str:
+    def get_dps_code(self, code_name: str | TuyaCodes) -> str:
         """Get the DPS code for a specific function.
 
         First checks for model-specific DPS codes, then falls back to defaults.
 
         Args:
-            code_name: The name of the code to retrieve, e.g., "BATTERY_LEVEL"
+            code_name: The name of the code to retrieve, e.g., "BATTERY" or "BATTERY_LEVEL"
+                       or a TuyaCodes enum member.
 
         Returns:
             The DPS code as a string
         """
-        if self.vacuum is None:
-            enum_value = getattr(TuyaCodes, code_name, None)
-            return enum_value.value if enum_value else ""
+        # If passed an enum member, get its name
+        if isinstance(code_name, TuyaCodes):
+            lookup_name = code_name.name
+        else:
+            # Map aliases to standard DPS names used in TuyaCodes and model dps_codes
+            mapping = {
+                "BATTERY": "BATTERY_LEVEL",
+                "ERROR": "ERROR_CODE",
+            }
+            lookup_name = mapping.get(code_name, code_name)
 
-        model_dps_codes = self.vacuum.getDpsCodes()
-        if code_name in model_dps_codes:
-            return model_dps_codes[code_name]
+        # ⚡ Bolt optimization: The DPS code string for a given lookup_name is static
+        # for a specific model. By caching the extracted DPS string, we avoid rebuilding the
+        # dictionary and performing the lookup on every data update and command dispatch.
+        if lookup_name in self._dps_codes_memo:
+            return self._dps_codes_memo[lookup_name]
 
-        enum_value = getattr(TuyaCodes, code_name, None)
-        return enum_value.value if enum_value else ""
+        result = ""
+        if self.vacuum is not None:
+            try:
+                model_dps_codes = self.vacuum.getDpsCodes()
+                if isinstance(model_dps_codes, dict) and lookup_name in model_dps_codes:
+                    result = str(model_dps_codes[lookup_name])
+            except Exception as ex:
+                _LOGGER.debug("Error getting model-specific DPS code for %s: %s", lookup_name, ex)
+
+        if not result:
+            # Fallback to defaults in TuyaCodes
+            try:
+                enum_value = getattr(TuyaCodes, lookup_name, None)
+                if enum_value:
+                    result = str(enum_value.value)
+            except Exception:
+                pass
+
+        self._dps_codes_memo[lookup_name] = result
+        return result
 
     def _get_consumables_codes(self) -> list[str]:
         """Get the consumables DPS codes.
@@ -582,6 +610,11 @@ class RoboVacEntity(StateVacuumEntity):
         Returns:
             A list of DPS codes for consumables
         """
+        # ⚡ Bolt optimization: Use cached consumables codes to avoid rebuilding the list
+        # and splitting strings on every update cycle.
+        if self._consumables_codes_cache is not None:
+            return self._consumables_codes_cache
+
         if self.vacuum is None:
             return TUYA_CONSUMABLES_CODES
 
@@ -593,30 +626,14 @@ class RoboVacEntity(StateVacuumEntity):
             # Model-specific consumables can be a list or comma-separated string
             consumables = model_dps_codes["CONSUMABLES"]
             if isinstance(consumables, str):
-                return [code.strip() for code in consumables.split(",")]
-            return consumables
+                self._consumables_codes_cache = [code.strip() for code in consumables.split(",")]
+            else:
+                self._consumables_codes_cache = list(consumables)
+            return self._consumables_codes_cache
 
         # Fall back to default codes
+        self._consumables_codes_cache = TUYA_CONSUMABLES_CODES
         return TUYA_CONSUMABLES_CODES
-
-    def _update_battery_level(self) -> None:
-        """Update the battery level attribute."""
-        if self.tuyastatus is None:
-            return
-
-        battery_level = self.tuyastatus.get(self._get_dps_code("BATTERY_LEVEL"))
-
-        # Ensure battery level is an integer between 0 and 100
-        if battery_level is not None:
-            try:
-                self._attr_battery_level = int(battery_level)
-                # Ensure the value is within valid range
-                self._attr_battery_level = max(0, min(100, self._attr_battery_level))
-            except (ValueError, TypeError):
-                _LOGGER.warning("Invalid battery level value: %s", battery_level)
-                self._attr_battery_level = 0
-        else:
-            self._attr_battery_level = 0
 
     def _update_state_and_error(self) -> None:
         """Update the state and error code attributes."""
@@ -624,8 +641,8 @@ class RoboVacEntity(StateVacuumEntity):
             return
 
         # Get state and error code from data points using model-specific DPS codes
-        tuya_state = self.tuyastatus.get(self._get_dps_code("STATUS"))
-        error_code = self.tuyastatus.get(self._get_dps_code("ERROR_CODE"))
+        tuya_state = self.tuyastatus.get(self.get_dps_code("STATUS"))
+        error_code = self.tuyastatus.get(self.get_dps_code("ERROR_CODE"))
 
         # Update state attribute
         if tuya_state is not None and self.vacuum is not None:
@@ -655,8 +672,8 @@ class RoboVacEntity(StateVacuumEntity):
             return
 
         # Get mode and fan speed from data points using model-specific DPS codes
-        mode = self.tuyastatus.get(self._get_dps_code("MODE"))
-        fan_speed = self.tuyastatus.get(self._get_dps_code("FAN_SPEED"))
+        mode = self.tuyastatus.get(self.get_dps_code("MODE"))
+        fan_speed = self.tuyastatus.get(self.get_dps_code("FAN_SPEED"))
 
         # Update mode attribute
         if mode is not None and self.vacuum is not None:
@@ -692,25 +709,25 @@ class RoboVacEntity(StateVacuumEntity):
             return
 
         # Update cleaning area using model-specific DPS code
-        cleaning_area = self.tuyastatus.get(self._get_dps_code("CLEANING_AREA"))
+        cleaning_area = self.tuyastatus.get(self.get_dps_code("CLEANING_AREA"))
         if cleaning_area is not None:
             self._attr_cleaning_area = str(cleaning_area)
 
         # Update cleaning time using model-specific DPS code
-        cleaning_time = self.tuyastatus.get(self._get_dps_code("CLEANING_TIME"))
+        cleaning_time = self.tuyastatus.get(self.get_dps_code("CLEANING_TIME"))
         if cleaning_time is not None:
             self._attr_cleaning_time = str(cleaning_time)
 
         # Update device settings — these are independent of cleaning_time and
         # must not be nested inside the cleaning_time block or they will only
         # update when cleaning_time is present in the payload.
-        auto_return = self.tuyastatus.get(self._get_dps_code("AUTO_RETURN"))
+        auto_return = self.tuyastatus.get(self.get_dps_code("AUTO_RETURN"))
         self._attr_auto_return = str(auto_return) if auto_return is not None else None
 
-        do_not_disturb = self.tuyastatus.get(self._get_dps_code("DO_NOT_DISTURB"))
+        do_not_disturb = self.tuyastatus.get(self.get_dps_code("DO_NOT_DISTURB"))
         self._attr_do_not_disturb = str(do_not_disturb) if do_not_disturb is not None else None
 
-        boost_iq = self.tuyastatus.get(self._get_dps_code("BOOST_IQ"))
+        boost_iq = self.tuyastatus.get(self.get_dps_code("BOOST_IQ"))
         self._attr_boost_iq = str(boost_iq) if boost_iq is not None else None
 
         # Handle consumables
@@ -727,17 +744,22 @@ class RoboVacEntity(StateVacuumEntity):
                 ):
                     consumable_data = self.tuyastatus.get(CONSUMABLE_CODE)
                     if isinstance(consumable_data, str):
-                        try:
-                            consumables = ast.literal_eval(
-                                base64.b64decode(consumable_data).decode("ascii")
-                            )
-                            if (
-                                "consumable" in consumables
-                                and "duration" in consumables["consumable"]
-                            ):
-                                self._attr_consumables = consumables["consumable"]["duration"]
-                        except Exception as e:
-                            _LOGGER.warning("Failed to decode consumable data: %s", str(e))
+                        # ⚡ Bolt optimization: Avoid expensive base64 decode and json.loads on
+                        # every state update by memoizing the parsed result based on the raw base64 string.
+                        if self._last_consumable_data != consumable_data:
+                            self._last_consumable_data = consumable_data
+                            try:
+                                consumables = json.loads(
+                                    base64.b64decode(consumable_data).decode("ascii")
+                                )
+                                if (
+                                    isinstance(consumables, dict)
+                                    and isinstance(consumables.get("consumable"), dict)
+                                    and "duration" in consumables["consumable"]
+                                ):
+                                    self._attr_consumables = consumables["consumable"]["duration"]
+                            except Exception as e:
+                                _LOGGER.warning("Failed to decode consumable data: %s", str(e))
 
     async def async_locate(self, **kwargs: Any) -> None:
         """Locate the vacuum cleaner.
@@ -750,7 +772,7 @@ class RoboVacEntity(StateVacuumEntity):
             _LOGGER.error("Cannot locate vacuum: vacuum not initialized")
             return
 
-        locate_code = self._get_dps_code("LOCATE")
+        locate_code = self.get_dps_code("LOCATE")
         if self.tuyastatus is not None and self.tuyastatus.get(locate_code):
             await self.vacuum.async_set({locate_code: False})
         else:
@@ -767,9 +789,17 @@ class RoboVacEntity(StateVacuumEntity):
             _LOGGER.error("Cannot return to base: vacuum not initialized")
             return
 
-        await self.vacuum.async_set({
-            self._get_dps_code("RETURN_HOME"): self.vacuum.getRoboVacCommandValue(RobovacCommand.RETURN_HOME, "return")
-        })
+        payload: dict[str, Any] = {
+            self.get_dps_code("RETURN_HOME"): self.vacuum.getRoboVacCommandValue(RobovacCommand.RETURN_HOME, "return")
+        }
+
+        # For models with boolean START_PAUSE (e.g. T2128, T2276), DPS 2 is the
+        # execution trigger — without it, the device ACKs but doesn't physically act.
+        start_value = self.vacuum.getRoboVacCommandValue(RobovacCommand.START_PAUSE, "start")
+        if start_value != "start":
+            payload[self.get_dps_code("START_PAUSE")] = start_value
+
+        await self.vacuum.async_set(payload)
 
     async def async_start(self, **kwargs: Any) -> None:
         """Start the vacuum cleaner in auto mode.
@@ -782,9 +812,16 @@ class RoboVacEntity(StateVacuumEntity):
             _LOGGER.error("Cannot start vacuum: vacuum not initialized")
             return
 
-        await self.vacuum.async_set({
-            self._get_dps_code("MODE"): self.vacuum.getRoboVacCommandValue(RobovacCommand.MODE, "auto")
-        })
+        payload: dict[str, Any] = {
+            self.get_dps_code("MODE"): self.vacuum.getRoboVacCommandValue(RobovacCommand.MODE, "auto")
+        }
+
+        # For models with boolean START_PAUSE (e.g. T2118, T2128), also toggle start
+        start_value = self.vacuum.getRoboVacCommandValue(RobovacCommand.START_PAUSE, "start")
+        if start_value != "start":
+            payload[self.get_dps_code("START_PAUSE")] = start_value
+
+        await self.vacuum.async_set(payload)
 
     async def async_pause(self, **kwargs: Any) -> None:
         """Pause the vacuum cleaner.
@@ -797,7 +834,7 @@ class RoboVacEntity(StateVacuumEntity):
             return
 
         await self.vacuum.async_set({
-            self._get_dps_code("START_PAUSE"): self.vacuum.getRoboVacCommandValue(RobovacCommand.START_PAUSE, "pause")
+            self.get_dps_code("START_PAUSE"): self.vacuum.getRoboVacCommandValue(RobovacCommand.START_PAUSE, "pause")
         })
 
     async def async_stop(self, **kwargs: Any) -> None:
@@ -820,7 +857,7 @@ class RoboVacEntity(StateVacuumEntity):
             return
 
         await self.vacuum.async_set({
-            self._get_dps_code("MODE"): self.vacuum.getRoboVacCommandValue(RobovacCommand.MODE, "spot")
+            self.get_dps_code("MODE"): self.vacuum.getRoboVacCommandValue(RobovacCommand.MODE, "spot")
         })
 
     async def async_set_fan_speed(self, fan_speed: str, **kwargs: Any) -> None:
@@ -840,7 +877,7 @@ class RoboVacEntity(StateVacuumEntity):
         _LOGGER.debug("Normalized Fan Speed: %s", normalized_fan_speed)
 
         await self.vacuum.async_set({
-            self._get_dps_code("FAN_SPEED"): self.vacuum.getRoboVacCommandValue(
+            self.get_dps_code("FAN_SPEED"): self.vacuum.getRoboVacCommandValue(
                 RobovacCommand.FAN_SPEED, normalized_fan_speed
             )
         })
@@ -878,22 +915,22 @@ class RoboVacEntity(StateVacuumEntity):
             # Toggle the auto return setting
             new_value = not self._is_value_true(self.auto_return)
             await self.vacuum.async_set({
-                self._get_dps_code("AUTO_RETURN"): new_value
+                self.get_dps_code("AUTO_RETURN"): new_value
             })
         elif command == "doNotDisturb":
             # Toggle the do not disturb setting
             new_value = not self._is_value_true(self.do_not_disturb)
             await self.vacuum.async_set({
-                self._get_dps_code("DO_NOT_DISTURB"): new_value
+                self.get_dps_code("DO_NOT_DISTURB"): new_value
             })
         elif command == "boostIQ":
             # Toggle the boost IQ setting
             new_value = not self._is_value_true(self.boost_iq)
             await self.vacuum.async_set({
-                self._get_dps_code("BOOST_IQ"): new_value
+                self.get_dps_code("BOOST_IQ"): new_value
             })
-        elif command == "roomClean" and params is not None and isinstance(params, dict):
-            room_ids = params.get("roomIds", [1])
+        elif command in ("roomClean", "room_clean") and params is not None and isinstance(params, dict):
+            room_ids = params.get("roomIds") or params.get("room_ids", [1])
             count = params.get("count", 1)
             clean_request = {"roomIds": room_ids, "cleanTimes": count}
             method_call = {
@@ -905,6 +942,11 @@ class RoboVacEntity(StateVacuumEntity):
             base64_str = base64.b64encode(json_str.encode("utf8")).decode("utf8")
             _LOGGER.debug("roomClean call %s", json_str)
             await self.vacuum.async_set({TuyaCodes.ROOM_CLEAN: base64_str})
+            # Wait for the vacuum to ACK DPS 124 before sending the start command.
+            # Without this delay, DPS 2 arrives before the room selection is processed
+            # and the vacuum ignores the start command.
+            await asyncio.sleep(1)
+            await self.vacuum.async_set({TuyaCodes.START_PAUSE: True})
 
     async def async_will_remove_from_hass(self) -> None:
         """Handle removal from Home Assistant."""

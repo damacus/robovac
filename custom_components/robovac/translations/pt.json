@@ -15,6 +15,10 @@
                     "password": "Senha",
                     "username": "Nome de usuário"
                 },
+                "data_description": {
+                    "username": "O endereço de e-mail associado à sua conta Eufy.",
+                    "password": "A senha usada para fazer login no aplicativo Eufy."
+                },
                 "description": "Insira os detalhes da sua conta Eufy"
             }
         }
@@ -25,6 +29,9 @@
                 "title": "Gerenciar aspiradores",
                 "data": {
                     "selected_vacuum": "Selecione o aspirador para editar"
+                },
+                "data_description": {
+                    "selected_vacuum": "Escolha o dispositivo Eufy RoboVac que deseja configurar na lista de aspiradores descobertos."
                 }
             },
             "edit": {
@@ -32,6 +39,10 @@
                 "data": {
                     "autodiscovery": "Ativar descoberta automática",
                     "ip_address": "Endereço IP"
+                },
+                "data_description": {
+                    "autodiscovery": "Encontrar automaticamente o aspirador na rede.",
+                    "ip_address": "O endereço IP estático do seu aspirador na sua rede local (opcional se a descoberta automática estiver ativada)."
                 },
                 "description": "A descoberta automática atualizará automaticamente o endereço IP"
             }

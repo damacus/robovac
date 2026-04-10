@@ -46,14 +46,18 @@ import socket
 import struct
 import time
 import traceback
+import zlib
 from typing import Any, Awaitable, Callable, Coroutine, Optional, Union
 from asyncio import Semaphore, StreamWriter
 from .vacuums.base import RobovacCommand
 
 from cryptography.hazmat.backends.openssl import backend as openssl_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from cryptography.hazmat.primitives.hashes import Hash, MD5
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+import os
+from cryptography.hazmat.primitives.hashes import Hash, MD5, SHA256
 from cryptography.hazmat.primitives.padding import PKCS7
+from cryptography.hazmat.primitives import hmac as crypto_hmac
 
 INITIAL_BACKOFF = 5
 INITIAL_QUEUE_TIME = 0.1
@@ -61,267 +65,21 @@ BACKOFF_MULTIPLIER = 1.70224
 _LOGGER = logging.getLogger(__name__)
 MESSAGE_PREFIX_FORMAT = ">IIII"
 MESSAGE_SUFFIX_FORMAT = ">II"
+MESSAGE_SUFFIX_FORMAT_34 = ">32sI"  # 32-byte HMAC + 4-byte suffix for v3.4
 MAGIC_PREFIX = 0x000055AA
 MAGIC_SUFFIX = 0x0000AA55
 MAGIC_SUFFIX_BYTES = struct.pack(">I", MAGIC_SUFFIX)
-CRC_32_TABLE = [
-    0x00000000,
-    0x77073096,
-    0xEE0E612C,
-    0x990951BA,
-    0x076DC419,
-    0x706AF48F,
-    0xE963A535,
-    0x9E6495A3,
-    0x0EDB8832,
-    0x79DCB8A4,
-    0xE0D5E91E,
-    0x97D2D988,
-    0x09B64C2B,
-    0x7EB17CBD,
-    0xE7B82D07,
-    0x90BF1D91,
-    0x1DB71064,
-    0x6AB020F2,
-    0xF3B97148,
-    0x84BE41DE,
-    0x1ADAD47D,
-    0x6DDDE4EB,
-    0xF4D4B551,
-    0x83D385C7,
-    0x136C9856,
-    0x646BA8C0,
-    0xFD62F97A,
-    0x8A65C9EC,
-    0x14015C4F,
-    0x63066CD9,
-    0xFA0F3D63,
-    0x8D080DF5,
-    0x3B6E20C8,
-    0x4C69105E,
-    0xD56041E4,
-    0xA2677172,
-    0x3C03E4D1,
-    0x4B04D447,
-    0xD20D85FD,
-    0xA50AB56B,
-    0x35B5A8FA,
-    0x42B2986C,
-    0xDBBBC9D6,
-    0xACBCF940,
-    0x32D86CE3,
-    0x45DF5C75,
-    0xDCD60DCF,
-    0xABD13D59,
-    0x26D930AC,
-    0x51DE003A,
-    0xC8D75180,
-    0xBFD06116,
-    0x21B4F4B5,
-    0x56B3C423,
-    0xCFBA9599,
-    0xB8BDA50F,
-    0x2802B89E,
-    0x5F058808,
-    0xC60CD9B2,
-    0xB10BE924,
-    0x2F6F7C87,
-    0x58684C11,
-    0xC1611DAB,
-    0xB6662D3D,
-    0x76DC4190,
-    0x01DB7106,
-    0x98D220BC,
-    0xEFD5102A,
-    0x71B18589,
-    0x06B6B51F,
-    0x9FBFE4A5,
-    0xE8B8D433,
-    0x7807C9A2,
-    0x0F00F934,
-    0x9609A88E,
-    0xE10E9818,
-    0x7F6A0DBB,
-    0x086D3D2D,
-    0x91646C97,
-    0xE6635C01,
-    0x6B6B51F4,
-    0x1C6C6162,
-    0x856530D8,
-    0xF262004E,
-    0x6C0695ED,
-    0x1B01A57B,
-    0x8208F4C1,
-    0xF50FC457,
-    0x65B0D9C6,
-    0x12B7E950,
-    0x8BBEB8EA,
-    0xFCB9887C,
-    0x62DD1DDF,
-    0x15DA2D49,
-    0x8CD37CF3,
-    0xFBD44C65,
-    0x4DB26158,
-    0x3AB551CE,
-    0xA3BC0074,
-    0xD4BB30E2,
-    0x4ADFA541,
-    0x3DD895D7,
-    0xA4D1C46D,
-    0xD3D6F4FB,
-    0x4369E96A,
-    0x346ED9FC,
-    0xAD678846,
-    0xDA60B8D0,
-    0x44042D73,
-    0x33031DE5,
-    0xAA0A4C5F,
-    0xDD0D7CC9,
-    0x5005713C,
-    0x270241AA,
-    0xBE0B1010,
-    0xC90C2086,
-    0x5768B525,
-    0x206F85B3,
-    0xB966D409,
-    0xCE61E49F,
-    0x5EDEF90E,
-    0x29D9C998,
-    0xB0D09822,
-    0xC7D7A8B4,
-    0x59B33D17,
-    0x2EB40D81,
-    0xB7BD5C3B,
-    0xC0BA6CAD,
-    0xEDB88320,
-    0x9ABFB3B6,
-    0x03B6E20C,
-    0x74B1D29A,
-    0xEAD54739,
-    0x9DD277AF,
-    0x04DB2615,
-    0x73DC1683,
-    0xE3630B12,
-    0x94643B84,
-    0x0D6D6A3E,
-    0x7A6A5AA8,
-    0xE40ECF0B,
-    0x9309FF9D,
-    0x0A00AE27,
-    0x7D079EB1,
-    0xF00F9344,
-    0x8708A3D2,
-    0x1E01F268,
-    0x6906C2FE,
-    0xF762575D,
-    0x806567CB,
-    0x196C3671,
-    0x6E6B06E7,
-    0xFED41B76,
-    0x89D32BE0,
-    0x10DA7A5A,
-    0x67DD4ACC,
-    0xF9B9DF6F,
-    0x8EBEEFF9,
-    0x17B7BE43,
-    0x60B08ED5,
-    0xD6D6A3E8,
-    0xA1D1937E,
-    0x38D8C2C4,
-    0x4FDFF252,
-    0xD1BB67F1,
-    0xA6BC5767,
-    0x3FB506DD,
-    0x48B2364B,
-    0xD80D2BDA,
-    0xAF0A1B4C,
-    0x36034AF6,
-    0x41047A60,
-    0xDF60EFC3,
-    0xA867DF55,
-    0x316E8EEF,
-    0x4669BE79,
-    0xCB61B38C,
-    0xBC66831A,
-    0x256FD2A0,
-    0x5268E236,
-    0xCC0C7795,
-    0xBB0B4703,
-    0x220216B9,
-    0x5505262F,
-    0xC5BA3BBE,
-    0xB2BD0B28,
-    0x2BB45A92,
-    0x5CB36A04,
-    0xC2D7FFA7,
-    0xB5D0CF31,
-    0x2CD99E8B,
-    0x5BDEAE1D,
-    0x9B64C2B0,
-    0xEC63F226,
-    0x756AA39C,
-    0x026D930A,
-    0x9C0906A9,
-    0xEB0E363F,
-    0x72076785,
-    0x05005713,
-    0x95BF4A82,
-    0xE2B87A14,
-    0x7BB12BAE,
-    0x0CB61B38,
-    0x92D28E9B,
-    0xE5D5BE0D,
-    0x7CDCEFB7,
-    0x0BDBDF21,
-    0x86D3D2D4,
-    0xF1D4E242,
-    0x68DDB3F8,
-    0x1FDA836E,
-    0x81BE16CD,
-    0xF6B9265B,
-    0x6FB077E1,
-    0x18B74777,
-    0x88085AE6,
-    0xFF0F6A70,
-    0x66063BCA,
-    0x11010B5C,
-    0x8F659EFF,
-    0xF862AE69,
-    0x616BFFD3,
-    0x166CCF45,
-    0xA00AE278,
-    0xD70DD2EE,
-    0x4E048354,
-    0x3903B3C2,
-    0xA7672661,
-    0xD06016F7,
-    0x4969474D,
-    0x3E6E77DB,
-    0xAED16A4A,
-    0xD9D65ADC,
-    0x40DF0B66,
-    0x37D83BF0,
-    0xA9BCAE53,
-    0xDEBB9EC5,
-    0x47B2CF7F,
-    0x30B5FFE9,
-    0xBDBDF21C,
-    0xCABAC28A,
-    0x53B39330,
-    0x24B4A3A6,
-    0xBAD03605,
-    0xCDD70693,
-    0x54DE5729,
-    0x23D967BF,
-    0xB3667A2E,
-    0xC4614AB8,
-    0x5D681B02,
-    0x2A6F2B94,
-    0xB40BBE37,
-    0xC30C8EA1,
-    0x5A05DF1B,
-    0x2D02EF8D,
-]
+
+# Protocol 3.5 constants
+MAGIC_PREFIX_35 = 0x00006699
+MAGIC_SUFFIX_35 = 0x00009966
+MAGIC_SUFFIX_35_BYTES = struct.pack(">I", MAGIC_SUFFIX_35)
+# Format: prefix(4) + version(1) + reserved(1) + seq(4) + cmd(4) + len(4) = 18 bytes
+MESSAGE_PREFIX_FORMAT_35 = ">IBBIII"
+MESSAGE_SUFFIX_FORMAT_35 = ">16sI"  # 16-byte GCM tag + 4-byte suffix
+# v3.4+/v3.5 prepend a version header to the plaintext before encryption,
+# except for commands in NO_PROTOCOL_HEADER_CMDS.
+PROTOCOL_35_VERSION_HEADER = b"3.5" + b"\x00" * 12  # 15 bytes
 
 
 class TuyaException(Exception):
@@ -371,9 +129,123 @@ class TuyaCipher:
         """Initialize the cipher."""
         self.version = version
         self.key = key
+        self.key_bytes = key.encode("ascii")
         self.cipher = Cipher(
-            algorithms.AES(key.encode("ascii")), modes.ECB(), backend=openssl_backend
+            algorithms.AES(self.key_bytes), modes.ECB(), backend=openssl_backend
         )
+        # Initialize GCM cipher for Protocol 3.5
+        self._aesgcm = AESGCM(self.key_bytes)
+        # Store the real (local) key for session key negotiation
+        self.real_key_bytes = self.key_bytes
+        # ⚡ Bolt optimization: Pre-calculate the version string as bytes to avoid decoding every packet
+        self._version_bytes = ".".join(map(str, self.version)).encode("utf8")
+
+    def set_session_key(self, session_key: bytes) -> None:
+        """Switch cipher to use a negotiated session key.
+
+        After Protocol 3.5 session key negotiation, all subsequent
+        messages must be encrypted with the derived session key.
+        """
+        self.key_bytes = session_key
+        self.cipher = Cipher(
+            algorithms.AES(self.key_bytes), modes.ECB(), backend=openssl_backend
+        )
+        self._aesgcm = AESGCM(self.key_bytes)
+
+    @property
+    def is_gcm_mode(self) -> bool:
+        """Check if this cipher uses GCM mode (Protocol 3.5+).
+
+        Returns:
+            True if Protocol 3.5 or higher (uses GCM), False otherwise (uses ECB).
+        """
+        return self.version >= (3, 5)
+
+    def generate_iv(self) -> bytes:
+        """Generate a random 12-byte IV/nonce for GCM mode.
+
+        Returns:
+            A 12-byte random IV suitable for AES-GCM.
+        """
+        return os.urandom(12)
+
+    def encrypt_gcm(
+        self, plaintext: bytes, aad: bytes | None = None
+    ) -> tuple[bytes, bytes, bytes]:
+        """Encrypt data using AES-GCM for Protocol 3.5.
+
+        Args:
+            plaintext: The data to encrypt.
+            aad: Optional additional authenticated data (signed but not encrypted).
+
+        Returns:
+            A tuple of (iv, ciphertext, tag) where:
+            - iv: 12-byte initialization vector/nonce
+            - ciphertext: The encrypted data (same length as plaintext)
+            - tag: 16-byte GCM authentication tag
+        """
+        iv = self.generate_iv()
+        # AESGCM.encrypt returns ciphertext + tag concatenated
+        if aad is None:
+            aad = b""
+        ct_with_tag = self._aesgcm.encrypt(iv, plaintext, aad)
+        # Split ciphertext and tag (tag is last 16 bytes)
+        ciphertext = ct_with_tag[:-16]
+        tag = ct_with_tag[-16:]
+        return (iv, ciphertext, tag)
+
+    def decrypt_gcm(
+        self,
+        iv: bytes,
+        ciphertext: bytes,
+        tag: bytes,
+        aad: bytes | None = None,
+    ) -> bytes:
+        """Decrypt data using AES-GCM for Protocol 3.5.
+
+        Args:
+            iv: 12-byte initialization vector/nonce.
+            ciphertext: The encrypted data.
+            tag: 16-byte GCM authentication tag.
+            aad: Optional additional authenticated data.
+
+        Returns:
+            The decrypted plaintext.
+
+        Raises:
+            InvalidTag: If the GCM tag verification fails.
+        """
+        if aad is None:
+            aad = b""
+        # AESGCM.decrypt expects ciphertext + tag concatenated
+        ct_with_tag = ciphertext + tag
+        return self._aesgcm.decrypt(iv, ct_with_tag, aad)
+
+    def hmac_sha256(self, data: bytes) -> bytes:
+        """Calculate HMAC-SHA256 for protocol 3.4.
+
+        Args:
+            data: The data to calculate HMAC for.
+
+        Returns:
+            The 32-byte HMAC-SHA256 digest.
+        """
+        h = crypto_hmac.HMAC(self.key_bytes, SHA256(), backend=openssl_backend)
+        h.update(data)
+        return h.finalize()
+
+    def verify_hmac(self, data: bytes, expected_hmac: bytes) -> bool:
+        """Verify HMAC-SHA256 for protocol 3.4.
+
+        Args:
+            data: The data to verify.
+            expected_hmac: The expected HMAC value.
+
+        Returns:
+            True if HMAC matches, False otherwise.
+        """
+        calculated = self.hmac_sha256(data)
+        return calculated == expected_hmac
 
     def get_prefix_size_and_validate(self, command: int, encrypted_data: bytes) -> int:
         """Get the prefix size and validate the encrypted data.
@@ -385,13 +257,11 @@ class TuyaCipher:
         Returns:
             The prefix size.
         """
-        try:
-            version = tuple(map(int, encrypted_data[:3].decode("utf8").split(".")))
-        except ValueError:
-            version = (0, 0)
-        if version != self.version:
+        if not encrypted_data.startswith(self._version_bytes):
             return 0
-        if version < (3, 3):
+
+        if self.version < (3, 3):
+            # 3.1 header length is 19 bytes: version (3 bytes) + MD5 hash (16 bytes)
             hash = encrypted_data[3:19].decode("ascii")
             expected_hash = self.hash(encrypted_data[19:])
             if hash != expected_hash:
@@ -413,19 +283,42 @@ class TuyaCipher:
         Returns:
             The decrypted data.
         """
+        # For protocol 3.3+, check if data starts with version prefix
         prefix_size = self.get_prefix_size_and_validate(command, data)
-        data = data[prefix_size:]
+
+        # If no valid prefix found, try to decrypt the raw data
+        # This handles cases where device sends data without version prefix
+        data_to_decrypt = data[prefix_size:]
+
+        # Check if data might already be JSON (unencrypted)
+        if data_to_decrypt and data_to_decrypt[0:1] == b'{':
+            return data_to_decrypt
+
+        # Check if data length is valid for AES (must be multiple of 16)
+        if len(data_to_decrypt) % 16 != 0:
+            # Data length not valid for AES - indicates corruption or protocol mismatch
+            raise ValueError(
+                f"Invalid encrypted data length for AES block cipher: "
+                f"{len(data_to_decrypt)} bytes (must be multiple of 16)"
+            )
+
         decryptor = self.cipher.decryptor()
         if self.version < (3, 3):
-            data = base64.b64decode(data)
-        decrypted_data = decryptor.update(data)
-        decrypted_data += decryptor.finalize()
-        unpadder = PKCS7(128).unpadder()
-        unpadded_data = unpadder.update(decrypted_data)
-        unpadded_data += unpadder.finalize()
+            data_to_decrypt = base64.b64decode(data_to_decrypt)
 
-        # Explicitly cast to bytes to satisfy mypy
-        return bytes(unpadded_data)
+        decrypted_data = decryptor.update(data_to_decrypt)
+        decrypted_data += decryptor.finalize()
+
+        # Try to unpad - if it fails, the key might be wrong
+        try:
+            unpadder = PKCS7(128).unpadder()
+            unpadded_data = unpadder.update(decrypted_data)
+            unpadded_data += unpadder.finalize()
+            return bytes(unpadded_data)
+        except ValueError:
+            # PKCS7 unpadding failed - likely wrong key or corrupted data
+            # Return raw decrypted data and let caller handle the error
+            return decrypted_data
 
     def encrypt(self, command: int, data: bytes) -> bytes:
         """Encrypt the data.
@@ -482,18 +375,27 @@ class TuyaCipher:
 
 def crc(data: bytes) -> int:
     """Calculate the Tuya-flavored CRC of some data."""
-    c = 0xFFFFFFFF
-    for b in data:
-        c = (c >> 8) ^ CRC_32_TABLE[(c ^ b) & 255]
-
-    return c ^ 0xFFFFFFFF
+    return zlib.crc32(data)
 
 
 class Message:
+    SESS_KEY_NEG_START = 0x03
+    SESS_KEY_NEG_RESP = 0x04
+    SESS_KEY_NEG_FINISH = 0x05
     PING_COMMAND = 0x09
     GET_COMMAND = 0x0A
     SET_COMMAND = 0x07
     GRATUITOUS_UPDATE = 0x08
+    # v3.4+/v3.5 use new command codes for SET and GET
+    SET_COMMAND_NEW = 0x0D  # CONTROL_NEW
+    GET_COMMAND_NEW = 0x10  # DP_QUERY_NEW
+    UPDATEDPS = 0x12  # Request refresh of specific DPS
+
+    # Commands that do NOT get the v3.4+/v3.5 version header prepended
+    # (matches TinyTuya's NO_PROTOCOL_HEADER_CMDS + 0x07/0x08).
+    # 0x07 (SET_COMMAND) is included because some v3.5 devices (e.g. T2276)
+    # accept v3.3-style SET commands over v3.5 framing without the header.
+    NO_PROTOCOL_HEADER_CMDS = {0x07, 0x08, 0x0A, 0x10, 0x12, 0x09, 0x03, 0x04, 0x05, 0x40}
 
     def __init__(
         self,
@@ -560,15 +462,31 @@ class Message:
             A bytes object containing the message.
         """
         payload_data = self.payload
+        if payload_data is None:
+            payload_data = b""
         if isinstance(payload_data, dict):
             payload_data = json.dumps(payload_data, separators=(",", ":"))
         if not isinstance(payload_data, bytes):
             payload_data = payload_data.encode("utf8")
 
+        # Check protocol version
+        is_v35 = self.device is not None and self.device.version >= (3, 5)
+        is_v34 = self.device is not None and self.device.version >= (3, 4)
+
+        if is_v35 and self.device is not None:
+            # Protocol 3.5 uses AES-GCM encryption
+            return self._to_bytes_v35(payload_data)
+
         if self.encrypt and self.device is not None:
             payload_data = self.device.cipher.encrypt(self.command, payload_data)
 
-        payload_size = len(payload_data) + struct.calcsize(MESSAGE_SUFFIX_FORMAT)
+        # Determine suffix format based on protocol version
+        if is_v34:
+            suffix_format = MESSAGE_SUFFIX_FORMAT_34
+        else:
+            suffix_format = MESSAGE_SUFFIX_FORMAT
+
+        payload_size = len(payload_data) + struct.calcsize(suffix_format)
 
         header = struct.pack(
             MESSAGE_PREFIX_FORMAT,
@@ -577,12 +495,66 @@ class Message:
             self.command,
             payload_size,
         )
-        if self.device and self.device.version >= (3, 3):
+
+        if is_v34 and self.device is not None:
+            # Protocol 3.4 uses HMAC-SHA256 (32 bytes)
+            hmac_data = self.device.cipher.hmac_sha256(header + payload_data)
+            footer = struct.pack(MESSAGE_SUFFIX_FORMAT_34, hmac_data, MAGIC_SUFFIX)
+        elif self.device and self.device.version >= (3, 3):
             checksum = crc(header + payload_data)
+            footer = struct.pack(MESSAGE_SUFFIX_FORMAT, checksum, MAGIC_SUFFIX)
         else:
             checksum = crc(payload_data)
-        footer = struct.pack(MESSAGE_SUFFIX_FORMAT, checksum, MAGIC_SUFFIX)
+            footer = struct.pack(MESSAGE_SUFFIX_FORMAT, checksum, MAGIC_SUFFIX)
         return header + payload_data + footer
+
+    def _to_bytes_v35(self, payload_data: bytes) -> bytes:
+        """Return the message in Protocol 3.5 format.
+
+        Protocol 3.5 format:
+        00006699 VV RR SSSSSSSS MMMMMMMM LLLLLLLL (IV*12) (encrypted_data) (TAG*16) 00009966
+
+        Args:
+            payload_data: The payload data to encrypt.
+
+        Returns:
+            A bytes object containing the Protocol 3.5 message.
+        """
+        if self.device is None:
+            raise InvalidMessage("Cannot create v3.5 message without a device")
+
+        cipher = self.device.cipher
+
+        # v3.4+/v3.5: prepend version header for commands that need it
+        if self.command not in Message.NO_PROTOCOL_HEADER_CMDS:
+            payload_data = PROTOCOL_35_VERSION_HEADER + payload_data
+
+        # Calculate payload size first (needed for header/AAD)
+        # We need a preliminary encrypt to get ciphertext length, but since
+        # GCM doesn't pad, ciphertext length == plaintext length
+        payload_size = 12 + len(payload_data) + 16
+
+        # Build header: prefix(4) + version(1) + reserved(1) + seq(4) + cmd(4) + len(4)
+        header = struct.pack(
+            MESSAGE_PREFIX_FORMAT_35,
+            MAGIC_PREFIX_35,
+            0x00,  # version field
+            0x00,  # reserved field
+            self.sequence,
+            self.command,
+            payload_size,
+        )
+
+        # AAD = header bytes after prefix: version(1)+reserved(1)+seq(4)+cmd(4)+len(4) = 14 bytes
+        aad = header[4:]
+
+        # Encrypt payload with GCM using header as AAD
+        iv, ciphertext, tag = cipher.encrypt_gcm(payload_data, aad=aad)
+
+        # Build footer: tag(16) + suffix(4)
+        footer = struct.pack(MESSAGE_SUFFIX_FORMAT_35, tag, MAGIC_SUFFIX_35)
+
+        return header + iv + ciphertext + footer
 
     def __bytes__(self) -> bytes:
         """Convert the message to bytes.
@@ -622,6 +594,11 @@ class Message:
         Returns:
             A Message object created from the bytes.
         """
+        # Check for Protocol 3.5 prefix first
+        prefix_check = struct.unpack_from(">I", data)[0]
+        if prefix_check == MAGIC_PREFIX_35:
+            return cls._from_bytes_v35(device, data, cipher)
+
         try:
             prefix, sequence, command, payload_size = struct.unpack_from(
                 MESSAGE_PREFIX_FORMAT, data
@@ -630,6 +607,15 @@ class Message:
             raise InvalidMessage("Invalid message header format.") from e
         if prefix != MAGIC_PREFIX:
             raise InvalidMessage("Magic prefix missing from message.")
+
+        # Determine protocol version from cipher
+        is_v34 = cipher is not None and cipher.version >= (3, 4)
+
+        # Calculate suffix size based on protocol version
+        if is_v34:
+            suffix_size = struct.calcsize(MESSAGE_SUFFIX_FORMAT_34)  # 32-byte HMAC + 4-byte suffix
+        else:
+            suffix_size = struct.calcsize(MESSAGE_SUFFIX_FORMAT)  # 4-byte CRC + 4-byte suffix
 
         # check for an optional return code
         header_size = struct.calcsize(MESSAGE_PREFIX_FORMAT)
@@ -641,7 +627,7 @@ class Message:
             payload_data = data[
                 header_size:header_size
                 + payload_size
-                - struct.calcsize(MESSAGE_SUFFIX_FORMAT)
+                - suffix_size
             ]
             return_code = None
         else:
@@ -649,29 +635,53 @@ class Message:
                 header_size
                 + struct.calcsize(">I"):header_size
                 + payload_size
-                - struct.calcsize(MESSAGE_SUFFIX_FORMAT)
+                - suffix_size
             ]
 
-        try:
-            expected_crc, suffix = struct.unpack_from(
-                MESSAGE_SUFFIX_FORMAT,
-                data,
-                header_size + payload_size - struct.calcsize(MESSAGE_SUFFIX_FORMAT),
+        # Validate checksum based on protocol version
+        if is_v34:
+            # Protocol 3.4 uses HMAC-SHA256 (32 bytes)
+            try:
+                expected_hmac, suffix = struct.unpack_from(
+                    MESSAGE_SUFFIX_FORMAT_34,
+                    data,
+                    header_size + payload_size - suffix_size,
+                )
+            except struct.error as e:
+                raise InvalidMessage("Invalid message suffix format for v3.4.") from e
+            if suffix != MAGIC_SUFFIX:
+                raise InvalidMessage("Magic suffix missing from message")
+
+            # Verify HMAC-SHA256 - cipher is required for v3.4
+            if cipher is None:
+                raise InvalidMessage("Missing cipher for v3.4 message; cannot verify HMAC")
+
+            data_to_verify = data[: header_size + payload_size - suffix_size]
+            if not cipher.verify_hmac(data_to_verify, expected_hmac):
+                device._LOGGER.debug(f"HMAC verification failed. Expected: {expected_hmac.hex()}")
+                raise InvalidMessage("HMAC check failed")
+        else:
+            # Protocol 3.3 and earlier use CRC32
+            try:
+                expected_crc, suffix = struct.unpack_from(
+                    MESSAGE_SUFFIX_FORMAT,
+                    data,
+                    header_size + payload_size - suffix_size,
+                )
+            except struct.error as e:
+                raise InvalidMessage("Invalid message suffix format.") from e
+            if suffix != MAGIC_SUFFIX:
+                raise InvalidMessage("Magic suffix missing from message")
+
+            # Ensure data is not None before indexing
+            if data is None:
+                raise InvalidMessage("Data cannot be None")
+
+            actual_crc = crc(
+                data[: header_size + payload_size - suffix_size]
             )
-        except struct.error as e:
-            raise InvalidMessage("Invalid message suffix format.") from e
-        if suffix != MAGIC_SUFFIX:
-            raise InvalidMessage("Magic suffix missing from message")
-
-        # Ensure data is not None before indexing
-        if data is None:
-            raise InvalidMessage("Data cannot be None")
-
-        actual_crc = crc(
-            data[: header_size + payload_size - struct.calcsize(MESSAGE_SUFFIX_FORMAT)]
-        )
-        if expected_crc != actual_crc:
-            raise InvalidMessage("CRC check failed")
+            if expected_crc != actual_crc:
+                raise InvalidMessage("CRC check failed")
 
         payload = None
         if payload_data:
@@ -684,15 +694,108 @@ class Message:
                 payload_text = payload_data.decode("utf8")
             except UnicodeDecodeError as e:
                 device._LOGGER.debug(payload_data.hex())
-                device._LOGGER.error(e)
+                device._LOGGER.error(
+                    "Decryption failed - the local key may be incorrect or has changed. "
+                    "Try removing and re-adding the integration to refresh the key. "
+                    "Error: %s", e
+                )
                 raise MessageDecodeFailed() from e
             try:
                 payload = json.loads(payload_text)
             except json.decoder.JSONDecodeError as e:
-                # data may be encrypted
                 device._LOGGER.debug(payload_data.hex())
-                device._LOGGER.error(e)
+                device._LOGGER.error(
+                    "Failed to parse decrypted data as JSON - the local key may be "
+                    "incorrect. Try removing and re-adding the integration. Error: %s", e
+                )
                 raise MessageDecodeFailed() from e
+
+        return cls(command, payload, sequence)
+
+    @classmethod
+    def _from_bytes_v35(
+        cls,
+        device: "TuyaDevice",
+        data: bytes,
+        cipher: Optional[TuyaCipher] = None
+    ) -> "Message":
+        """Create a message from Protocol 3.5 bytes.
+
+        Protocol 3.5 format:
+        00006699 VV RR SSSSSSSS MMMMMMMM LLLLLLLL (IV*12) (encrypted_data) (TAG*16) 00009966
+
+        Args:
+            device: The device the message is from.
+            data: The bytes received from the device.
+            cipher: The cipher to use for decryption.
+
+        Returns:
+            A Message object created from the bytes.
+        """
+        header_size = struct.calcsize(MESSAGE_PREFIX_FORMAT_35)  # 18 bytes
+
+        try:
+            prefix, version_byte, reserved, sequence, command, payload_size = (
+                struct.unpack_from(MESSAGE_PREFIX_FORMAT_35, data)
+            )
+        except struct.error as e:
+            raise InvalidMessage("Invalid v3.5 message header format.") from e
+
+        if prefix != MAGIC_PREFIX_35:
+            raise InvalidMessage("Magic prefix 0x6699 missing from v3.5 message.")
+
+        # Extract IV (12 bytes after header)
+        iv = data[header_size:header_size + 12]
+        if len(iv) != 12:
+            raise InvalidMessage("Invalid IV length in v3.5 message.")
+
+        # Extract ciphertext (between IV and tag)
+        # payload_size = IV(12) + ciphertext + tag(16)
+        ciphertext_len = payload_size - 12 - 16
+        ciphertext_start = header_size + 12
+        ciphertext = data[ciphertext_start:ciphertext_start + ciphertext_len]
+
+        # Extract tag (16 bytes before suffix)
+        tag_start = ciphertext_start + ciphertext_len
+        tag = data[tag_start:tag_start + 16]
+        if len(tag) != 16:
+            raise InvalidMessage("Invalid GCM tag length in v3.5 message.")
+
+        # Verify suffix
+        suffix_start = tag_start + 16
+        try:
+            (suffix,) = struct.unpack_from(">I", data, suffix_start)
+        except struct.error as e:
+            raise InvalidMessage("Invalid v3.5 message suffix format.") from e
+
+        if suffix != MAGIC_SUFFIX_35:
+            raise InvalidMessage("Magic suffix 0x9966 missing from v3.5 message.")
+
+        # Decrypt payload using GCM with header AAD
+        # AAD = header bytes after prefix: version(1)+reserved(1)+seq(4)+cmd(4)+len(4)
+        aad = data[4:header_size]
+        payload = None
+        if cipher is not None and ciphertext:
+            try:
+                payload_data = cipher.decrypt_gcm(iv, ciphertext, tag, aad=aad)
+                # v3.5 responses may have binary prefixes before the JSON:
+                # - 4-byte retcode (e.g. \x00\x00\x00\x00)
+                # - 4-byte retcode + 15-byte version header (gratuitous
+                #   updates: retcode + "3.5" + 12 bytes + JSON)
+                # Find the first '{' to locate where JSON starts.
+                if payload_data and payload_data[0:1] != b'{':
+                    json_start = payload_data.find(b'{')
+                    if json_start > 0:
+                        payload_data = payload_data[json_start:]
+                try:
+                    payload_text = payload_data.decode("utf8")
+                    payload = json.loads(payload_text)
+                except (UnicodeDecodeError, json.JSONDecodeError):
+                    # Binary payload (e.g. session key negotiation)
+                    payload = payload_data
+            except Exception as e:
+                device._LOGGER.debug(f"v3.5 decryption failed: {e}")
+                raise InvalidMessage("GCM decryption/verification failed") from e
 
         return cls(command, payload, sequence)
 
@@ -725,6 +828,7 @@ class TuyaDevice:
         self.version = version
         self.timeout = timeout
         self.last_pong: float = 0.0
+        self._last_connect_attempt: float = 0.0
         self.ping_interval = ping_interval
         self.update_entity_state_cb = update_entity_state
 
@@ -742,8 +846,17 @@ class TuyaDevice:
         self._handlers: dict[int, Callable[[Message], Coroutine]] = {
             Message.GRATUITOUS_UPDATE: self.async_gratuitous_update_state,
             Message.PING_COMMAND: self._async_pong_received,
+            # v3.5 devices use their own sequence numbers, so GET/SET
+            # responses won't match the original request's listener.
+            # Handle them as gratuitous state updates instead.
+            Message.GET_COMMAND: self.async_gratuitous_update_state,
+            Message.SET_COMMAND: self.async_gratuitous_update_state,
+            Message.GET_COMMAND_NEW: self.async_gratuitous_update_state,
+            Message.SET_COMMAND_NEW: self.async_gratuitous_update_state,
+            Message.UPDATEDPS: self.async_gratuitous_update_state,
         }
         self._dps: dict[str, Any] = {}
+        self._seqno = 0  # Incrementing sequence number for v3.5
         self._connected = False
         self._enabled = True
         self._queue: list[Message] = []
@@ -805,7 +918,7 @@ class TuyaDevice:
                     self._backoff = True
                     self._queue_interval = min(
                         INITIAL_BACKOFF * (BACKOFF_MULTIPLIER ** (self._failures - 4)),
-                        600,
+                        30,
                     )
                     self._LOGGER.warn(
                         "{} failures, backing off for {} seconds".format(
@@ -814,6 +927,10 @@ class TuyaDevice:
                     )
 
         await asyncio.sleep(self._queue_interval)
+        # After sleeping through the backoff period, allow pings to be
+        # queued again so the next cycle can attempt a reconnection.
+        if self._backoff:
+            self._backoff = False
         asyncio.create_task(self.process_queue())
 
     def clean_queue(self) -> None:
@@ -832,27 +949,178 @@ class TuyaDevice:
         """Connect to the device.
 
         This method establishes a connection to the device.
+        For protocol 3.5+, enforces a minimum cooldown between connection
+        attempts to give the device time to accept a new session.
         """
         if self._connected is True or self._enabled is False:
             return
 
-        sock = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM)
-        sock.settimeout(self.timeout)
+        # Protocol 3.5 devices need a brief pause between connection
+        # attempts.  Without this, multiple code paths (EOF handler, send
+        # retry, process_queue) hammer the device with rapid reconnects and
+        # every session key negotiation fails with "0 bytes read".
+        # Keep this short (5s) — the device itself idles out at ~30s, so a
+        # long cooldown means we reconnect to a stale connection every time.
+        if self.version >= (3, 5):
+            now = time.time()
+            elapsed = now - self._last_connect_attempt
+            if elapsed < 5:
+                wait = 5 - elapsed
+                self._LOGGER.debug(
+                    "Reconnect cooldown: waiting %.1fs before connecting to %s",
+                    wait, self
+                )
+                await asyncio.sleep(wait)
+            self._last_connect_attempt = time.time()
+
         self._LOGGER.debug("Connecting to {}".format(self))
         try:
-            sock.connect((self.host, self.port))
-        except (socket.timeout, TimeoutError):
+            self.reader, self.writer = await asyncio.wait_for(
+                asyncio.open_connection(self.host, self.port),
+                timeout=self.timeout,
+            )
+        except (asyncio.TimeoutError, OSError) as e:
             self._dps[self.model_details.commands[RobovacCommand.ERROR]] = ("CONNECTION_FAILED")
-            raise ConnectionTimeoutException("Connection timed out")
-        loop = asyncio.get_running_loop()
-        loop.create_connection
-        self.reader, self.writer = await asyncio.open_connection(sock=sock)
+            raise ConnectionTimeoutException("Connection timed out: {}".format(e))
         self._connected = True
 
+        # Protocol 3.5 requires session key negotiation before any communication
+        if self.version >= (3, 5):
+            try:
+                await self._negotiate_session_key()
+                # Reset failure count on successful handshake so that a subsequent
+                # clean disconnect (EOF) doesn't compound with prior failures.
+                self._failures = 0
+                self._backoff = False
+            except Exception as e:
+                self._LOGGER.error("Session key negotiation failed: %s", e)
+                await self.async_disconnect()
+                raise ConnectionFailedException(
+                    "Session key negotiation failed: {}".format(e)
+                )
+
         if self._ping_task is None:
-            self._ping_task = asyncio.create_task(self.async_ping(self.ping_interval))
+            # Delay first ping to let initial data exchange complete
+            async def _start_ping() -> None:
+                await asyncio.sleep(self.ping_interval)
+                self._ping_task = asyncio.create_task(self.async_ping(self.ping_interval))
+            self._ping_task = asyncio.create_task(_start_ping())
 
         asyncio.create_task(self._async_handle_message())
+
+    async def _negotiate_session_key(self) -> None:
+        """Negotiate a session key with a Protocol 3.5 device.
+
+        Performs the 3-step handshake:
+        1. Send SESS_KEY_NEG_START with 16-byte client nonce
+        2. Receive SESS_KEY_NEG_RESP with 16-byte device nonce + HMAC
+        3. Send SESS_KEY_NEG_FINISH with HMAC of device nonce
+        4. Derive session key from both nonces
+        """
+        local_nonce = os.urandom(16)
+        real_key = self.cipher.real_key_bytes
+        # Session key negotiation MUST use the local key, not any previously
+        # negotiated session key.  Reset the cipher so that both our
+        # encryption (steps 1 & 3) and the response decryption (step 2,
+        # via Message.from_bytes → cipher.decrypt_gcm) use the local key.
+        self.cipher.key_bytes = real_key
+        self.cipher._aesgcm = AESGCM(real_key)
+        local_aesgcm = AESGCM(real_key)
+
+        # Step 1: Build SESS_KEY_NEG_START directly (bypass Message class)
+        if self.writer is None:
+            raise ConnectionFailedException("Writer not initialized")
+
+        seq = 1
+        cmd = Message.SESS_KEY_NEG_START  # 0x03
+        payload_size = 12 + len(local_nonce) + 16  # IV + ct + tag
+        header = struct.pack(">IBBIII", MAGIC_PREFIX_35, 0, 0, seq, cmd, payload_size)
+        aad = header[4:]  # 14 bytes
+
+        iv = os.urandom(12)
+        ct_with_tag = local_aesgcm.encrypt(iv, local_nonce, aad)
+        ciphertext = ct_with_tag[:-16]
+        tag = ct_with_tag[-16:]
+
+        msg_bytes = header + iv + ciphertext + struct.pack(">16sI", tag, MAGIC_SUFFIX_35)
+
+        self.writer.write(msg_bytes)
+        await self.writer.drain()
+
+        # Step 2: Read device response
+        suffix = MAGIC_SUFFIX_35_BYTES
+        try:
+            raw = await asyncio.wait_for(
+                self.reader.readuntil(suffix), timeout=self.timeout
+            )
+        except asyncio.TimeoutError:
+            raise
+        except asyncio.IncompleteReadError:
+            raise
+        except Exception:
+            raise
+
+        resp = Message.from_bytes(self, raw, self.cipher)
+
+        if resp.command != Message.SESS_KEY_NEG_RESP:
+            raise InvalidMessage(
+                "Expected SESS_KEY_NEG_RESP (0x04), got 0x{:02x}".format(resp.command)
+            )
+
+        payload = resp.payload
+        if isinstance(payload, str):
+            payload = payload.encode("utf-8")
+
+        # Device response is decrypted by _from_bytes_v35.
+        # Strip 4-byte return code prefix if present (v3.5 responses include it).
+        if len(payload) >= 52:
+            payload = payload[4:]
+
+        if len(payload) < 48:
+            raise InvalidMessage(
+                "SESS_KEY_NEG_RESP payload too short: {} bytes".format(len(payload))
+            )
+
+        remote_nonce = payload[:16]
+        device_hmac = payload[16:48]
+
+        # Verify device HMAC: device proves it has our local key by
+        # computing HMAC-SHA256(local_key, client_nonce)
+        h = crypto_hmac.HMAC(real_key, SHA256(), backend=openssl_backend)
+        h.update(local_nonce)
+        expected_hmac = h.finalize()
+
+        if device_hmac != expected_hmac:
+            raise InvalidMessage("Device HMAC verification failed")
+
+        # Step 3: Build SESS_KEY_NEG_FINISH directly (seq=2 to match tinytuya)
+        h2 = crypto_hmac.HMAC(real_key, SHA256(), backend=openssl_backend)
+        h2.update(remote_nonce)
+        client_hmac = h2.finalize()
+
+        seq3 = 2
+        cmd3 = Message.SESS_KEY_NEG_FINISH  # 0x05
+        payload_size3 = 12 + len(client_hmac) + 16  # IV + ct + tag
+        header3 = struct.pack(">IBBIII", MAGIC_PREFIX_35, 0, 0, seq3, cmd3, payload_size3)
+        aad3 = header3[4:]
+        iv3 = os.urandom(12)
+        ct3_with_tag = local_aesgcm.encrypt(iv3, client_hmac, aad3)
+        ciphertext3 = ct3_with_tag[:-16]
+        tag3 = ct3_with_tag[-16:]
+        msg3_bytes = header3 + iv3 + ciphertext3 + struct.pack(">16sI", tag3, MAGIC_SUFFIX_35)
+
+        self.writer.write(msg3_bytes)
+        await self.writer.drain()
+
+        # Step 4: Derive session key (XOR nonces, then AES-GCM encrypt)
+        xored = bytes(a ^ b for a, b in zip(local_nonce, remote_nonce))
+        aesgcm = AESGCM(real_key)
+        ct_with_tag = aesgcm.encrypt(local_nonce[:12], xored, None)
+        session_key = ct_with_tag[:16]
+
+        self.cipher.set_session_key(session_key)
+        self._LOGGER.debug("Session key negotiated successfully for %s", self)
+        await asyncio.sleep(0.1)
 
     async def async_disable(self) -> None:
         """Disable the device.
@@ -882,11 +1150,36 @@ class TuyaDevice:
         if self.reader is not None and not self.reader.at_eof():
             self.reader.feed_eof()
 
+    def _dps_to_request(self) -> dict[str, None]:
+        """Build a DPS map for device22-style status queries.
+
+        Returns a dict with known DPS keys mapped to None.  If we already
+        have cached state, use those keys; otherwise request common DPS
+        codes for the device model.
+        """
+        if self._dps:
+            return {k: None for k in self._dps}
+        # Request common DPS codes that T2276 and similar vacuums use.
+        # This is better than requesting DPS 1 which doesn't exist on
+        # most vacuum models.
+        return {str(k): None for k in [2, 5, 15, 101, 102, 103, 104, 106]}
+
     async def async_get(self) -> None:
         """Get the current state of the device.
 
         This method retrieves the current state of the device.
         """
+        if self.version >= (3, 4):
+            # v3.5 devices reject all known GET/query commands:
+            # - DP_QUERY (0x0a) → "json obj data unvalid"
+            # - DP_QUERY_NEW (0x10) → same
+            # - UPDATEDPS (0x12) → empty ACK, no DPS data (tested with
+            #   valid DPS IDs [2,5,15,101,102,103,104,106] — still empty)
+            #
+            # The only way to get DPS state is via gratuitous updates (0x08)
+            # the device sends after SET commands.  So just stay connected.
+            await self.async_connect()
+            return
         payload_dict = {"gwId": self.gateway_id, "devId": self.device_id}
         payload_bytes = json.dumps(payload_dict).encode('utf-8')
         encrypt = False if self.version < (3, 3) else True
@@ -902,10 +1195,40 @@ class TuyaDevice:
         This method sets the state of the device.
         """
         t = int(time.time())
-        payload_dict = {"devId": self.device_id, "uid": "", "t": t, "dps": dps}
+        if self.version >= (3, 4):
+            payload_dict: dict[str, Any] = {
+                "protocol": 5,
+                "t": t,
+                "data": {"dps": dps},
+            }
+            cmd = Message.SET_COMMAND_NEW
+        else:
+            payload_dict = {"devId": self.device_id, "uid": "", "t": t, "dps": dps}
+            cmd = Message.SET_COMMAND
         payload_bytes = json.dumps(payload_dict).encode('utf-8')
         message = Message(
-            Message.SET_COMMAND,
+            cmd,
+            payload_bytes,
+            encrypt=True,
+            device=self,
+            expect_response=False,
+        )
+        self._queue.append(message)
+
+    async def _async_request_dps_update(self, dps_ids: list[str] | None = None) -> None:
+        """Request the device to send updated DPS values.
+
+        Sends UPDATEDPS (0x12) which asks the device to push the current
+        values for the specified DPS IDs.  This is how TinyTuya retrieves
+        state from v3.4+/v3.5 devices that don't respond to DP_QUERY.
+        """
+        if dps_ids:
+            payload_dict = {"dpId": [int(d) for d in dps_ids]}
+        else:
+            payload_dict = {"dpId": [int(d) for d in self._dps_to_request()]}
+        payload_bytes = json.dumps(payload_dict).encode('utf-8')
+        message = Message(
+            Message.UPDATEDPS,
             payload_bytes,
             encrypt=True,
             device=self,
@@ -923,6 +1246,12 @@ class TuyaDevice:
 
         if self._backoff is True:
             self._LOGGER.debug("Currently in backoff, not adding ping to queue")
+        elif self.version >= (3, 5):
+            # v3.5 devices (like T2276) don't support Tuya heartbeats — they
+            # close the TCP connection after receiving any ping, regardless of
+            # format.  Skip heartbeats entirely; the device will naturally EOF
+            # when idle, and process_queue will drive reconnection.
+            pass
         else:
             self.last_ping = time.time()
             encrypt = False if self.version < (3, 3) else True
@@ -938,7 +1267,8 @@ class TuyaDevice:
 
         await asyncio.sleep(ping_interval)
         self._ping_task = asyncio.create_task(self.async_ping(self.ping_interval))
-        if self.last_pong < self.last_ping:
+        # v3.5 doesn't send heartbeats so skip the pong timeout check.
+        if self.version < (3, 5) and self.last_pong < self.last_ping:
             await self.async_disconnect()
 
     async def _async_pong_received(self, message: Message) -> None:
@@ -960,15 +1290,23 @@ class TuyaDevice:
         """Handle a received state message.
 
         This method handles a received state message from the device.
+        Supports both v3.3 format ({"dps": {...}}) and v3.5 format
+        ({"protocol": 4, "data": {"dps": {...}}}).
         """
         if (
             state_message is not None
             and state_message.payload is not None
             and isinstance(state_message.payload, dict)
-            and "dps" in state_message.payload
         ):
-            self._dps.update(state_message.payload["dps"])
-            self._LOGGER.debug("Received updated state {}: {}".format(self, self._dps))
+            payload = state_message.payload
+            # v3.5 gratuitous updates nest DPS under "data"
+            if "data" in payload and isinstance(payload["data"], dict):
+                dps = payload["data"].get("dps")
+            else:
+                dps = payload.get("dps")
+            if dps:
+                self._dps.update(dps)
+                self._LOGGER.debug("Received updated state {}: {}".format(self, self._dps))
 
     @property
     def state(self) -> dict[str, Any]:
@@ -999,8 +1337,9 @@ class TuyaDevice:
             return
 
         try:
+            suffix = MAGIC_SUFFIX_35_BYTES if self.version >= (3, 5) else MAGIC_SUFFIX_BYTES
             self._response_task = asyncio.create_task(
-                self.reader.readuntil(MAGIC_SUFFIX_BYTES)
+                self.reader.readuntil(suffix)
             )
             await self._response_task
             response_data = self._response_task.result()
@@ -1012,7 +1351,14 @@ class TuyaDevice:
                 self._LOGGER.debug("Failed to decrypt message from {}".format(self))
             elif isinstance(e, asyncio.IncompleteReadError):
                 if self._connected:
-                    self._LOGGER.debug("Incomplete read")
+                    self._LOGGER.debug(
+                        "Incomplete read (%d bytes partial): %s",
+                        len(e.partial), e.partial[:40].hex() if e.partial else "empty"
+                    )
+                    if len(e.partial) == 0:
+                        self._LOGGER.debug("Connection closed by device (EOF)")
+                        await self.async_disconnect()
+                        return  # Don't reschedule — process_queue will reconnect
             elif isinstance(e, ConnectionResetError):
                 self._LOGGER.debug(
                     "Connection reset: {}\n{}".format(e, traceback.format_exc())

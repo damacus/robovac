@@ -5,8 +5,7 @@ from .base import RoboVacEntityFeature, RobovacCommand, RobovacModelDetails
 
 class T2080(RobovacModelDetails):
     homeassistant_features = (
-        VacuumEntityFeature.BATTERY
-        | VacuumEntityFeature.CLEAN_SPOT
+        VacuumEntityFeature.CLEAN_SPOT
         | VacuumEntityFeature.FAN_SPEED
         | VacuumEntityFeature.LOCATE
         | VacuumEntityFeature.PAUSE  # Not yet confirmed working
@@ -114,6 +113,17 @@ class T2080(RobovacModelDetails):
                 "standard": "Standard",
                 "turbo": "Turbo",
                 "max": "Max"
+            },
+        },
+        RobovacCommand.MOP_LEVEL: {
+            # Based on debug logs from issue #105
+            # Device uses these exact string values
+            "code": 10,
+            "values": {
+                "low": "low",
+                "middle": "middle",
+                "normal": "normal",
+                "strong": "strong"
             },
         },
         RobovacCommand.BATTERY: {

@@ -8,8 +8,7 @@ _LOGGER = logging.getLogger(__name__)
 
 class T2277(RobovacModelDetails):
     homeassistant_features = (
-        VacuumEntityFeature.BATTERY
-        | VacuumEntityFeature.CLEAN_SPOT
+        VacuumEntityFeature.CLEAN_SPOT
         | VacuumEntityFeature.FAN_SPEED
         | VacuumEntityFeature.LOCATE
         | VacuumEntityFeature.PAUSE
@@ -174,6 +173,7 @@ class T2277(RobovacModelDetails):
             decode_clean_record_list,
             decode_analysis_stats,
         )
+        
         try:
             if dps_code == 152:
                 return decode_mode_ctrl(raw_b64)

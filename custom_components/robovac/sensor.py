@@ -1,5 +1,7 @@
+from __future__ import annotations
 import logging
 from datetime import datetime, timedelta, timezone
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
 from homeassistant.config_entries import ConfigEntry
@@ -21,6 +23,9 @@ from .proto_decode import (
     decode_work_status_v2,
     decode_analysis_response,
 )
+
+if TYPE_CHECKING:
+    from .vacuum import RoboVacEntity
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -153,15 +158,79 @@ class RobovacBatterySensor(SensorEntity):
 
     async def async_update(self) -> None:
         try:
-            vacuum_entity = self.hass.data[DOMAIN][CONF_VACS].get(self.robovac_id)
-            if vacuum_entity and vacuum_entity.tuyastatus:
-                self._attr_native_value = vacuum_entity.tuyastatus.get(TuyaCodes.BATTERY_LEVEL)
-                self._attr_available = True
-            else:
-                _LOGGER.debug("Vacuum entity or status not available for %s", self.robovac_id)
+            # Get the vacuum entity from hass data
+            vacuum_entity: RoboVacEntity | None = self.hass.data[DOMAIN][CONF_VACS].get(self.robovac_id)
+
+            if not vacuum_entity:
+                _LOGGER.debug(
+                    "Vacuum entity not found for %s",
+                    self.robovac_id
+                )
                 self._attr_available = False
+                return
+
+            # Check if vacuum has tuyastatus data (from vacuum._dps)
+            if not vacuum_entity.tuyastatus:
+                _LOGGER.debug(
+                    "No tuyastatus available yet for %s. Waiting for connection...",
+                    self.robovac_id
+                )
+                self._attr_available = False
+                return
+
+            # Get the model-specific battery DPS code
+            battery_dps_code = vacuum_entity.get_dps_code(TuyaCodes.BATTERY_LEVEL)
+
+            # Get battery value using the correct DPS code
+            battery_value = vacuum_entity.tuyastatus.get(battery_dps_code)
+
+            if battery_value is not None:
+                try:
+                    # Some models might send stringified numbers or floats
+                    self._attr_native_value = int(float(battery_value))
+                    self._attr_available = True
+                    _LOGGER.debug(
+                        "Battery for %s: %s%% (DPS code: %s)",
+                        self.robovac_id,
+                        self._attr_native_value,
+                        battery_dps_code
+                    )
+                except (ValueError, TypeError) as ex:
+                    _LOGGER.error(
+                        "Invalid battery value %s for %s: %s",
+                        battery_value,
+                        self.robovac_id,
+                        ex
+                    )
+                    self._attr_available = False
+            else:
+                _LOGGER.debug(
+                    "Battery DPS code %s not in tuyastatus. Available codes: %s",
+                    battery_dps_code,
+                    list(vacuum_entity.tuyastatus.keys())
+                )
+                self._attr_available = False
+
+        except KeyError as ex:
+            _LOGGER.error(
+                "Missing key in hass data for %s: %s",
+                self.robovac_id,
+                ex
+            )
+            self._attr_available = False
+        except AttributeError as ex:
+            _LOGGER.error(
+                "Attribute error accessing vacuum for %s: %s",
+                self.robovac_id,
+                ex
+            )
+            self._attr_available = False
         except Exception as ex:
-            _LOGGER.error("Failed to update battery sensor for %s: %s", self.robovac_id, ex)
+            _LOGGER.error(
+                "Unexpected error updating battery sensor for %s: %s",
+                self.robovac_id,
+                ex
+            )
             self._attr_available = False
 
 

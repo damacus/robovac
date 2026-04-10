@@ -4,6 +4,7 @@ import json
 import asyncio
 from unittest.mock import patch, MagicMock, AsyncMock
 import pytest
+from typing import Any
 
 from homeassistant import config_entries, data_entry_flow
 from homeassistant.const import (
@@ -21,50 +22,59 @@ from homeassistant.core import HomeAssistant
 
 from custom_components.robovac.config_flow import OptionsFlowHandler
 from custom_components.robovac.const import DOMAIN, CONF_AUTODISCOVERY, CONF_VACS
+from custom_components.robovac.robovac import RoboVac
 
 
-@pytest.fixture
-def mock_config_entry():
+def create_mock_config_entry(data: dict[str, Any] | None = None) -> MagicMock:
     """Create a mock config entry with vacuum data."""
-    config_entry = MagicMock(spec=config_entries.ConfigEntry)
-    config_entry.data = {
-        CONF_VACS: {
-            "test_device_id": {
-                CONF_ID: "test_device_id",
-                CONF_NAME: "Test RoboVac",
-                CONF_MODEL: "T2118",
-                CONF_DESCRIPTION: "RoboVac 15C",
-                CONF_MAC: "AA:BB:CC:DD:EE:FF",
-                CONF_AUTODISCOVERY: True,
-                CONF_IP_ADDRESS: "",
-                CONF_ACCESS_TOKEN: "test_local_key",
-            },
-            "test_device_id_2": {
-                CONF_ID: "test_device_id_2",
-                CONF_NAME: "Test RoboVac 2",
-                CONF_MODEL: "T2118",
-                CONF_DESCRIPTION: "RoboVac 15C",
-                CONF_MAC: "11:22:33:44:55:66",
-                CONF_AUTODISCOVERY: True,
-                CONF_IP_ADDRESS: "",
-                CONF_ACCESS_TOKEN: "test_local_key_2",
-            },
+    if data is None:
+        data = {
+            CONF_VACS: {
+                "test_device_id": {
+                    CONF_ID: "test_device_id",
+                    CONF_NAME: "Test RoboVac",
+                    CONF_MODEL: "T2118",
+                    CONF_DESCRIPTION: "RoboVac 15C",
+                    CONF_MAC: "AA:BB:CC:DD:EE:FF",
+                    CONF_AUTODISCOVERY: True,
+                    CONF_IP_ADDRESS: "",
+                    CONF_ACCESS_TOKEN: "test_local_key",
+                },
+                "test_device_id_2": {
+                    CONF_ID: "test_device_id_2",
+                    CONF_NAME: "Test RoboVac 2",
+                    CONF_MODEL: "T2118",
+                    CONF_DESCRIPTION: "RoboVac 15C",
+                    CONF_MAC: "11:22:33:44:55:66",
+                    CONF_AUTODISCOVERY: True,
+                    CONF_IP_ADDRESS: "",
+                    CONF_ACCESS_TOKEN: "test_local_key_2",
+                },
+            }
         }
-    }
+    config_entry = MagicMock(spec=config_entries.ConfigEntry)
+    config_entry.data = data
     config_entry.domain = DOMAIN
     config_entry.entry_id = "test_entry_id"
     config_entry.title = "Test"
     return config_entry
 
 
+@pytest.fixture
+def mock_config_entry() -> MagicMock:
+    """Create a mock config entry with vacuum data."""
+    return create_mock_config_entry()
+
+
 @pytest.mark.asyncio
 async def test_options_flow_init_multiple_vacuums(
-    hass: HomeAssistant, mock_config_entry
-):
+    hass: HomeAssistant, mock_config_entry: MagicMock
+) -> None:
     """Test options flow init step with multiple vacuums."""
-    # Initialize the options flow
+    # Initialize the options flow and patch config_entry property
     flow = OptionsFlowHandler(mock_config_entry)
-    result = await flow.async_step_init()
+    with patch.object(type(flow), 'config_entry', new_callable=lambda: property(lambda self: self._config_entry)):
+        result = await flow.async_step_init()
 
     assert result["type"] == data_entry_flow.FlowResultType.FORM
     assert result["step_id"] == "init"
@@ -74,13 +84,14 @@ async def test_options_flow_init_multiple_vacuums(
 
 
 @pytest.mark.asyncio
-async def test_options_flow_init_submit(hass: HomeAssistant, mock_config_entry):
+async def test_options_flow_init_submit(hass: HomeAssistant, mock_config_entry: MagicMock) -> None:
     """Test options flow init step submission."""
     # Initialize the options flow
     flow = OptionsFlowHandler(mock_config_entry)
 
     # Submit the init step with a selected vacuum
-    result = await flow.async_step_init({"selected_vacuum": "test_device_id"})
+    with patch.object(type(flow), 'config_entry', new_callable=lambda: property(lambda self: self._config_entry)):
+        result = await flow.async_step_init({"selected_vacuum": "test_device_id"})
 
     assert result["type"] == data_entry_flow.FlowResultType.FORM
     assert result["step_id"] == "edit"
@@ -88,14 +99,15 @@ async def test_options_flow_init_submit(hass: HomeAssistant, mock_config_entry):
 
 
 @pytest.mark.asyncio
-async def test_options_flow_edit_default_values(hass: HomeAssistant, mock_config_entry):
+async def test_options_flow_edit_default_values(hass: HomeAssistant, mock_config_entry: MagicMock) -> None:
     """Test options flow edit step default values."""
     # Initialize the options flow and select a vacuum
     flow = OptionsFlowHandler(mock_config_entry)
     flow.selected_vacuum = "test_device_id"
 
     # Test the edit step
-    result = await flow.async_step_edit()
+    with patch.object(type(flow), 'config_entry', new_callable=lambda: property(lambda self: self._config_entry)):
+        result = await flow.async_step_edit()
 
     assert result["type"] == data_entry_flow.FlowResultType.FORM
     assert result["step_id"] == "edit"
@@ -106,11 +118,10 @@ async def test_options_flow_edit_default_values(hass: HomeAssistant, mock_config
 
 
 @pytest.mark.asyncio
-async def test_options_flow_edit_custom_values(hass: HomeAssistant):
+async def test_options_flow_edit_custom_values(hass: HomeAssistant) -> None:
     """Test options flow edit step with custom values."""
     # Create a mock config entry with custom values
-    config_entry = MagicMock(spec=config_entries.ConfigEntry)
-    config_entry.data = {
+    config_entry = create_mock_config_entry({
         CONF_VACS: {
             "test_device_id": {
                 CONF_ID: "test_device_id",
@@ -119,17 +130,15 @@ async def test_options_flow_edit_custom_values(hass: HomeAssistant):
                 CONF_IP_ADDRESS: "192.168.1.100",
             }
         }
-    }
-    config_entry.domain = DOMAIN
-    config_entry.entry_id = "test_entry_id"
-    config_entry.title = "Test"
+    })
 
     # Initialize the options flow and select a vacuum
     flow = OptionsFlowHandler(config_entry)
     flow.selected_vacuum = "test_device_id"
 
     # Test the edit step
-    result = await flow.async_step_edit()
+    with patch.object(type(flow), 'config_entry', new_callable=lambda: property(lambda self: self._config_entry)):
+        result = await flow.async_step_edit()
 
     assert result["type"] == data_entry_flow.FlowResultType.FORM
     assert result["step_id"] == "edit"
@@ -140,10 +149,10 @@ async def test_options_flow_edit_custom_values(hass: HomeAssistant):
 
 
 @pytest.mark.asyncio
-async def test_options_flow_edit_submit_with_ip(hass: HomeAssistant, mock_config_entry):
+async def test_options_flow_edit_submit_with_ip(hass: HomeAssistant, mock_config_entry: MagicMock) -> None:
     """Test options flow edit step submission with IP address."""
     # Create a completed future to return from our mock
-    future = asyncio.Future()
+    future: asyncio.Future[None] = asyncio.Future()
     future.set_result(None)
 
     # Mock the async_update_entry method to return the future
@@ -168,12 +177,13 @@ async def test_options_flow_edit_submit_with_ip(hass: HomeAssistant, mock_config
     flow._update_data = MagicMock(return_value=updated_data)
 
     # Test the edit step submission with IP address
-    result = await flow.async_step_edit(
-        {
-            CONF_AUTODISCOVERY: False,
-            CONF_IP_ADDRESS: "192.168.1.100",
-        }
-    )
+    with patch.object(type(flow), 'config_entry', new_callable=lambda: property(lambda self: self._config_entry)):
+        result = await flow.async_step_edit(
+            {
+                CONF_AUTODISCOVERY: False,
+                CONF_IP_ADDRESS: "192.168.1.100",
+            }
+        )
 
     assert result["type"] == data_entry_flow.FlowResultType.CREATE_ENTRY
 
@@ -185,11 +195,11 @@ async def test_options_flow_edit_submit_with_ip(hass: HomeAssistant, mock_config
 
 @pytest.mark.asyncio
 async def test_options_flow_edit_submit_without_ip(
-    hass: HomeAssistant, mock_config_entry
-):
+    hass: HomeAssistant, mock_config_entry: MagicMock
+) -> None:
     """Test options flow edit step submission without IP address."""
     # Create a completed future to return from our mock
-    future = asyncio.Future()
+    future: asyncio.Future[None] = asyncio.Future()
     future.set_result(None)
 
     # Mock the async_update_entry method to return the future
@@ -214,12 +224,13 @@ async def test_options_flow_edit_submit_without_ip(
     flow._update_data = MagicMock(return_value=updated_data)
 
     # Test the edit step submission without IP address
-    result = await flow.async_step_edit(
-        {
-            CONF_AUTODISCOVERY: True,
-            CONF_IP_ADDRESS: "",
-        }
-    )
+    with patch.object(type(flow), 'config_entry', new_callable=lambda: property(lambda self: self._config_entry)):
+        result = await flow.async_step_edit(
+            {
+                CONF_AUTODISCOVERY: True,
+                CONF_IP_ADDRESS: "",
+            }
+        )
 
     assert result["type"] == data_entry_flow.FlowResultType.CREATE_ENTRY
 
