@@ -115,10 +115,16 @@ async def async_setup_entry(
             dps = str(commands[RobovacCommand.DEVICE_INFO]["code"])
             entities.append(RobovacFirmwareSensor(item, dps))
 
-        # WiFi signal sensor — DPS 176
+        # WiFi signal + attribute sensors — DPS 176
         if RobovacCommand.UNISETTING in commands:
             dps = str(commands[RobovacCommand.UNISETTING]["code"])
             entities.append(RobovacWifiSignalSensor(item, dps))
+            entities.append(RobovacWifiSsidSensor(item, dps))
+            entities.append(RobovacWifiFrequencySensor(item, dps))
+            entities.append(RobovacMultiMapSensor(item, dps))
+            entities.append(RobovacCustomCleanModeSensor(item, dps))
+            entities.append(RobovacMapValidSensor(item, dps))
+            entities.append(RobovacChildrenLockSensor(item, dps))
 
     async_add_entities(entities)
 
@@ -128,9 +134,9 @@ async def async_setup_entry(
 # ---------------------------------------------------------------------------
 
 def _vacuum_and_status(hass, domain, conf_vacs, robovac_id):
-    """Return (vacuum_entity, tuyastatus) or (None, None) if unavailable."""
+    """Return (vacuum_entity, tuyastatus) or (None, None) if vacuum not found."""
     vacuum_entity = hass.data[domain][conf_vacs].get(robovac_id)
-    if not vacuum_entity or not vacuum_entity.tuyastatus:
+    if not vacuum_entity:
         return None, None
     return vacuum_entity, vacuum_entity.tuyastatus
 
@@ -258,18 +264,24 @@ class RobovacErrorSensor(SensorEntity):
         self._attr_unique_id = f"{item[CONF_ID]}_error"
         self._attr_name = "Error"
         self._attr_device_info = _device_info(item)
+        self._has_had_data = False
 
     async def async_update(self) -> None:
         try:
             vacuum_entity, tuyastatus = _vacuum_and_status(
                 self.hass, DOMAIN, CONF_VACS, self.robovac_id
             )
-            if tuyastatus is None:
+            if vacuum_entity is None:
                 self._attr_available = False
+                return
+            if not tuyastatus:
+                if not self._has_had_data:
+                    self._attr_available = False
                 return
             raw = tuyastatus.get(self._dps_code)
             if raw is None:
-                self._attr_available = False
+                if not self._has_had_data:
+                    self._attr_available = False
                 return
             if vacuum_entity.vacuum is not None:
                 decoded = vacuum_entity.vacuum.getRoboVacHumanReadableValue(
@@ -277,8 +289,9 @@ class RobovacErrorSensor(SensorEntity):
                 )
             else:
                 decoded = str(raw)
-            self._attr_native_value = decoded
+            self._attr_native_value = None if decoded == "no_error" else decoded
             self._attr_available = True
+            self._has_had_data = True
         except Exception as ex:
             _LOGGER.error("Failed to update error sensor for %s: %s", self.robovac_id, ex)
             self._attr_available = False
@@ -304,21 +317,29 @@ class RobovacNotificationSensor(SensorEntity):
         self._attr_unique_id = f"{item[CONF_ID]}_notification"
         self._attr_name = "Notification"
         self._attr_device_info = _device_info(item)
+        self._has_had_data = False
 
     async def async_update(self) -> None:
         try:
-            _vacuum_entity, tuyastatus = _vacuum_and_status(
+            vacuum_entity, tuyastatus = _vacuum_and_status(
                 self.hass, DOMAIN, CONF_VACS, self.robovac_id
             )
-            if tuyastatus is None:
+            if vacuum_entity is None:
                 self._attr_available = False
+                return
+            if not tuyastatus:
+                if not self._has_had_data:
+                    self._attr_available = False
                 return
             raw = tuyastatus.get(self._dps_code)
             if raw is None:
-                self._attr_available = False
+                if not self._has_had_data:
+                    self._attr_available = False
                 return
-            self._attr_native_value = decode_error_code(raw)
+            value = decode_error_code(raw)
+            self._attr_native_value = None if value == "no_error" else value
             self._attr_available = True
+            self._has_had_data = True
         except Exception as ex:
             _LOGGER.error("Failed to update notification sensor for %s: %s", self.robovac_id, ex)
             self._attr_available = False
@@ -350,26 +371,34 @@ class RobovacConsumableSensor(SensorEntity):
         self._attr_name = label
         self._attr_icon = icon
         self._attr_device_info = _device_info(item)
+        self._has_had_data = False
 
     async def async_update(self) -> None:
         try:
-            _vacuum_entity, tuyastatus = _vacuum_and_status(
+            vacuum_entity, tuyastatus = _vacuum_and_status(
                 self.hass, DOMAIN, CONF_VACS, self.robovac_id
             )
-            if tuyastatus is None:
+            if vacuum_entity is None:
                 self._attr_available = False
+                return
+            if not tuyastatus:
+                if not self._has_had_data:
+                    self._attr_available = False
                 return
             raw = tuyastatus.get(self._dps_code)
             if raw is None:
-                self._attr_available = False
+                if not self._has_had_data:
+                    self._attr_available = False
                 return
             hours = decode_consumable_response(raw)
             value = hours.get(self._key)
             if value is None:
-                self._attr_available = False
+                if not self._has_had_data:
+                    self._attr_available = False
                 return
             self._attr_native_value = value
             self._attr_available = True
+            self._has_had_data = True
         except Exception as ex:
             _LOGGER.error(
                 "Failed to update consumable sensor %s for %s: %s",
@@ -403,28 +432,36 @@ class RobovacCleanTypeSensor(SensorEntity):
         self._attr_name = "Clean Type"
         self._attr_device_info = _device_info(item)
         self._attr_extra_state_attributes: dict = {}
+        self._has_had_data = False
 
     async def async_update(self) -> None:
         try:
-            _vacuum_entity, tuyastatus = _vacuum_and_status(
+            vacuum_entity, tuyastatus = _vacuum_and_status(
                 self.hass, DOMAIN, CONF_VACS, self.robovac_id
             )
-            if tuyastatus is None:
+            if vacuum_entity is None:
                 self._attr_available = False
+                return
+            if not tuyastatus:
+                if not self._has_had_data:
+                    self._attr_available = False
                 return
             raw = tuyastatus.get(self._dps_code)
             if raw is None:
-                self._attr_available = False
+                if not self._has_had_data:
+                    self._attr_available = False
                 return
             d = decode_clean_param_response(raw)
             if not d:
-                self._attr_available = False
+                if not self._has_had_data:
+                    self._attr_available = False
                 return
             # Prefer running params (active clean); fall back to global defaults
             params = d.get("running_clean_param") or d.get("clean_param") or {}
             clean_type = params.get("clean_type")
             if clean_type is None:
-                self._attr_available = False
+                if not self._has_had_data:
+                    self._attr_available = False
                 return
             self._attr_native_value = clean_type
             self._attr_extra_state_attributes = {
@@ -433,6 +470,7 @@ class RobovacCleanTypeSensor(SensorEntity):
                 if k in params
             }
             self._attr_available = True
+            self._has_had_data = True
         except Exception as ex:
             _LOGGER.error("Failed to update clean-type sensor for %s: %s", self.robovac_id, ex)
             self._attr_available = False
@@ -463,22 +501,29 @@ class RobovacLastCleanRecordSensor(SensorEntity):
         self._attr_name = "Last Clean"
         self._attr_device_info = _device_info(item)
         self._attr_extra_state_attributes: dict = {}
+        self._has_had_data = False
 
     async def async_update(self) -> None:
         try:
-            _vacuum_entity, tuyastatus = _vacuum_and_status(
+            vacuum_entity, tuyastatus = _vacuum_and_status(
                 self.hass, DOMAIN, CONF_VACS, self.robovac_id
             )
-            if tuyastatus is None:
+            if vacuum_entity is None:
                 self._attr_available = False
+                return
+            if not tuyastatus:
+                if not self._has_had_data:
+                    self._attr_available = False
                 return
             raw = tuyastatus.get(self._dps_code)
             if raw is None:
-                self._attr_available = False
+                if not self._has_had_data:
+                    self._attr_available = False
                 return
             records = decode_clean_record_list(raw)
             if not records:
-                self._attr_available = False
+                if not self._has_had_data:
+                    self._attr_available = False
                 return
             # Find the most recent entry by timestamp
             latest = max(
@@ -487,13 +532,15 @@ class RobovacLastCleanRecordSensor(SensorEntity):
                 default=None,
             )
             if latest is None:
-                self._attr_available = False
+                if not self._has_had_data:
+                    self._attr_available = False
                 return
             self._attr_native_value = datetime.fromtimestamp(
                 latest["timestamp"], tz=timezone.utc
             )
             self._attr_extra_state_attributes = {"record_count": len(records)}
             self._attr_available = True
+            self._has_had_data = True
         except Exception as ex:
             _LOGGER.error(
                 "Failed to update last-clean record sensor for %s: %s", self.robovac_id, ex
@@ -529,21 +576,28 @@ class RobovacWorkStatusV2Sensor(SensorEntity):
         self._attr_unique_id = f"{item[CONF_ID]}_work_status_v2"
         self._attr_name = "Station Status"
         self._attr_device_info = _device_info(item)
+        self._has_had_data = False
 
     async def async_update(self) -> None:
         try:
-            _vacuum_entity, tuyastatus = _vacuum_and_status(
+            vacuum_entity, tuyastatus = _vacuum_and_status(
                 self.hass, DOMAIN, CONF_VACS, self.robovac_id
             )
-            if tuyastatus is None:
+            if vacuum_entity is None:
                 self._attr_available = False
+                return
+            if not tuyastatus:
+                if not self._has_had_data:
+                    self._attr_available = False
                 return
             raw = tuyastatus.get(self._dps_code)
             if raw is None:
-                self._attr_available = False
+                if not self._has_had_data:
+                    self._attr_available = False
                 return
             self._attr_native_value = decode_work_status_v2(raw)
             self._attr_available = True
+            self._has_had_data = True
         except Exception as ex:
             _LOGGER.error(
                 "Failed to update station-status sensor for %s: %s", self.robovac_id, ex
@@ -575,23 +629,30 @@ class RobovacLastCleanAreaSensor(SensorEntity):
         self._attr_name = "Last Clean Area"
         self._attr_device_info = _device_info(item)
         self._attr_extra_state_attributes: dict = {}
+        self._has_had_data = False
 
     async def async_update(self) -> None:
         try:
-            _vacuum_entity, tuyastatus = _vacuum_and_status(
+            vacuum_entity, tuyastatus = _vacuum_and_status(
                 self.hass, DOMAIN, CONF_VACS, self.robovac_id
             )
-            if tuyastatus is None:
+            if vacuum_entity is None:
                 self._attr_available = False
+                return
+            if not tuyastatus:
+                if not self._has_had_data:
+                    self._attr_available = False
                 return
             raw = tuyastatus.get(self._dps_code)
             if raw is None:
-                self._attr_available = False
+                if not self._has_had_data:
+                    self._attr_available = False
                 return
             d = decode_analysis_response(raw)
             area = d.get("clean_area_m2")
             if area is None:
-                self._attr_available = False
+                if not self._has_had_data:
+                    self._attr_available = False
                 return
             self._attr_native_value = area
             self._attr_extra_state_attributes = {
@@ -600,6 +661,7 @@ class RobovacLastCleanAreaSensor(SensorEntity):
                 if k in d
             }
             self._attr_available = True
+            self._has_had_data = True
         except Exception as ex:
             _LOGGER.error(
                 "Failed to update last-clean area sensor for %s: %s", self.robovac_id, ex
@@ -627,23 +689,30 @@ class RobovacLastCleanDurationSensor(SensorEntity):
         self._attr_name = "Last Clean Duration"
         self._attr_device_info = _device_info(item)
         self._attr_extra_state_attributes: dict = {}
+        self._has_had_data = False
 
     async def async_update(self) -> None:
         try:
-            _vacuum_entity, tuyastatus = _vacuum_and_status(
+            vacuum_entity, tuyastatus = _vacuum_and_status(
                 self.hass, DOMAIN, CONF_VACS, self.robovac_id
             )
-            if tuyastatus is None:
+            if vacuum_entity is None:
                 self._attr_available = False
+                return
+            if not tuyastatus:
+                if not self._has_had_data:
+                    self._attr_available = False
                 return
             raw = tuyastatus.get(self._dps_code)
             if raw is None:
-                self._attr_available = False
+                if not self._has_had_data:
+                    self._attr_available = False
                 return
             d = decode_analysis_response(raw)
             duration = d.get("clean_time_s")
             if duration is None:
-                self._attr_available = False
+                if not self._has_had_data:
+                    self._attr_available = False
                 return
             self._attr_native_value = duration
             self._attr_extra_state_attributes = {
@@ -652,6 +721,7 @@ class RobovacLastCleanDurationSensor(SensorEntity):
                 if k in d
             }
             self._attr_available = True
+            self._has_had_data = True
         except Exception as ex:
             _LOGGER.error(
                 "Failed to update last-clean duration sensor for %s: %s", self.robovac_id, ex
@@ -685,22 +755,29 @@ class RobovacFirmwareSensor(SensorEntity):
         self._attr_name = "Firmware"
         self._attr_device_info = _device_info(item)
         self._attr_extra_state_attributes: dict = {}
+        self._has_had_data = False
 
     async def async_update(self) -> None:
         try:
-            _vacuum_entity, tuyastatus = _vacuum_and_status(
+            vacuum_entity, tuyastatus = _vacuum_and_status(
                 self.hass, DOMAIN, CONF_VACS, self.robovac_id
             )
-            if tuyastatus is None:
+            if vacuum_entity is None:
                 self._attr_available = False
+                return
+            if not tuyastatus:
+                if not self._has_had_data:
+                    self._attr_available = False
                 return
             raw = tuyastatus.get(self._dps_code)
             if raw is None:
-                self._attr_available = False
+                if not self._has_had_data:
+                    self._attr_available = False
                 return
             info = decode_device_info(raw)
             if not info:
-                self._attr_available = False
+                if not self._has_had_data:
+                    self._attr_available = False
                 return
             self._attr_native_value = info.get("software")
             self._attr_extra_state_attributes = {
@@ -709,6 +786,7 @@ class RobovacFirmwareSensor(SensorEntity):
                 if k in info
             }
             self._attr_available = True
+            self._has_had_data = True
         except Exception as ex:
             _LOGGER.error("Failed to update firmware sensor for %s: %s", self.robovac_id, ex)
             self._attr_available = False
@@ -723,8 +801,6 @@ class RobovacWifiSignalSensor(SensorEntity):
     """WiFi signal strength as a percentage from DPS 176 (UnisettingResponse).
 
     State: 0–100 % signal strength.
-    Extra attributes: wifi_ssid, wifi_frequency, multi_map, custom_clean_mode,
-      map_valid, children_lock.
     Disabled by default — enable via the HA entity registry when needed.
     """
 
@@ -741,37 +817,321 @@ class RobovacWifiSignalSensor(SensorEntity):
         self._attr_unique_id = f"{item[CONF_ID]}_wifi_signal"
         self._attr_name = "WiFi Signal"
         self._attr_device_info = _device_info(item)
-        self._attr_extra_state_attributes: dict = {}
+        self._has_had_data = False
 
     async def async_update(self) -> None:
         try:
-            _vacuum_entity, tuyastatus = _vacuum_and_status(
+            vacuum_entity, tuyastatus = _vacuum_and_status(
                 self.hass, DOMAIN, CONF_VACS, self.robovac_id
             )
-            if tuyastatus is None:
+            if vacuum_entity is None:
                 self._attr_available = False
+                return
+            if not tuyastatus:
+                if not self._has_had_data:
+                    self._attr_available = False
                 return
             raw = tuyastatus.get(self._dps_code)
             if raw is None:
-                self._attr_available = False
+                if not self._has_had_data:
+                    self._attr_available = False
                 return
             info = decode_unisetting_response(raw)
             signal = info.get("wifi_signal_pct")
             if signal is None:
-                self._attr_available = False
+                if not self._has_had_data:
+                    self._attr_available = False
                 return
             self._attr_native_value = signal
-            self._attr_extra_state_attributes = {
-                k: info[k]
-                for k in (
-                    "wifi_ssid", "wifi_frequency", "multi_map",
-                    "custom_clean_mode", "map_valid", "children_lock",
-                )
-                if k in info
-            }
             self._attr_available = True
+            self._has_had_data = True
         except Exception as ex:
             _LOGGER.error(
                 "Failed to update WiFi signal sensor for %s: %s", self.robovac_id, ex
+            )
+            self._attr_available = False
+
+
+# ---------------------------------------------------------------------------
+# WiFi / unisetting attribute sensors (DPS 176) — split from WiFi signal
+# ---------------------------------------------------------------------------
+
+
+class RobovacWifiSsidSensor(SensorEntity):
+    """WiFi SSID from DPS 176 (UnisettingResponse). Diagnostic."""
+
+    _attr_has_entity_name = True
+    _attr_should_poll = True
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_icon = "mdi:wifi"
+    _attr_entity_registry_enabled_default = False
+
+    def __init__(self, item: dict, dps_code: str) -> None:
+        self.robovac_id = item[CONF_ID]
+        self._dps_code = dps_code
+        self._attr_unique_id = f"{item[CONF_ID]}_wifi_ssid"
+        self._attr_name = "WiFi SSID"
+        self._attr_device_info = _device_info(item)
+        self._has_had_data = False
+
+    async def async_update(self) -> None:
+        try:
+            vacuum_entity, tuyastatus = _vacuum_and_status(
+                self.hass, DOMAIN, CONF_VACS, self.robovac_id
+            )
+            if vacuum_entity is None:
+                self._attr_available = False
+                return
+            if not tuyastatus:
+                if not self._has_had_data:
+                    self._attr_available = False
+                return
+            raw = tuyastatus.get(self._dps_code)
+            if raw is None:
+                if not self._has_had_data:
+                    self._attr_available = False
+                return
+            value = decode_unisetting_response(raw).get("wifi_ssid")
+            if value is None:
+                if not self._has_had_data:
+                    self._attr_available = False
+                return
+            self._attr_native_value = value
+            self._attr_available = True
+            self._has_had_data = True
+        except Exception as ex:
+            _LOGGER.error("Failed to update WiFi SSID sensor for %s: %s", self.robovac_id, ex)
+            self._attr_available = False
+
+
+class RobovacWifiFrequencySensor(SensorEntity):
+    """WiFi frequency band from DPS 176 (UnisettingResponse). Diagnostic."""
+
+    _attr_has_entity_name = True
+    _attr_should_poll = True
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_icon = "mdi:wifi"
+    _attr_entity_registry_enabled_default = False
+
+    def __init__(self, item: dict, dps_code: str) -> None:
+        self.robovac_id = item[CONF_ID]
+        self._dps_code = dps_code
+        self._attr_unique_id = f"{item[CONF_ID]}_wifi_frequency"
+        self._attr_name = "WiFi Frequency"
+        self._attr_device_info = _device_info(item)
+        self._has_had_data = False
+
+    async def async_update(self) -> None:
+        try:
+            vacuum_entity, tuyastatus = _vacuum_and_status(
+                self.hass, DOMAIN, CONF_VACS, self.robovac_id
+            )
+            if vacuum_entity is None:
+                self._attr_available = False
+                return
+            if not tuyastatus:
+                if not self._has_had_data:
+                    self._attr_available = False
+                return
+            raw = tuyastatus.get(self._dps_code)
+            if raw is None:
+                if not self._has_had_data:
+                    self._attr_available = False
+                return
+            value = decode_unisetting_response(raw).get("wifi_frequency")
+            if value is None:
+                if not self._has_had_data:
+                    self._attr_available = False
+                return
+            self._attr_native_value = value
+            self._attr_available = True
+            self._has_had_data = True
+        except Exception as ex:
+            _LOGGER.error(
+                "Failed to update WiFi frequency sensor for %s: %s", self.robovac_id, ex
+            )
+            self._attr_available = False
+
+
+class RobovacMultiMapSensor(SensorEntity):
+    """Multi-map switch state from DPS 176 (UnisettingResponse). Diagnostic."""
+
+    _attr_has_entity_name = True
+    _attr_should_poll = True
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_icon = "mdi:map-multiple"
+    _attr_entity_registry_enabled_default = False
+
+    def __init__(self, item: dict, dps_code: str) -> None:
+        self.robovac_id = item[CONF_ID]
+        self._dps_code = dps_code
+        self._attr_unique_id = f"{item[CONF_ID]}_multi_map"
+        self._attr_name = "Multi Map"
+        self._attr_device_info = _device_info(item)
+        self._has_had_data = False
+
+    async def async_update(self) -> None:
+        try:
+            vacuum_entity, tuyastatus = _vacuum_and_status(
+                self.hass, DOMAIN, CONF_VACS, self.robovac_id
+            )
+            if vacuum_entity is None:
+                self._attr_available = False
+                return
+            if not tuyastatus:
+                if not self._has_had_data:
+                    self._attr_available = False
+                return
+            raw = tuyastatus.get(self._dps_code)
+            if raw is None:
+                if not self._has_had_data:
+                    self._attr_available = False
+                return
+            self._attr_native_value = decode_unisetting_response(raw)["multi_map"]
+            self._attr_available = True
+            self._has_had_data = True
+        except Exception as ex:
+            _LOGGER.error("Failed to update multi-map sensor for %s: %s", self.robovac_id, ex)
+            self._attr_available = False
+
+
+class RobovacCustomCleanModeSensor(SensorEntity):
+    """Custom clean mode switch state from DPS 176 (UnisettingResponse).
+
+    Normal (non-diagnostic) sensor — reflects whether the custom room-level
+    clean configuration is active.
+    """
+
+    _attr_has_entity_name = True
+    _attr_should_poll = True
+    _attr_icon = "mdi:auto-fix"
+
+    def __init__(self, item: dict, dps_code: str) -> None:
+        self.robovac_id = item[CONF_ID]
+        self._dps_code = dps_code
+        self._attr_unique_id = f"{item[CONF_ID]}_custom_clean_mode"
+        self._attr_name = "Custom Clean Mode"
+        self._attr_device_info = _device_info(item)
+        self._has_had_data = False
+
+    async def async_update(self) -> None:
+        try:
+            vacuum_entity, tuyastatus = _vacuum_and_status(
+                self.hass, DOMAIN, CONF_VACS, self.robovac_id
+            )
+            if vacuum_entity is None:
+                self._attr_available = False
+                return
+            if not tuyastatus:
+                if not self._has_had_data:
+                    self._attr_available = False
+                return
+            raw = tuyastatus.get(self._dps_code)
+            if raw is None:
+                if not self._has_had_data:
+                    self._attr_available = False
+                return
+            value = decode_unisetting_response(raw).get("custom_clean_mode")
+            if value is None:
+                if not self._has_had_data:
+                    self._attr_available = False
+                return
+            self._attr_native_value = value
+            self._attr_available = True
+            self._has_had_data = True
+        except Exception as ex:
+            _LOGGER.error(
+                "Failed to update custom-clean-mode sensor for %s: %s", self.robovac_id, ex
+            )
+            self._attr_available = False
+
+
+class RobovacMapValidSensor(SensorEntity):
+    """Map valid flag from DPS 176 (UnisettingResponse). Diagnostic."""
+
+    _attr_has_entity_name = True
+    _attr_should_poll = True
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_icon = "mdi:map-check"
+    _attr_entity_registry_enabled_default = False
+
+    def __init__(self, item: dict, dps_code: str) -> None:
+        self.robovac_id = item[CONF_ID]
+        self._dps_code = dps_code
+        self._attr_unique_id = f"{item[CONF_ID]}_map_valid"
+        self._attr_name = "Map Valid"
+        self._attr_device_info = _device_info(item)
+        self._has_had_data = False
+
+    async def async_update(self) -> None:
+        try:
+            vacuum_entity, tuyastatus = _vacuum_and_status(
+                self.hass, DOMAIN, CONF_VACS, self.robovac_id
+            )
+            if vacuum_entity is None:
+                self._attr_available = False
+                return
+            if not tuyastatus:
+                if not self._has_had_data:
+                    self._attr_available = False
+                return
+            raw = tuyastatus.get(self._dps_code)
+            if raw is None:
+                if not self._has_had_data:
+                    self._attr_available = False
+                return
+            value = decode_unisetting_response(raw).get("map_valid")
+            if value is None:
+                if not self._has_had_data:
+                    self._attr_available = False
+                return
+            self._attr_native_value = value
+            self._attr_available = True
+            self._has_had_data = True
+        except Exception as ex:
+            _LOGGER.error("Failed to update map-valid sensor for %s: %s", self.robovac_id, ex)
+            self._attr_available = False
+
+
+class RobovacChildrenLockSensor(SensorEntity):
+    """Children lock switch state from DPS 176 (UnisettingResponse). Diagnostic."""
+
+    _attr_has_entity_name = True
+    _attr_should_poll = True
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_icon = "mdi:lock-outline"
+    _attr_entity_registry_enabled_default = False
+
+    def __init__(self, item: dict, dps_code: str) -> None:
+        self.robovac_id = item[CONF_ID]
+        self._dps_code = dps_code
+        self._attr_unique_id = f"{item[CONF_ID]}_children_lock"
+        self._attr_name = "Children Lock"
+        self._attr_device_info = _device_info(item)
+        self._has_had_data = False
+
+    async def async_update(self) -> None:
+        try:
+            vacuum_entity, tuyastatus = _vacuum_and_status(
+                self.hass, DOMAIN, CONF_VACS, self.robovac_id
+            )
+            if vacuum_entity is None:
+                self._attr_available = False
+                return
+            if not tuyastatus:
+                if not self._has_had_data:
+                    self._attr_available = False
+                return
+            raw = tuyastatus.get(self._dps_code)
+            if raw is None:
+                if not self._has_had_data:
+                    self._attr_available = False
+                return
+            self._attr_native_value = decode_unisetting_response(raw)["children_lock"]
+            self._attr_available = True
+            self._has_had_data = True
+        except Exception as ex:
+            _LOGGER.error(
+                "Failed to update children-lock sensor for %s: %s", self.robovac_id, ex
             )
             self._attr_available = False
