@@ -286,6 +286,7 @@ class T2277(RobovacModelDetails):
             decode_clean_record_list,
             decode_analysis_stats,
         )
+        
         try:
             if dps_code == 152:
                 return decode_mode_ctrl(raw_b64)
