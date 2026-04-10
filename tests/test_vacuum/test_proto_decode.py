@@ -8,7 +8,15 @@ from custom_components.robovac.proto_decode import (
     _parse_proto,
     decode_mode_ctrl,
     decode_work_status,
+    decode_work_status_v2,
     decode_error_code,
+    decode_clean_param_response,
+    decode_consumable_response,
+    decode_device_info,
+    decode_unisetting_response,
+    decode_analysis_response,
+    decode_clean_record_list,
+    decode_analysis_stats,
 )
 from custom_components.robovac.errors import getT2277ErrorMessage
 
@@ -175,7 +183,7 @@ class TestDecodeModeCtrl:
     @pytest.mark.parametrize(
         "raw_b64,expected",
         [
-            ("AA==", "standby"),            # empty payload (no method, no param)
+            ("AA==", "standby"),            # empty payload (no method, no param, no seq)
             ("AggN", "pause"),              # method=PAUSE_TASK (13)
             ("AggG", "stop"),               # method=START_GOHOME (6)
             ("BBoCCAE=", "auto"),           # param.auto_clean present (method=0 or absent)
@@ -183,6 +191,10 @@ class TestDecodeModeCtrl:
             ("BAgNEGg=", "pause"),          # method=PAUSE_TASK (13) with seq=104
             ("BAgOEGg=", "nosweep"),        # method=RESUME_TASK (14) with seq=104
             ("BAgOEGw=", "nosweep"),        # method=RESUME_TASK (14) with seq=108
+            # Three new command values
+            ("AhBs", "auto"),               # seq=108 only — active-session param update
+            ("BAgGEHA=", "stop"),           # method=START_GOHOME (6), seq=112
+            ("BAgCEHQ=", "spot"),           # method=START_SELECT_ZONES_CLEAN (2), seq=116
         ],
     )
     def test_mode_ctrl_payloads(self, raw_b64, expected):
@@ -190,12 +202,27 @@ class TestDecodeModeCtrl:
         result = decode_mode_ctrl(raw_b64)
         assert result == expected
 
-    def test_mode_ctrl_seq_only_no_param(self):
-        """Test that seq without method or param defaults to standby."""
-        # AhBw decodes to field_2=112 (seq), no method or param
-        result = decode_mode_ctrl("AhBw")
-        # With no method and no param, should return standby
-        assert result == "standby"
+    def test_mode_ctrl_seq_only_returns_auto(self):
+        """Test that seq-only payload (no method, no param) returns auto.
+
+        A seq-only payload is sent during an active cleaning session as a
+        parameter update (e.g. BoostIQ adjustment).  Treating it as 'auto'
+        preserves the current active-cleaning state rather than flipping to
+        standby on every seq update.
+        """
+        # AhBw = {field_2: 112} — seq=112, no method, no param
+        assert decode_mode_ctrl("AhBw") == "auto"
+        # AhBs = {field_2: 108} — seq=108, no method, no param
+        assert decode_mode_ctrl("AhBs") == "auto"
+
+    def test_mode_ctrl_empty_is_standby(self):
+        """Test that a completely empty payload (no fields at all) returns standby."""
+        assert decode_mode_ctrl("AA==") == "standby"
+
+    def test_mode_ctrl_new_methods(self):
+        """Test newly mapped method values."""
+        assert decode_mode_ctrl("BAgGEHA=") == "stop"     # method=6
+        assert decode_mode_ctrl("BAgCEHQ=") == "spot"     # method=2
 
 
 # ============================================================================
@@ -426,3 +453,218 @@ class TestGetT2277ErrorMessage:
             assert not message.startswith("Unknown")
             assert code in T2277_ERROR_CODES
             assert T2277_ERROR_CODES[code] == message
+
+
+# ============================================================================
+# Tests for decode_work_status_v2  (DPS 173 — wrapped WorkStatus)
+# ============================================================================
+
+
+class TestDecodeWorkStatusV2:
+    """Tests for decode_work_status_v2 — wrapped WorkStatus with sub-message RunState."""
+
+    def test_dps173_sample_cleaning_paused(self):
+        """Decode the observed DPS 173 sample: Cleaning + GoWash both PAUSED."""
+        # FgoQMggKAggBEgIQAToECgIIARICCAE=
+        # Outer field_1 = WorkStatus with Cleaning(PAUSED) + GoWash(PAUSED), no State
+        result = decode_work_status_v2("FgoQMggKAggBEgIQAToECgIIARICCAE=")
+        assert result == "Paused"
+
+    def test_empty_payload_returns_standby(self):
+        """Outer with no WorkStatus field → Standby."""
+        import base64
+        # build: outer has no field_1
+        raw = base64.b64encode(bytes([0x00])).decode()
+        result = decode_work_status_v2(raw)
+        assert result == "Standby"
+
+
+# ============================================================================
+# Tests for decode_error_code  (field_2 packed error support)
+# ============================================================================
+
+
+class TestDecodeErrorCodeExtended:
+    """Tests for the extended decode_error_code handling field_2 packed errors."""
+
+    def test_dps178_sample_with_packed_error(self):
+        """Decode the observed DPS 178 sample: last_time + packed error field_2."""
+        # DQiiguWKr+3szgESASg=
+        # field_1 = large monotonic timestamp, field_2 packed = [40]
+        result = decode_error_code("DQiiguWKr+3szgESASg=")
+        # Code 40 is not in T2277_ERROR_CODES → expect "error_40"
+        assert result == "error_40"
+
+    def test_field2_packed_single_known_error(self):
+        """field_2 as packed repeated uint32 with a known error code."""
+        import base64
+        # Build proto: field_2 packed = [2101]
+        # 2101 varint = [0xB5, 0x10]
+        # tag for field_2 packed = (2<<3)|2 = 0x12
+        proto = bytes([0x12, 0x02, 0xB5, 0x10])
+        raw = base64.b64encode(bytes([len(proto)]) + proto).decode()
+        result = decode_error_code(raw)
+        assert result == "Front bumper stuck"
+
+
+# ============================================================================
+# Tests for decode_clean_param_response  (DPS 154)
+# ============================================================================
+
+
+class TestDecodeCleanParamResponse:
+    """Tests for decode_clean_param_response."""
+
+    def test_dps154_sample(self):
+        """Decode the observed DPS 154 sample."""
+        # DgoKCgAaAggBIgIIARIA
+        # clean_param: clean_type=SWEEP_ONLY, clean_extent=NARROW, mop_level=MIDDLE
+        result = decode_clean_param_response("DgoKCgAaAggBIgIIARIA")
+        assert "clean_param" in result
+        cp = result["clean_param"]
+        assert cp.get("clean_type") == "sweep_only"
+        assert cp.get("clean_extent") == "narrow"
+        assert cp.get("mop_level") == "middle"
+
+    def test_empty_payload_returns_empty_dict(self):
+        """Empty payload → empty dict."""
+        import base64
+        raw = base64.b64encode(bytes([0x00])).decode()
+        result = decode_clean_param_response(raw)
+        assert result == {}
+
+
+# ============================================================================
+# Tests for decode_consumable_response  (DPS 168)
+# ============================================================================
+
+
+class TestDecodeConsumableResponse:
+    """Tests for decode_consumable_response."""
+
+    def test_dps168_sample(self):
+        """Decode the observed DPS 168 sample."""
+        # JAoiCgIIMBIDCN4CGgIIMCoDCN4COgMIpgygAaGFva/W7uzOAQ==
+        result = decode_consumable_response("JAoiCgIIMBIDCN4CGgIIMCoDCN4COgMIpgygAaGFva/W7uzOAQ==")
+        assert result.get("side_brush") == 48
+        assert result.get("rolling_brush") == 350
+        assert result.get("filter_mesh") == 48
+        assert result.get("dustbag") == 1574
+
+    def test_empty_payload_returns_empty_dict(self):
+        """Empty payload → empty dict."""
+        import base64
+        raw = base64.b64encode(bytes([0x00])).decode()
+        result = decode_consumable_response(raw)
+        assert result == {}
+
+
+# ============================================================================
+# Tests for decode_device_info  (DPS 169)
+# ============================================================================
+
+
+class TestDecodeDeviceInfo:
+    """Tests for decode_device_info."""
+
+    def test_dps169_sample(self):
+        """Decode the observed DPS 169 sample (eufy Clean L60 SES device)."""
+        result = decode_device_info(
+            "cgoSZXVmeSBDbGVhbiBMNjAgU0VTGhFDODpGRTowRjo3Nzo5NDo5QyIFMi4wLjAoBUI"
+            "oMzY0YWM4Y2Q2NDNmOWUwNzNmODg3OWY0YWE5N2RkYTk4ZTMyODk1NGIWCAESBAgCEA"
+            "EaBAgCEAEiAggBKgIIAQ=="
+        )
+        assert result.get("product_name") == "eufy Clean L60 SES"
+        assert result.get("device_mac") == "C8:FE:0F:77:94:9C"
+        assert result.get("software") == "2.0.0"
+
+
+# ============================================================================
+# Tests for decode_unisetting_response  (DPS 176)
+# ============================================================================
+
+
+class TestDecodeUnisettingResponse:
+    """Tests for decode_unisetting_response."""
+
+    def test_dps176_sample(self):
+        """Decode the observed DPS 176 sample."""
+        result = decode_unisetting_response(
+            "MwoAGgIIAVIKGgIIASICCAEqAFgkYh0KGwoRQSBuZXR3b3JrIGZvciB5b3UaBhCxit/OBg=="
+        )
+        assert result.get("wifi_ssid") == "A network for you"
+        assert result.get("wifi_signal_pct") == 36
+        assert result.get("multi_map") is True
+
+
+# ============================================================================
+# Tests for decode_analysis_response  (DPS 179)
+# ============================================================================
+
+
+class TestDecodeAnalysisResponse:
+    """Tests for decode_analysis_response."""
+
+    def test_dps179_sample(self):
+        """Decode the observed DPS 179 sample (clean record)."""
+        result = decode_analysis_response(
+            "JRIjCiEIEBABIAIwsZbfzgY41ZjfzgZA8AFIBFA6WAJgB2oCEAI="
+        )
+        assert result.get("clean_id") == 16
+        assert result.get("success") is True
+        assert result.get("mode") == "select_zones_clean"
+        assert result.get("clean_time_s") == 240
+        assert result.get("clean_area_m2") == 4
+        assert result.get("room_count") == 7
+
+    def test_empty_payload_returns_empty(self):
+        """Empty payload → empty dict."""
+        import base64
+        raw = base64.b64encode(bytes([0x00])).decode()
+        assert decode_analysis_response(raw) == {}
+
+
+# ============================================================================
+# Tests for decode_clean_record_list  (DPS 164)
+# ============================================================================
+
+
+class TestDecodeCleanRecordList:
+    """Tests for decode_clean_record_list."""
+
+    def test_dps164_sample_returns_two_records(self):
+        """Decode the observed DPS 164 sample (two clean record entries)."""
+        result = decode_clean_record_list(
+            "UBoAIiYKBgi4y/q0BhICCAEaDAgBEgQYCSAeGgIIPioKGggIARIECgIIAiIkCgYImsPGvw"
+            "YSAggBGgoIARICGAgaAghBKgoaCAgBEgQKAggC"
+        )
+        assert len(result) == 2
+        # First record should have a timestamp
+        assert "timestamp" in result[0]
+
+    def test_empty_payload_returns_empty_list(self):
+        """Empty payload → empty list."""
+        import base64
+        raw = base64.b64encode(bytes([0x00])).decode()
+        assert decode_clean_record_list(raw) == []
+
+
+# ============================================================================
+# Tests for decode_analysis_stats  (DPS 167)
+# ============================================================================
+
+
+class TestDecodeAnalysisStats:
+    """Tests for decode_analysis_stats."""
+
+    def test_dps167_sample_has_expected_keys(self):
+        """Decode the observed DPS 167 sample."""
+        result = decode_analysis_stats("HwoFCPABEAQSCgigik0Q52cYgAMaCgjsiE0Q5GcY/gI=")
+        assert "clean" in result
+        assert result["clean"].get(1) == 240   # clean_id = 240
+
+    def test_empty_payload_returns_empty_dict(self):
+        """Empty payload → empty dict."""
+        import base64
+        raw = base64.b64encode(bytes([0x00])).decode()
+        assert decode_analysis_stats(raw) == {}
