@@ -38,6 +38,11 @@ class RobovacCommand(StrEnum):
     DEVICE_INFO = "device_info"
     ANALYSIS_STATS = "analysis_stats"
     UNISETTING = "unisetting"
+    CLEAN_PARAM = "clean_param"
+    CLEAN_RECORDS = "clean_records"
+    WORK_STATUS_V2 = "work_status_v2"
+    ACTIVE_ERRORS = "active_errors"
+    LAST_CLEAN = "last_clean"
 
 
 class TuyaCodes(StrEnum):

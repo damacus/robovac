@@ -1,5 +1,5 @@
 import logging
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
 from homeassistant.config_entries import ConfigEntry
@@ -12,9 +12,14 @@ from .const import CONF_VACS, DOMAIN, REFRESH_RATE
 from .vacuums.base import TuyaCodes, RobovacCommand
 from .vacuums import ROBOVAC_MODELS
 from .proto_decode import (
+    decode_clean_param_response,
+    decode_clean_record_list,
     decode_consumable_response,
     decode_device_info,
+    decode_error_code,
     decode_unisetting_response,
+    decode_work_status_v2,
+    decode_analysis_response,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -22,7 +27,7 @@ _LOGGER = logging.getLogger(__name__)
 SCAN_INTERVAL = timedelta(seconds=REFRESH_RATE)
 
 # Consumables exposed as individual sensors for proto-based models (DPS 168).
-# Each tuple: (decode_key, display_name, icon)
+# Tuple: (decode_key, display_name, icon)
 _PROTO_CONSUMABLES = [
     ("side_brush",    "Side Brush",    "mdi:brush"),
     ("rolling_brush", "Rolling Brush", "mdi:brush-variant"),
@@ -62,29 +67,67 @@ async def async_setup_entry(
 
         commands = getattr(model_class, "commands", {})
 
-        # Error sensor — any model that has an ERROR command
+        # Error sensor — any model that has an ERROR command (DPS 177)
         if RobovacCommand.ERROR in commands:
             error_dps = str(commands[RobovacCommand.ERROR]["code"])
             entities.append(RobovacErrorSensor(item, error_dps))
 
-        # Per-consumable sensors — proto models that use DPS 168
+        # Active-errors sensor — packed error codes (DPS 178)
+        if RobovacCommand.ACTIVE_ERRORS in commands:
+            dps = str(commands[RobovacCommand.ACTIVE_ERRORS]["code"])
+            entities.append(RobovacActiveErrorSensor(item, dps))
+
+        # Per-consumable sensors — proto models using DPS 168
         consumables_cmd = commands.get(RobovacCommand.CONSUMABLES, {})
         if isinstance(consumables_cmd, dict) and consumables_cmd.get("code") == 168:
             dps = str(consumables_cmd["code"])
             for key, label, icon in _PROTO_CONSUMABLES:
                 entities.append(RobovacConsumableSensor(item, dps, key, label, icon))
 
-        # Firmware sensor — models with a DEVICE_INFO command (DPS 169)
+        # Clean-type sensor — DPS 154
+        if RobovacCommand.CLEAN_PARAM in commands:
+            dps = str(commands[RobovacCommand.CLEAN_PARAM]["code"])
+            entities.append(RobovacCleanTypeSensor(item, dps))
+
+        # Last-clean record sensor — DPS 164
+        if RobovacCommand.CLEAN_RECORDS in commands:
+            dps = str(commands[RobovacCommand.CLEAN_RECORDS]["code"])
+            entities.append(RobovacLastCleanRecordSensor(item, dps))
+
+        # Station-status sensor — DPS 173
+        if RobovacCommand.WORK_STATUS_V2 in commands:
+            dps = str(commands[RobovacCommand.WORK_STATUS_V2]["code"])
+            entities.append(RobovacWorkStatusV2Sensor(item, dps))
+
+        # Last-clean stats sensors — DPS 179 (area + duration)
+        if RobovacCommand.LAST_CLEAN in commands:
+            dps = str(commands[RobovacCommand.LAST_CLEAN]["code"])
+            entities.append(RobovacLastCleanAreaSensor(item, dps))
+            entities.append(RobovacLastCleanDurationSensor(item, dps))
+
+        # Firmware sensor — DPS 169
         if RobovacCommand.DEVICE_INFO in commands:
             dps = str(commands[RobovacCommand.DEVICE_INFO]["code"])
             entities.append(RobovacFirmwareSensor(item, dps))
 
-        # WiFi signal sensor — models with a UNISETTING command (DPS 176)
+        # WiFi signal sensor — DPS 176
         if RobovacCommand.UNISETTING in commands:
             dps = str(commands[RobovacCommand.UNISETTING]["code"])
             entities.append(RobovacWifiSignalSensor(item, dps))
 
     async_add_entities(entities)
+
+
+# ---------------------------------------------------------------------------
+# Internal helpers
+# ---------------------------------------------------------------------------
+
+def _vacuum_and_status(hass, domain, conf_vacs, robovac_id):
+    """Return (vacuum_entity, tuyastatus) or (None, None) if unavailable."""
+    vacuum_entity = hass.data[domain][conf_vacs].get(robovac_id)
+    if not vacuum_entity or not vacuum_entity.tuyastatus:
+        return None, None
+    return vacuum_entity, vacuum_entity.tuyastatus
 
 
 # ---------------------------------------------------------------------------
@@ -123,16 +166,17 @@ class RobovacBatterySensor(SensorEntity):
 
 
 # ---------------------------------------------------------------------------
-# Error sensor
+# Error sensors (DPS 177 and DPS 178)
 # ---------------------------------------------------------------------------
 
 
 class RobovacErrorSensor(SensorEntity):
-    """Sensor showing the current error/warning message(s) for a RoboVac.
+    """Current warning messages from DPS 177.
 
-    Decodes DPS 177 (T2277 proto) or DPS 106 (legacy integer) via the
-    model's getRoboVacHumanReadableValue, returning "no_error" when clear
-    or a comma-separated list of active messages otherwise.
+    Shows "no_error" when clear, or a comma-separated list of active
+    warning descriptions decoded from the T2277 error-code table.
+    Works for legacy models too (plain integer error codes via the same
+    getRoboVacHumanReadableValue path).
     """
 
     _attr_has_entity_name = True
@@ -148,11 +192,13 @@ class RobovacErrorSensor(SensorEntity):
 
     async def async_update(self) -> None:
         try:
-            vacuum_entity = self.hass.data[DOMAIN][CONF_VACS].get(self.robovac_id)
-            if not vacuum_entity or not vacuum_entity.tuyastatus:
+            vacuum_entity, tuyastatus = _vacuum_and_status(
+                self.hass, DOMAIN, CONF_VACS, self.robovac_id
+            )
+            if tuyastatus is None:
                 self._attr_available = False
                 return
-            raw = vacuum_entity.tuyastatus.get(self._dps_code)
+            raw = tuyastatus.get(self._dps_code)
             if raw is None:
                 self._attr_available = False
                 return
@@ -169,13 +215,52 @@ class RobovacErrorSensor(SensorEntity):
             self._attr_available = False
 
 
+class RobovacActiveErrorSensor(SensorEntity):
+    """Active system error codes from DPS 178 (packed repeated uint32 field_2).
+
+    Distinct from DPS 177 (warnings): DPS 178 carries lower-level system
+    error codes delivered as packed integers rather than varint repeated fields.
+    Shows "no_error" when clear.
+    """
+
+    _attr_has_entity_name = True
+    _attr_should_poll = True
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_icon = "mdi:alert-octagon-outline"
+
+    def __init__(self, item: dict, dps_code: str) -> None:
+        self.robovac_id = item[CONF_ID]
+        self._dps_code = dps_code
+        self._attr_unique_id = f"{item[CONF_ID]}_active_errors"
+        self._attr_name = "Active Errors"
+        self._attr_device_info = _device_info(item)
+
+    async def async_update(self) -> None:
+        try:
+            _vacuum_entity, tuyastatus = _vacuum_and_status(
+                self.hass, DOMAIN, CONF_VACS, self.robovac_id
+            )
+            if tuyastatus is None:
+                self._attr_available = False
+                return
+            raw = tuyastatus.get(self._dps_code)
+            if raw is None:
+                self._attr_available = False
+                return
+            self._attr_native_value = decode_error_code(raw)
+            self._attr_available = True
+        except Exception as ex:
+            _LOGGER.error("Failed to update active-errors sensor for %s: %s", self.robovac_id, ex)
+            self._attr_available = False
+
+
 # ---------------------------------------------------------------------------
-# Consumable sensors (one entity per consumable component)
+# Consumable sensors (DPS 168)
 # ---------------------------------------------------------------------------
 
 
 class RobovacConsumableSensor(SensorEntity):
-    """Sensor showing runtime hours for one consumable component (DPS 168).
+    """Runtime hours for one consumable component (DPS 168).
 
     The device tracks cumulative hours since the last manual reset per
     component (side brush, rolling brush, filter, dustbag, etc.).
@@ -198,11 +283,13 @@ class RobovacConsumableSensor(SensorEntity):
 
     async def async_update(self) -> None:
         try:
-            vacuum_entity = self.hass.data[DOMAIN][CONF_VACS].get(self.robovac_id)
-            if not vacuum_entity or not vacuum_entity.tuyastatus:
+            _vacuum_entity, tuyastatus = _vacuum_and_status(
+                self.hass, DOMAIN, CONF_VACS, self.robovac_id
+            )
+            if tuyastatus is None:
                 self._attr_available = False
                 return
-            raw = vacuum_entity.tuyastatus.get(self._dps_code)
+            raw = tuyastatus.get(self._dps_code)
             if raw is None:
                 self._attr_available = False
                 return
@@ -222,16 +309,296 @@ class RobovacConsumableSensor(SensorEntity):
 
 
 # ---------------------------------------------------------------------------
-# Firmware / device-info sensor
+# Clean-type sensor (DPS 154)
+# ---------------------------------------------------------------------------
+
+
+class RobovacCleanTypeSensor(SensorEntity):
+    """Current cleaning mode from DPS 154 (CleanParamResponse).
+
+    State: active clean_type — sweep_only, mop_only, sweep_and_mop, sweep_then_mop.
+    Uses running_clean_param when a clean is in progress, otherwise clean_param.
+    Extra attributes: fan speed level, clean_extent, mop_level.
+    """
+
+    _attr_has_entity_name = True
+    _attr_should_poll = True
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_icon = "mdi:broom"
+
+    def __init__(self, item: dict, dps_code: str) -> None:
+        self.robovac_id = item[CONF_ID]
+        self._dps_code = dps_code
+        self._attr_unique_id = f"{item[CONF_ID]}_clean_type"
+        self._attr_name = "Clean Type"
+        self._attr_device_info = _device_info(item)
+        self._attr_extra_state_attributes: dict = {}
+
+    async def async_update(self) -> None:
+        try:
+            _vacuum_entity, tuyastatus = _vacuum_and_status(
+                self.hass, DOMAIN, CONF_VACS, self.robovac_id
+            )
+            if tuyastatus is None:
+                self._attr_available = False
+                return
+            raw = tuyastatus.get(self._dps_code)
+            if raw is None:
+                self._attr_available = False
+                return
+            d = decode_clean_param_response(raw)
+            if not d:
+                self._attr_available = False
+                return
+            # Prefer running params (active clean); fall back to global defaults
+            params = d.get("running_clean_param") or d.get("clean_param") or {}
+            clean_type = params.get("clean_type")
+            if clean_type is None:
+                self._attr_available = False
+                return
+            self._attr_native_value = clean_type
+            self._attr_extra_state_attributes = {
+                k: params[k]
+                for k in ("fan", "clean_extent", "mop_level", "clean_times")
+                if k in params
+            }
+            self._attr_available = True
+        except Exception as ex:
+            _LOGGER.error("Failed to update clean-type sensor for %s: %s", self.robovac_id, ex)
+            self._attr_available = False
+
+
+# ---------------------------------------------------------------------------
+# Last-clean record sensor (DPS 164)
+# ---------------------------------------------------------------------------
+
+
+class RobovacLastCleanRecordSensor(SensorEntity):
+    """Timestamp of the most recent clean session from DPS 164.
+
+    State: datetime of the last recorded clean (UTC).
+    Extra attributes: total record count in the list.
+    """
+
+    _attr_has_entity_name = True
+    _attr_should_poll = True
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_icon = "mdi:history"
+
+    def __init__(self, item: dict, dps_code: str) -> None:
+        self.robovac_id = item[CONF_ID]
+        self._dps_code = dps_code
+        self._attr_unique_id = f"{item[CONF_ID]}_last_clean_record"
+        self._attr_name = "Last Clean"
+        self._attr_device_info = _device_info(item)
+        self._attr_extra_state_attributes: dict = {}
+
+    async def async_update(self) -> None:
+        try:
+            _vacuum_entity, tuyastatus = _vacuum_and_status(
+                self.hass, DOMAIN, CONF_VACS, self.robovac_id
+            )
+            if tuyastatus is None:
+                self._attr_available = False
+                return
+            raw = tuyastatus.get(self._dps_code)
+            if raw is None:
+                self._attr_available = False
+                return
+            records = decode_clean_record_list(raw)
+            if not records:
+                self._attr_available = False
+                return
+            # Find the most recent entry by timestamp
+            latest = max(
+                (r for r in records if "timestamp" in r),
+                key=lambda r: r["timestamp"],
+                default=None,
+            )
+            if latest is None:
+                self._attr_available = False
+                return
+            self._attr_native_value = datetime.fromtimestamp(
+                latest["timestamp"], tz=timezone.utc
+            )
+            self._attr_extra_state_attributes = {"record_count": len(records)}
+            self._attr_available = True
+        except Exception as ex:
+            _LOGGER.error(
+                "Failed to update last-clean record sensor for %s: %s", self.robovac_id, ex
+            )
+            self._attr_available = False
+
+
+# ---------------------------------------------------------------------------
+# Station / dock work-status sensor (DPS 173)
+# ---------------------------------------------------------------------------
+
+
+class RobovacWorkStatusV2Sensor(SensorEntity):
+    """Vacuum + station state from DPS 173 (outer-wrapped WorkStatus).
+
+    Used by station-aware firmware that wraps WorkStatus in an outer message
+    and may encode sub-state RunState values as nested sub-messages.
+    Shows the same status strings as the main vacuum entity (auto, Charging,
+    Paused, going_to_wash, etc.).
+
+    Disabled by default — only relevant on models with a station accessory.
+    """
+
+    _attr_has_entity_name = True
+    _attr_should_poll = True
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_entity_registry_enabled_default = False
+    _attr_icon = "mdi:robot-vacuum"
+
+    def __init__(self, item: dict, dps_code: str) -> None:
+        self.robovac_id = item[CONF_ID]
+        self._dps_code = dps_code
+        self._attr_unique_id = f"{item[CONF_ID]}_work_status_v2"
+        self._attr_name = "Station Status"
+        self._attr_device_info = _device_info(item)
+
+    async def async_update(self) -> None:
+        try:
+            _vacuum_entity, tuyastatus = _vacuum_and_status(
+                self.hass, DOMAIN, CONF_VACS, self.robovac_id
+            )
+            if tuyastatus is None:
+                self._attr_available = False
+                return
+            raw = tuyastatus.get(self._dps_code)
+            if raw is None:
+                self._attr_available = False
+                return
+            self._attr_native_value = decode_work_status_v2(raw)
+            self._attr_available = True
+        except Exception as ex:
+            _LOGGER.error(
+                "Failed to update station-status sensor for %s: %s", self.robovac_id, ex
+            )
+            self._attr_available = False
+
+
+# ---------------------------------------------------------------------------
+# Last-clean stats sensors (DPS 179)
+# ---------------------------------------------------------------------------
+
+
+class RobovacLastCleanAreaSensor(SensorEntity):
+    """Floor area covered in the most recent clean session (DPS 179).
+
+    State: cleaned area in m².
+    Extra attributes: mode, success, duration_s, room_count.
+    """
+
+    _attr_has_entity_name = True
+    _attr_should_poll = True
+    _attr_native_unit_of_measurement = "m²"
+    _attr_icon = "mdi:floor-plan"
+
+    def __init__(self, item: dict, dps_code: str) -> None:
+        self.robovac_id = item[CONF_ID]
+        self._dps_code = dps_code
+        self._attr_unique_id = f"{item[CONF_ID]}_last_clean_area"
+        self._attr_name = "Last Clean Area"
+        self._attr_device_info = _device_info(item)
+        self._attr_extra_state_attributes: dict = {}
+
+    async def async_update(self) -> None:
+        try:
+            _vacuum_entity, tuyastatus = _vacuum_and_status(
+                self.hass, DOMAIN, CONF_VACS, self.robovac_id
+            )
+            if tuyastatus is None:
+                self._attr_available = False
+                return
+            raw = tuyastatus.get(self._dps_code)
+            if raw is None:
+                self._attr_available = False
+                return
+            d = decode_analysis_response(raw)
+            area = d.get("clean_area_m2")
+            if area is None:
+                self._attr_available = False
+                return
+            self._attr_native_value = area
+            self._attr_extra_state_attributes = {
+                k: d[k]
+                for k in ("mode", "success", "clean_time_s", "room_count", "clean_id")
+                if k in d
+            }
+            self._attr_available = True
+        except Exception as ex:
+            _LOGGER.error(
+                "Failed to update last-clean area sensor for %s: %s", self.robovac_id, ex
+            )
+            self._attr_available = False
+
+
+class RobovacLastCleanDurationSensor(SensorEntity):
+    """Duration of the most recent clean session (DPS 179).
+
+    State: active cleaning time in seconds (excludes pauses).
+    Extra attributes: mode, success, clean_area_m2, room_count.
+    """
+
+    _attr_has_entity_name = True
+    _attr_should_poll = True
+    _attr_device_class = SensorDeviceClass.DURATION
+    _attr_native_unit_of_measurement = "s"
+    _attr_icon = "mdi:timer-outline"
+
+    def __init__(self, item: dict, dps_code: str) -> None:
+        self.robovac_id = item[CONF_ID]
+        self._dps_code = dps_code
+        self._attr_unique_id = f"{item[CONF_ID]}_last_clean_duration"
+        self._attr_name = "Last Clean Duration"
+        self._attr_device_info = _device_info(item)
+        self._attr_extra_state_attributes: dict = {}
+
+    async def async_update(self) -> None:
+        try:
+            _vacuum_entity, tuyastatus = _vacuum_and_status(
+                self.hass, DOMAIN, CONF_VACS, self.robovac_id
+            )
+            if tuyastatus is None:
+                self._attr_available = False
+                return
+            raw = tuyastatus.get(self._dps_code)
+            if raw is None:
+                self._attr_available = False
+                return
+            d = decode_analysis_response(raw)
+            duration = d.get("clean_time_s")
+            if duration is None:
+                self._attr_available = False
+                return
+            self._attr_native_value = duration
+            self._attr_extra_state_attributes = {
+                k: d[k]
+                for k in ("mode", "success", "clean_area_m2", "room_count", "clean_id")
+                if k in d
+            }
+            self._attr_available = True
+        except Exception as ex:
+            _LOGGER.error(
+                "Failed to update last-clean duration sensor for %s: %s", self.robovac_id, ex
+            )
+            self._attr_available = False
+
+
+# ---------------------------------------------------------------------------
+# Firmware / device-info sensor (DPS 169)
 # ---------------------------------------------------------------------------
 
 
 class RobovacFirmwareSensor(SensorEntity):
-    """Sensor showing the current firmware version string (DPS 169).
+    """Firmware version string from DPS 169 (DeviceInfo).
 
     State: firmware version (e.g. "2.0.0").
     Extra attributes: product_name, device_mac, hardware, wifi_name.
-
     Disabled by default — enable via the HA entity registry when needed.
     """
 
@@ -251,11 +618,13 @@ class RobovacFirmwareSensor(SensorEntity):
 
     async def async_update(self) -> None:
         try:
-            vacuum_entity = self.hass.data[DOMAIN][CONF_VACS].get(self.robovac_id)
-            if not vacuum_entity or not vacuum_entity.tuyastatus:
+            _vacuum_entity, tuyastatus = _vacuum_and_status(
+                self.hass, DOMAIN, CONF_VACS, self.robovac_id
+            )
+            if tuyastatus is None:
                 self._attr_available = False
                 return
-            raw = vacuum_entity.tuyastatus.get(self._dps_code)
+            raw = tuyastatus.get(self._dps_code)
             if raw is None:
                 self._attr_available = False
                 return
@@ -276,17 +645,16 @@ class RobovacFirmwareSensor(SensorEntity):
 
 
 # ---------------------------------------------------------------------------
-# WiFi signal sensor
+# WiFi signal sensor (DPS 176)
 # ---------------------------------------------------------------------------
 
 
 class RobovacWifiSignalSensor(SensorEntity):
-    """Sensor showing WiFi signal strength as a percentage (DPS 176).
+    """WiFi signal strength as a percentage from DPS 176 (UnisettingResponse).
 
     State: 0–100 % signal strength.
     Extra attributes: wifi_ssid, wifi_frequency, multi_map, custom_clean_mode,
-      map_valid.
-
+      map_valid, children_lock.
     Disabled by default — enable via the HA entity registry when needed.
     """
 
@@ -307,11 +675,13 @@ class RobovacWifiSignalSensor(SensorEntity):
 
     async def async_update(self) -> None:
         try:
-            vacuum_entity = self.hass.data[DOMAIN][CONF_VACS].get(self.robovac_id)
-            if not vacuum_entity or not vacuum_entity.tuyastatus:
+            _vacuum_entity, tuyastatus = _vacuum_and_status(
+                self.hass, DOMAIN, CONF_VACS, self.robovac_id
+            )
+            if tuyastatus is None:
                 self._attr_available = False
                 return
-            raw = vacuum_entity.tuyastatus.get(self._dps_code)
+            raw = tuyastatus.get(self._dps_code)
             if raw is None:
                 self._attr_available = False
                 return
@@ -325,7 +695,7 @@ class RobovacWifiSignalSensor(SensorEntity):
                 k: info[k]
                 for k in (
                     "wifi_ssid", "wifi_frequency", "multi_map",
-                    "custom_clean_mode", "map_valid",
+                    "custom_clean_mode", "map_valid", "children_lock",
                 )
                 if k in info
             }
