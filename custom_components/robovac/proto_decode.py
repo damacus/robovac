@@ -20,7 +20,8 @@ import base64
 from typing import Any
 
 
-# T2277 error/warning code mapping
+# T2277 error/warning codes (DPS 177 field_3 warn / field_10 new_code)
+# Empirically observed on T2277 hardware; codes are in the 2100–8100 range.
 T2277_ERROR_CODES = {
     # Mobility
     2101: "Front bumper stuck",
@@ -70,6 +71,21 @@ T2277_ERROR_CODES = {
     8101: "LIDAR error",
     8102: "Camera error",
     8103: "System error",
+}
+
+# T2277 prompt/notification codes (DPS 178 field_2 packed uint32)
+# Source: PromptCodeList enum in error_code_list_t2265.proto
+# These are informational notifications, not hardware faults.
+T2277_PROMPT_CODES = {
+    31:   "Positioning successful",
+    40:   "Task finished, returning to dock",
+    76:   "Cannot start task while at charging dock",
+    78:   "Low battery, please charge before cleaning",
+    79:   "Low battery, returning to dock",
+    85:   "Starting scheduled cleaning",
+    87:   "Map updating, please try again later",
+    6300: "Cutting hair / debris",
+    6301: "Low battery, cannot cut hair",
 }
 
 
@@ -340,12 +356,19 @@ def decode_error_code(raw_b64: str) -> str:
         _collect(new_code_fields.get(1))  # error
         _collect(new_code_fields.get(2))  # warn
 
+    codes_set.discard(0)  # 0 = P0000_NONE / E0000_NONE — not a real code
     if not codes_set:
         return "no_error"
 
+    def _lookup(code: int) -> str:
+        if code in T2277_ERROR_CODES:
+            return T2277_ERROR_CODES[code]
+        if code in T2277_PROMPT_CODES:
+            return T2277_PROMPT_CODES[code]
+        return f"error_{code}"
+
     sorted_codes = sorted(codes_set)
-    mapped = [T2277_ERROR_CODES.get(code, f"error_{code}") for code in sorted_codes]
-    return ", ".join(mapped)
+    return ", ".join(_lookup(c) for c in sorted_codes)
 
 
 # ---------------------------------------------------------------------------

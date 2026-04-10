@@ -488,12 +488,12 @@ class TestDecodeErrorCodeExtended:
     """Tests for the extended decode_error_code handling field_2 packed errors."""
 
     def test_dps178_sample_with_packed_error(self):
-        """Decode the observed DPS 178 sample: last_time + packed error field_2."""
+        """Decode the observed DPS 178 sample: last_time + packed prompt field_2."""
         # DQiiguWKr+3szgESASg=
         # field_1 = large monotonic timestamp, field_2 packed = [40]
+        # Code 40 = P0040_TASK_FINISHED_HEADING_HOME → prompt code, now mapped
         result = decode_error_code("DQiiguWKr+3szgESASg=")
-        # Code 40 is not in T2277_ERROR_CODES → expect "error_40"
-        assert result == "error_40"
+        assert result == "Task finished, returning to dock"
 
     def test_field2_packed_single_known_error(self):
         """field_2 as packed repeated uint32 with a known error code."""
@@ -505,6 +505,30 @@ class TestDecodeErrorCodeExtended:
         raw = base64.b64encode(bytes([len(proto)]) + proto).decode()
         result = decode_error_code(raw)
         assert result == "Front bumper stuck"
+
+    def test_prompt_code_76_at_station(self):
+        """Code 76 (P0076) maps to 'Cannot start task while at charging dock'."""
+        import base64
+        # field_2 packed = [76]
+        proto = bytes([0x12, 0x01, 0x4C])  # tag=0x12, length=1, varint 76=0x4C
+        raw = base64.b64encode(bytes([len(proto)]) + proto).decode()
+        result = decode_error_code(raw)
+        assert result == "Cannot start task while at charging dock"
+
+    def test_prompt_code_40_heading_home(self):
+        """Code 40 (P0040) maps to 'Task finished, returning to dock'."""
+        import base64
+        proto = bytes([0x12, 0x01, 0x28])  # varint 40=0x28
+        raw = base64.b64encode(bytes([len(proto)]) + proto).decode()
+        result = decode_error_code(raw)
+        assert result == "Task finished, returning to dock"
+
+    def test_code_zero_discarded(self):
+        """Code 0 (P0000_NONE) is treated as no notification."""
+        import base64
+        proto = bytes([0x12, 0x01, 0x00])  # field_2 packed = [0]
+        raw = base64.b64encode(bytes([len(proto)]) + proto).decode()
+        assert decode_error_code(raw) == "no_error"
 
 
 # ============================================================================
