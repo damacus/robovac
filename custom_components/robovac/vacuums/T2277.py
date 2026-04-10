@@ -230,6 +230,24 @@ class T2277(RobovacModelDetails):
             #   scrape, sensor, mop, dustbag, dirty_watertank, dirty_waterfilter.
             "code": 168,
         },
+        RobovacCommand.DEVICE_INFO: {
+            # DPS code 169. Payload: [length_prefix] + protobuf (DeviceInfo)
+            # Decoded by decode_dps() via proto_decode.decode_device_info().
+            # Fields: product_name, device_mac, software (firmware), hardware, wifi_name.
+            "code": 169,
+        },
+        RobovacCommand.ANALYSIS_STATS: {
+            # DPS code 167. Payload: [length_prefix] + protobuf (AnalysisStatistics subset)
+            # Decoded by decode_dps() via proto_decode.decode_analysis_stats().
+            # Contains raw integer counters for clean/gohome/relocate sub-sessions.
+            "code": 167,
+        },
+        RobovacCommand.UNISETTING: {
+            # DPS code 176. Payload: [length_prefix] + protobuf (UnisettingResponse)
+            # Decoded by decode_dps() via proto_decode.decode_unisetting_response().
+            # Fields: wifi_ssid, wifi_signal_pct, multi_map, custom_clean_mode, map_valid.
+            "code": 176,
+        },
         RobovacCommand.LOCATE: {
             "code": 160,
             "values": {
