@@ -71,21 +71,22 @@ class T2277(RobovacModelDetails):
                 "BBoCCAE=": "auto",     # param.auto_clean={clean_times=1}
                 "AggO": "nosweep",      # method=RESUME_TASK (14), no seq
 
-                # method=RESUME_TASK (14) with seq=112 — same logical action as "nosweep"/resume,
-                # seq value is irrelevant for state interpretation.
-                # TODO: with proper protobuf parsing this would just decode to method=RESUME_TASK.
-                "AhBw": "auto",         # seq=112 only, no method field — likely a BoostIQ param update
+                # Seq-only payloads — no method field, just a sequence number update.
+                # decode_mode_ctrl returns "auto" for these (active-session updates).
+                "AhBs": "auto",         # seq=108 only — active-session param update
+                "AhBw": "auto",         # seq=112 only — likely a BoostIQ param update
+
+                # method=START_GOHOME (6) with varying seq values
+                "BAgGEHA=": "stop",     # method=START_GOHOME (6), seq=112
+
+                # method=START_SELECT_ZONES_CLEAN (2) — zone/spot cleaning started
+                "BAgCEHQ=": "spot",     # method=START_SELECT_ZONES_CLEAN (2), seq=116
 
                 # method=PAUSE_TASK (13) with seq=104
-                # TODO: with proper protobuf parsing this would just decode to method=PAUSE_TASK.
                 "BAgNEGg=": "pause",    # method=PAUSE_TASK (13), seq=104
 
-                # method=RESUME_TASK (14) with seq=104 (standard suction run)
-                # TODO: with proper protobuf parsing this would just decode to method=RESUME_TASK.
+                # method=RESUME_TASK (14) with various seq values
                 "BAgOEGg=": "nosweep",  # method=RESUME_TASK (14), seq=104
-
-                # method=RESUME_TASK (14) with seq=108 (turbo suction run)
-                # TODO: with proper protobuf parsing this would just decode to method=RESUME_TASK.
                 "BAgOEGw=": "nosweep",  # method=RESUME_TASK (14), seq=108
             },
         },
@@ -222,6 +223,31 @@ class T2277(RobovacModelDetails):
             },
         },
 
+        RobovacCommand.CONSUMABLES: {
+            # DPS code 168. Payload: [length_prefix] + protobuf (ConsumableResponse)
+            # Decoded by decode_dps() via proto_decode.decode_consumable_response().
+            # ConsumableRuntime hours for: side_brush, rolling_brush, filter_mesh,
+            #   scrape, sensor, mop, dustbag, dirty_watertank, dirty_waterfilter.
+            "code": 168,
+        },
+        RobovacCommand.DEVICE_INFO: {
+            # DPS code 169. Payload: [length_prefix] + protobuf (DeviceInfo)
+            # Decoded by decode_dps() via proto_decode.decode_device_info().
+            # Fields: product_name, device_mac, software (firmware), hardware, wifi_name.
+            "code": 169,
+        },
+        RobovacCommand.ANALYSIS_STATS: {
+            # DPS code 167. Payload: [length_prefix] + protobuf (AnalysisStatistics subset)
+            # Decoded by decode_dps() via proto_decode.decode_analysis_stats().
+            # Contains raw integer counters for clean/gohome/relocate sub-sessions.
+            "code": 167,
+        },
+        RobovacCommand.UNISETTING: {
+            # DPS code 176. Payload: [length_prefix] + protobuf (UnisettingResponse)
+            # Decoded by decode_dps() via proto_decode.decode_unisetting_response().
+            # Fields: wifi_ssid, wifi_signal_pct, multi_map, custom_clean_mode, map_valid.
+            "code": 176,
+        },
         RobovacCommand.LOCATE: {
             "code": 160,
             "values": {
@@ -261,14 +287,55 @@ class T2277(RobovacModelDetails):
     @classmethod
     def decode_dps(cls, dps_code: int, raw_b64: str) -> str | None:
         """Decode a T2277 DPS value using protobuf. Returns None to fall back to lookup table."""
-        from .proto_decode import decode_mode_ctrl, decode_work_status, decode_error_code
+        from custom_components.robovac.proto_decode import (
+            decode_mode_ctrl,
+            decode_work_status,
+            decode_work_status_v2,
+            decode_error_code,
+            decode_clean_param_response,
+            decode_consumable_response,
+            decode_device_info,
+            decode_unisetting_response,
+            decode_analysis_response,
+            decode_clean_record_list,
+            decode_analysis_stats,
+        )
+        
         try:
             if dps_code == 152:
                 return decode_mode_ctrl(raw_b64)
             if dps_code == 153:
                 return decode_work_status(raw_b64)
+            if dps_code == 154:
+                d = decode_clean_param_response(raw_b64)
+                rcp = d.get("running_clean_param") or d.get("clean_param") or {}
+                return rcp.get("fan") or str(d) if d else None
+            if dps_code == 164:
+                records = decode_clean_record_list(raw_b64)
+                return f"{len(records)} record(s)" if records else None
+            if dps_code == 167:
+                d = decode_analysis_stats(raw_b64)
+                return str(d) if d else None
+            if dps_code == 168:
+                hours = decode_consumable_response(raw_b64)
+                if not hours:
+                    return None
+                return " | ".join(f"{k}: {v}h" for k, v in hours.items())
+            if dps_code == 169:
+                d = decode_device_info(raw_b64)
+                return str(d) if d else None
+            if dps_code == 173:
+                return decode_work_status_v2(raw_b64)
+            if dps_code == 176:
+                d = decode_unisetting_response(raw_b64)
+                return str(d) if d else None
             if dps_code == 177:
                 return decode_error_code(raw_b64)
+            if dps_code == 178:
+                return decode_error_code(raw_b64)
+            if dps_code == 179:
+                d = decode_analysis_response(raw_b64)
+                return str(d) if d else None
         except Exception as exc:
             _LOGGER.warning("proto_decode failed for DPS %d value %r: %s", dps_code, raw_b64, exc)
         return None

@@ -36,6 +36,9 @@ class RobovacCommand(StrEnum):
     DO_NOT_DISTURB = "do_not_disturb"
     BOOST_IQ = "boost_iq"
     CONSUMABLES = "consumables"
+    DEVICE_INFO = "device_info"
+    ANALYSIS_STATS = "analysis_stats"
+    UNISETTING = "unisetting"
 
 
 class TuyaCodes(StrEnum):
