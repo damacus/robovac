@@ -1,0 +1,694 @@
+"""Unit tests for proto_decode module - protobuf decoder for T2277 DPS messages."""
+
+import base64
+import pytest
+
+from custom_components.robovac.proto_decode import (
+    _parse_varint,
+    _parse_proto,
+    decode_mode_ctrl,
+    decode_work_status,
+    decode_work_status_v2,
+    decode_error_code,
+    decode_clean_param_response,
+    decode_consumable_response,
+    decode_device_info,
+    decode_unisetting_response,
+    decode_analysis_response,
+    decode_clean_record_list,
+    decode_analysis_stats,
+)
+from custom_components.robovac.errors import getT2277ErrorMessage
+
+
+# ============================================================================
+# Tests for _parse_varint
+# ============================================================================
+
+
+class TestParseVarint:
+    """Tests for _parse_varint function."""
+
+    def test_single_byte_varint_value_1(self):
+        """Test parsing single-byte varint with value 1."""
+        data = bytes([0x01])
+        value, pos = _parse_varint(data, 0)
+        assert value == 1
+        assert pos == 1
+
+    def test_single_byte_varint_value_127(self):
+        """Test parsing single-byte varint with value 127 (max single byte)."""
+        data = bytes([0x7F])
+        value, pos = _parse_varint(data, 0)
+        assert value == 127
+        assert pos == 1
+
+    def test_single_byte_varint_value_0(self):
+        """Test parsing single-byte varint with value 0."""
+        data = bytes([0x00])
+        value, pos = _parse_varint(data, 0)
+        assert value == 0
+        assert pos == 1
+
+    def test_multibyte_varint_value_300(self):
+        """Test parsing multi-byte varint with value 300."""
+        # 300 = 0xAC, 0x02 in varint encoding
+        data = bytes([0xAC, 0x02])
+        value, pos = _parse_varint(data, 0)
+        assert value == 300
+        assert pos == 2
+
+    def test_multibyte_varint_value_2101(self):
+        """Test parsing multi-byte varint with value 2101."""
+        # 2101 in binary is 0x835 = varint [0xB5, 0x10]
+        data = bytes([0xB5, 0x10])
+        value, pos = _parse_varint(data, 0)
+        assert value == 2101
+        assert pos == 2
+
+    def test_varint_at_nonzero_position(self):
+        """Test parsing varint starting at non-zero position."""
+        data = bytes([0xFF, 0xFF, 0x05])  # junk + varint for 5
+        value, pos = _parse_varint(data, 2)
+        assert value == 5
+        assert pos == 3
+
+    def test_varint_three_byte_value(self):
+        """Test parsing three-byte varint."""
+        # 16384 = 0x4000 = varint [0x80, 0x80, 0x01]
+        data = bytes([0x80, 0x80, 0x01])
+        value, pos = _parse_varint(data, 0)
+        assert value == 16384
+        assert pos == 3
+
+
+# ============================================================================
+# Tests for _parse_proto
+# ============================================================================
+
+
+class TestParseProto:
+    """Tests for _parse_proto function."""
+
+    def test_empty_bytes(self):
+        """Test parsing empty protobuf data."""
+        data = bytes([])
+        fields = _parse_proto(data)
+        assert fields == {}
+
+    def test_single_varint_field(self):
+        """Test parsing single varint field (field_1 = 5)."""
+        # Tag for field_1 varint = (1 << 3) | 0 = 0x08
+        # Value = 5
+        data = bytes([0x08, 0x05])
+        fields = _parse_proto(data)
+        assert fields == {1: 5}
+
+    def test_single_varint_field_value_300(self):
+        """Test parsing varint field with value 300."""
+        # Tag for field_1 = 0x08, value 300 = [0xAC, 0x02]
+        data = bytes([0x08, 0xAC, 0x02])
+        fields = _parse_proto(data)
+        assert fields == {1: 300}
+
+    def test_single_length_delimited_field(self):
+        """Test parsing single length-delimited field (field_2 = some bytes)."""
+        # Tag for field_2 length-delimited = (2 << 3) | 2 = 0x12
+        # Length = 3, value = b'hello'[0:3] = b'hel'
+        data = bytes([0x12, 0x03]) + b'hel'
+        fields = _parse_proto(data)
+        assert fields == {2: b'hel'}
+
+    def test_repeated_varint_field_becomes_list(self):
+        """Test parsing repeated varint field creates a list."""
+        # field_3 = 5, field_3 = 10
+        # Tag for field_3 = (3 << 3) | 0 = 0x18
+        data = bytes([0x18, 0x05, 0x18, 0x0A])
+        fields = _parse_proto(data)
+        assert fields == {3: [5, 10]}
+
+    def test_repeated_varint_field_three_values(self):
+        """Test repeated varint field with three values."""
+        data = bytes([0x18, 0x05, 0x18, 0x0A, 0x18, 0x0F])
+        fields = _parse_proto(data)
+        assert fields == {3: [5, 10, 15]}
+
+    def test_mixed_fields_varint_and_length_delimited(self):
+        """Test parsing mixed field types."""
+        # field_1 = 5 (varint)
+        # field_2 = b'hi' (length-delimited)
+        # field_3 = 10 (varint)
+        data = bytes([0x08, 0x05, 0x12, 0x02]) + b'hi' + bytes([0x18, 0x0A])
+        fields = _parse_proto(data)
+        assert fields == {1: 5, 2: b'hi', 3: 10}
+
+    def test_field_numbers_with_higher_values(self):
+        """Test parsing fields with higher field numbers."""
+        # field_10 = 42
+        # Tag = (10 << 3) | 0 = 0x50
+        data = bytes([0x50, 0x2A])
+        fields = _parse_proto(data)
+        assert fields == {10: 42}
+
+    def test_skips_64bit_fields(self):
+        """Test that 64-bit fields (wire_type 1) are skipped."""
+        # field_1 = 5, field_2 (64-bit), field_3 = 10
+        # Tag for field_2 64-bit = (2 << 3) | 1 = 0x11
+        data = bytes([0x08, 0x05, 0x11]) + bytes([0] * 8) + bytes([0x18, 0x0A])
+        fields = _parse_proto(data)
+        # 64-bit field is skipped, but varint fields are parsed
+        assert 1 in fields and 3 in fields
+        assert fields[1] == 5
+        assert fields[3] == 10
+
+    def test_skips_32bit_fields(self):
+        """Test that 32-bit fields (wire_type 5) are skipped."""
+        # field_1 = 5, field_2 (32-bit), field_3 = 10
+        # Tag for field_2 32-bit = (2 << 3) | 5 = 0x15
+        data = bytes([0x08, 0x05, 0x15]) + bytes([0] * 4) + bytes([0x18, 0x0A])
+        fields = _parse_proto(data)
+        assert 1 in fields and 3 in fields
+        assert fields[1] == 5
+        assert fields[3] == 10
+
+
+# ============================================================================
+# Tests for decode_mode_ctrl
+# ============================================================================
+
+
+class TestDecodeModeCtrl:
+    """Tests for decode_mode_ctrl function using MODE values from T2277.py."""
+
+    @pytest.mark.parametrize(
+        "raw_b64,expected",
+        [
+            ("AA==", "standby"),            # empty payload (no method, no param, no seq)
+            ("AggN", "pause"),              # method=PAUSE_TASK (13)
+            ("AggG", "stop"),               # method=START_GOHOME (6)
+            ("BBoCCAE=", "auto"),           # param.auto_clean present (method=0 or absent)
+            ("AggO", "nosweep"),            # method=RESUME_TASK (14)
+            ("BAgNEGg=", "pause"),          # method=PAUSE_TASK (13) with seq=104
+            ("BAgOEGg=", "nosweep"),        # method=RESUME_TASK (14) with seq=104
+            ("BAgOEGw=", "nosweep"),        # method=RESUME_TASK (14) with seq=108
+            # Three new command values
+            ("AhBs", "auto"),               # seq=108 only — active-session param update
+            ("BAgGEHA=", "stop"),           # method=START_GOHOME (6), seq=112
+            ("BAgCEHQ=", "spot"),           # method=START_SELECT_ZONES_CLEAN (2), seq=116
+        ],
+    )
+    def test_mode_ctrl_payloads(self, raw_b64, expected):
+        """Test decoding MODE control payloads from T2277."""
+        result = decode_mode_ctrl(raw_b64)
+        assert result == expected
+
+    def test_mode_ctrl_seq_only_returns_auto(self):
+        """Test that seq-only payload (no method, no param) returns auto.
+
+        A seq-only payload is sent during an active cleaning session as a
+        parameter update (e.g. BoostIQ adjustment).  Treating it as 'auto'
+        preserves the current active-cleaning state rather than flipping to
+        standby on every seq update.
+        """
+        # AhBw = {field_2: 112} — seq=112, no method, no param
+        assert decode_mode_ctrl("AhBw") == "auto"
+        # AhBs = {field_2: 108} — seq=108, no method, no param
+        assert decode_mode_ctrl("AhBs") == "auto"
+
+    def test_mode_ctrl_empty_is_standby(self):
+        """Test that a completely empty payload (no fields at all) returns standby."""
+        assert decode_mode_ctrl("AA==") == "standby"
+
+    def test_mode_ctrl_new_methods(self):
+        """Test newly mapped method values."""
+        assert decode_mode_ctrl("BAgGEHA=") == "stop"     # method=6
+        assert decode_mode_ctrl("BAgCEHQ=") == "spot"     # method=2
+
+
+# ============================================================================
+# Tests for decode_work_status
+# ============================================================================
+
+
+class TestDecodeWorkStatus:
+    """Tests for decode_work_status function using STATUS values from T2277.py."""
+
+    @pytest.mark.parametrize(
+        "raw_b64,expected",
+        [
+            # Confirmed working cases from T2277.py reverse lookup
+            ("AhAB", "Sleeping"),           # state=SLEEP(1)
+            ("BgoAEAUyAA==", "auto"),       # state=CLEANING(5), mode=AUTO, no relocating
+            ("CAoAEAUyAggB", "Paused"),     # state=CLEANING(5), cleaning.run_state=PAUSED
+            ("CAoCCAEQBTIA", "room"),       # state=CLEANING(5), mode=SELECT_ROOM(1)
+            ("CgoCCAEQBTICCAE=", "room_pause"),  # state=CLEANING(5), mode=SELECT_ROOM, paused
+            ("CAoCCAIQBTIA", "spot"),       # state=CLEANING(5), mode=SELECT_ZONE(2)
+            ("CgoCCAIQBTICCAE=", "spot_pause"),  # state=CLEANING(5), mode=SELECT_ZONE, paused
+            ("BAoAEAY=", "start_manual"),   # state=REMOTE_CTRL(6)
+            ("BBAHQgA=", "going_to_charge"),  # state=GO_HOME(7), no breakpoint
+            ("BBADGgA=", "Charging"),       # state=CHARGING(3), charging.state != DONE
+            ("BhADGgIIAQ==", "completed"),  # state=CHARGING(3), charging.state=DONE
+        ],
+    )
+    def test_work_status_payloads(self, raw_b64, expected):
+        """Test decoding WORK_STATUS payloads from T2277."""
+        result = decode_work_status(raw_b64)
+        assert result == expected
+
+    def test_work_status_empty_standby(self):
+        """Test that empty payload with no state field defaults to Standby-like behavior."""
+        # AA== has no fields, so state is None
+        # The code returns state_None for this case
+        result = decode_work_status("AA==")
+        # When state is None, code returns f"state_{state}" which is "state_None"
+        assert result == "state_None"
+
+    def test_work_status_positioning_with_empty_relocating(self):
+        """Test positioning payloads that have relocating field."""
+        # BgoAEAVSAA== has state=CLEANING(5) and field_10 (relocating) with empty bytes
+        # Empty bytes are falsy, so relocating_fields = {}
+        # This causes it to fall through to active cleaning logic
+        result = decode_work_status("BgoAEAVSAA==")
+        assert result == "auto"  # Falls through to active cleaning
+
+    def test_work_status_room_positioning_with_empty_relocating(self):
+        """Test room positioning payloads that have relocating field."""
+        result = decode_work_status("CAoCCAEQBVIA")
+        # Has state=CLEANING(5), mode=SELECT_ROOM(1), empty relocating
+        assert result == "room"
+
+    def test_work_status_spot_positioning_with_empty_relocating(self):
+        """Test spot positioning payloads that have relocating field."""
+        result = decode_work_status("CAoCCAIQBVIA")
+        # Has state=CLEANING(5), mode=SELECT_ZONE(2), empty relocating
+        assert result == "spot"
+
+    def test_work_status_going_to_recharge(self):
+        """Test going_to_recharge with breakpoint field."""
+        result = decode_work_status("CAoAEAdCAFoA")
+        # Has state=GO_HOME(7) and breakpoint field (field_11) with empty bytes
+        # Empty bytes are falsy, so the breakpoint check fails and returns going_to_charge
+        assert result == "going_to_charge"
+
+    def test_work_status_recharging(self):
+        """Test recharging with breakpoint field."""
+        result = decode_work_status("CAoAEAMaAFoA")
+        # Has state=CHARGING(3) and breakpoint field with empty bytes
+        # Empty bytes are falsy, so the breakpoint check fails and returns Charging
+        assert result == "Charging"
+
+
+# ============================================================================
+# Tests for decode_error_code
+# ============================================================================
+
+
+class TestDecodeErrorCode:
+    """Tests for decode_error_code function."""
+
+    def test_empty_error_payload(self):
+        """Test that empty/no-error payload returns 'no_error'."""
+        # "AA==" is the empty payload (length prefix only)
+        result = decode_error_code("AA==")
+        assert result == "no_error"
+
+    def test_single_error_code_2101(self):
+        """Test payload with single error code 2101 (Front bumper stuck)."""
+        # Build proto bytes with field_3 (warn) = 2101
+        # 2101 varint = [0xB5, 0x10]
+        # Tag for field_3 = (3 << 3) | 0 = 0x18
+        # Proto bytes = [0x18, 0xB5, 0x10]
+        proto_bytes = bytes([0x18, 0xB5, 0x10])
+        # Add length prefix
+        with_length = bytes([len(proto_bytes)]) + proto_bytes
+        raw_b64 = base64.b64encode(with_length).decode()
+
+        result = decode_error_code(raw_b64)
+        assert result == "Front bumper stuck"
+
+    def test_single_error_code_2102(self):
+        """Test payload with single error code 2102 (Left wheel stuck)."""
+        # 2102 varint = [0xB6, 0x10]
+        proto_bytes = bytes([0x18, 0xB6, 0x10])
+        with_length = bytes([len(proto_bytes)]) + proto_bytes
+        raw_b64 = base64.b64encode(with_length).decode()
+
+        result = decode_error_code(raw_b64)
+        assert result == "Left wheel stuck"
+
+    def test_multiple_error_codes_sorted(self):
+        """Test payload with multiple error codes (should be sorted)."""
+        # field_3 (warn) with values 2102 and 2103
+        # 2102 varint = [0xB6, 0x10], 2103 = [0xB7, 0x10]
+        # Tag for field_3 = 0x18
+        proto_bytes = bytes([0x18, 0xB6, 0x10, 0x18, 0xB7, 0x10])
+        with_length = bytes([len(proto_bytes)]) + proto_bytes
+        raw_b64 = base64.b64encode(with_length).decode()
+
+        result = decode_error_code(raw_b64)
+        # Should be sorted by code value, comma-separated
+        assert result == "Left wheel stuck, Right wheel stuck"
+
+    def test_error_code_with_new_code_message(self):
+        """Test payload with error codes in new_code message (field_10)."""
+        # field_10 is a message containing field_1 (error codes)
+        # Create new_code message: field_1 = 2104 (Both wheels stuck)
+        # 2104 varint = [0xB8, 0x10]
+        inner_proto = bytes([0x08, 0xB8, 0x10])  # field_1 = 2104
+        # Tag for field_10 = (10 << 3) | 2 = 0x52
+        proto_bytes = bytes([0x52, len(inner_proto)]) + inner_proto
+        with_length = bytes([len(proto_bytes)]) + proto_bytes
+        raw_b64 = base64.b64encode(with_length).decode()
+
+        result = decode_error_code(raw_b64)
+        assert result == "Both wheels stuck"
+
+    def test_error_code_from_both_warn_and_new_code(self):
+        """Test payload with codes from both field_3 (warn) and new_code."""
+        # field_3 (warn) = 2102, field_10 (new_code.field_1) = 2104
+        warn_bytes = bytes([0x18, 0xB6, 0x10])  # field_3 = 2102 (Left wheel)
+
+        inner_proto = bytes([0x08, 0xB8, 0x10])  # new_code.field_1 = 2104 (Both wheels)
+        new_code_bytes = bytes([0x52, len(inner_proto)]) + inner_proto
+
+        proto_bytes = warn_bytes + new_code_bytes
+        with_length = bytes([len(proto_bytes)]) + proto_bytes
+        raw_b64 = base64.b64encode(with_length).decode()
+
+        result = decode_error_code(raw_b64)
+        # Should contain both codes, sorted
+        assert "Left wheel stuck" in result
+        assert "Both wheels stuck" in result
+        assert result.startswith("Left wheel stuck")  # sorted by code
+
+    def test_error_code_unknown_code(self):
+        """Test payload with unknown error code."""
+        # field_3 (warn) = 9999 (unknown code)
+        # 9999 varint encoding: 9999 = 0x270F
+        # Little-endian base-128: 0x9F (with continuation) | 0x80 = 0x9F, then 0x4E
+        # Correct encoding: 0x8F (9999 & 0x7F | 0x80), 0x4E ((9999 >> 7) & 0x7F)
+        proto_bytes = bytes([0x18, 0x8F, 0x4E])  # field_3 = 9999 in varint
+        with_length = bytes([len(proto_bytes)]) + proto_bytes
+        raw_b64 = base64.b64encode(with_length).decode()
+
+        result = decode_error_code(raw_b64)
+        assert result == "error_9999"
+
+    def test_error_code_field_3_repeated(self):
+        """Test field_3 with multiple repeated values."""
+        # field_3 repeated with values 2102 and 2103
+        # 2102 = [0xB6, 0x10], 2103 = [0xB7, 0x10]
+        proto_bytes = bytes([0x18, 0xB6, 0x10, 0x18, 0xB7, 0x10])
+        with_length = bytes([len(proto_bytes)]) + proto_bytes
+        raw_b64 = base64.b64encode(with_length).decode()
+
+        result = decode_error_code(raw_b64)
+        assert "Left wheel stuck" in result
+        assert "Right wheel stuck" in result
+
+
+# ============================================================================
+# Tests for getT2277ErrorMessage
+# ============================================================================
+
+
+class TestGetT2277ErrorMessage:
+    """Tests for getT2277ErrorMessage function from errors module."""
+
+    @pytest.mark.parametrize(
+        "code,expected",
+        [
+            (2101, "Front bumper stuck"),
+            (2102, "Left wheel stuck"),
+            (2103, "Right wheel stuck"),
+            (2104, "Both wheels stuck"),
+            (2601, "Battery low"),
+            (7000, "Robot trapped"),
+            (7001, "Return to dock failed"),
+            (9999, "Unknown error 9999"),
+        ],
+    )
+    def test_t2277_error_messages(self, code, expected):
+        """Test error message lookup for known and unknown codes."""
+        result = getT2277ErrorMessage(code)
+        assert result == expected
+
+    def test_all_defined_error_codes_have_messages(self):
+        """Verify all T2277 error codes are defined."""
+        from custom_components.robovac.proto_decode import T2277_ERROR_CODES
+
+        test_codes = [
+            2101,  # Front bumper stuck
+            2102,  # Left wheel stuck
+            2103,  # Right wheel stuck
+            2104,  # Both wheels stuck
+            2601,  # Battery low
+            7000,  # Robot trapped
+            7001,  # Return to dock failed
+            8103,  # System error
+        ]
+
+        for code in test_codes:
+            message = getT2277ErrorMessage(code)
+            assert not message.startswith("Unknown")
+            assert code in T2277_ERROR_CODES
+            assert T2277_ERROR_CODES[code] == message
+
+
+# ============================================================================
+# Tests for decode_work_status_v2  (DPS 173 — wrapped WorkStatus)
+# ============================================================================
+
+
+class TestDecodeWorkStatusV2:
+    """Tests for decode_work_status_v2 — wrapped WorkStatus with sub-message RunState."""
+
+    def test_dps173_sample_cleaning_paused(self):
+        """Decode the observed DPS 173 sample: Cleaning + GoWash both PAUSED."""
+        # FgoQMggKAggBEgIQAToECgIIARICCAE=
+        # Outer field_1 = WorkStatus with Cleaning(PAUSED) + GoWash(PAUSED), no State
+        result = decode_work_status_v2("FgoQMggKAggBEgIQAToECgIIARICCAE=")
+        assert result == "Paused"
+
+    def test_empty_payload_returns_standby(self):
+        """Outer with no WorkStatus field → Standby."""
+        import base64
+        # build: outer has no field_1
+        raw = base64.b64encode(bytes([0x00])).decode()
+        result = decode_work_status_v2(raw)
+        assert result == "Standby"
+
+
+# ============================================================================
+# Tests for decode_error_code  (field_2 packed error support)
+# ============================================================================
+
+
+class TestDecodeErrorCodeExtended:
+    """Tests for the extended decode_error_code handling field_2 packed errors."""
+
+    def test_dps178_sample_with_packed_error(self):
+        """Decode the observed DPS 178 sample: last_time + packed prompt field_2."""
+        # DQiiguWKr+3szgESASg=
+        # field_1 = large monotonic timestamp, field_2 packed = [40]
+        # Code 40 = P0040_TASK_FINISHED_HEADING_HOME → prompt code, now mapped
+        result = decode_error_code("DQiiguWKr+3szgESASg=")
+        assert result == "Task finished, returning to dock"
+
+    def test_field2_packed_single_known_error(self):
+        """field_2 as packed repeated uint32 with a known error code."""
+        import base64
+        # Build proto: field_2 packed = [2101]
+        # 2101 varint = [0xB5, 0x10]
+        # tag for field_2 packed = (2<<3)|2 = 0x12
+        proto = bytes([0x12, 0x02, 0xB5, 0x10])
+        raw = base64.b64encode(bytes([len(proto)]) + proto).decode()
+        result = decode_error_code(raw)
+        assert result == "Front bumper stuck"
+
+    def test_prompt_code_76_at_station(self):
+        """Code 76 (P0076) maps to 'Cannot start task while at charging dock'."""
+        import base64
+        # field_2 packed = [76]
+        proto = bytes([0x12, 0x01, 0x4C])  # tag=0x12, length=1, varint 76=0x4C
+        raw = base64.b64encode(bytes([len(proto)]) + proto).decode()
+        result = decode_error_code(raw)
+        assert result == "Cannot start task while at charging dock"
+
+    def test_prompt_code_40_heading_home(self):
+        """Code 40 (P0040) maps to 'Task finished, returning to dock'."""
+        import base64
+        proto = bytes([0x12, 0x01, 0x28])  # varint 40=0x28
+        raw = base64.b64encode(bytes([len(proto)]) + proto).decode()
+        result = decode_error_code(raw)
+        assert result == "Task finished, returning to dock"
+
+    def test_code_zero_discarded(self):
+        """Code 0 (P0000_NONE) is treated as no notification."""
+        import base64
+        proto = bytes([0x12, 0x01, 0x00])  # field_2 packed = [0]
+        raw = base64.b64encode(bytes([len(proto)]) + proto).decode()
+        assert decode_error_code(raw) == "no_error"
+
+
+# ============================================================================
+# Tests for decode_clean_param_response  (DPS 154)
+# ============================================================================
+
+
+class TestDecodeCleanParamResponse:
+    """Tests for decode_clean_param_response."""
+
+    def test_dps154_sample(self):
+        """Decode the observed DPS 154 sample."""
+        # DgoKCgAaAggBIgIIARIA
+        # clean_param: clean_type=SWEEP_ONLY, clean_extent=NARROW, mop_level=MIDDLE
+        result = decode_clean_param_response("DgoKCgAaAggBIgIIARIA")
+        assert "clean_param" in result
+        cp = result["clean_param"]
+        assert cp.get("clean_type") == "sweep_only"
+        assert cp.get("clean_extent") == "narrow"
+        assert cp.get("mop_level") == "middle"
+
+    def test_empty_payload_returns_empty_dict(self):
+        """Empty payload → empty dict."""
+        import base64
+        raw = base64.b64encode(bytes([0x00])).decode()
+        result = decode_clean_param_response(raw)
+        assert result == {}
+
+
+# ============================================================================
+# Tests for decode_consumable_response  (DPS 168)
+# ============================================================================
+
+
+class TestDecodeConsumableResponse:
+    """Tests for decode_consumable_response."""
+
+    def test_dps168_sample(self):
+        """Decode the observed DPS 168 sample."""
+        # JAoiCgIIMBIDCN4CGgIIMCoDCN4COgMIpgygAaGFva/W7uzOAQ==
+        result = decode_consumable_response("JAoiCgIIMBIDCN4CGgIIMCoDCN4COgMIpgygAaGFva/W7uzOAQ==")
+        assert result.get("side_brush") == 48
+        assert result.get("rolling_brush") == 350
+        assert result.get("filter_mesh") == 48
+        assert result.get("dustbag") == 1574
+
+    def test_empty_payload_returns_empty_dict(self):
+        """Empty payload → empty dict."""
+        import base64
+        raw = base64.b64encode(bytes([0x00])).decode()
+        result = decode_consumable_response(raw)
+        assert result == {}
+
+
+# ============================================================================
+# Tests for decode_device_info  (DPS 169)
+# ============================================================================
+
+
+class TestDecodeDeviceInfo:
+    """Tests for decode_device_info."""
+
+    def test_dps169_sample(self):
+        """Decode the observed DPS 169 sample (eufy Clean L60 SES device)."""
+        result = decode_device_info(
+            "cgoSZXVmeSBDbGVhbiBMNjAgU0VTGhFDODpGRTowRjo3Nzo5NDo5QyIFMi4wLjAoBUI"
+            "oMzY0YWM4Y2Q2NDNmOWUwNzNmODg3OWY0YWE5N2RkYTk4ZTMyODk1NGIWCAESBAgCEA"
+            "EaBAgCEAEiAggBKgIIAQ=="
+        )
+        assert result.get("product_name") == "eufy Clean L60 SES"
+        assert result.get("device_mac") == "C8:FE:0F:77:94:9C"
+        assert result.get("software") == "2.0.0"
+
+
+# ============================================================================
+# Tests for decode_unisetting_response  (DPS 176)
+# ============================================================================
+
+
+class TestDecodeUnisettingResponse:
+    """Tests for decode_unisetting_response."""
+
+    def test_dps176_sample(self):
+        """Decode the observed DPS 176 sample."""
+        result = decode_unisetting_response(
+            "MwoAGgIIAVIKGgIIASICCAEqAFgkYh0KGwoRQSBuZXR3b3JrIGZvciB5b3UaBhCxit/OBg=="
+        )
+        assert result.get("wifi_ssid") == "A network for you"
+        assert result.get("wifi_signal_pct") == 36
+        assert result.get("multi_map") is True
+
+
+# ============================================================================
+# Tests for decode_analysis_response  (DPS 179)
+# ============================================================================
+
+
+class TestDecodeAnalysisResponse:
+    """Tests for decode_analysis_response."""
+
+    def test_dps179_sample(self):
+        """Decode the observed DPS 179 sample (clean record)."""
+        result = decode_analysis_response(
+            "JRIjCiEIEBABIAIwsZbfzgY41ZjfzgZA8AFIBFA6WAJgB2oCEAI="
+        )
+        assert result.get("clean_id") == 16
+        assert result.get("success") is True
+        assert result.get("mode") == "select_zones_clean"
+        assert result.get("clean_time_s") == 240
+        assert result.get("clean_area_m2") == 4
+        assert result.get("room_count") == 7
+
+    def test_empty_payload_returns_empty(self):
+        """Empty payload → empty dict."""
+        import base64
+        raw = base64.b64encode(bytes([0x00])).decode()
+        assert decode_analysis_response(raw) == {}
+
+
+# ============================================================================
+# Tests for decode_clean_record_list  (DPS 164)
+# ============================================================================
+
+
+class TestDecodeCleanRecordList:
+    """Tests for decode_clean_record_list."""
+
+    def test_dps164_sample_returns_two_records(self):
+        """Decode the observed DPS 164 sample (two clean record entries)."""
+        result = decode_clean_record_list(
+            "UBoAIiYKBgi4y/q0BhICCAEaDAgBEgQYCSAeGgIIPioKGggIARIECgIIAiIkCgYImsPGvw"
+            "YSAggBGgoIARICGAgaAghBKgoaCAgBEgQKAggC"
+        )
+        assert len(result) == 2
+        # First record should have a timestamp
+        assert "timestamp" in result[0]
+
+    def test_empty_payload_returns_empty_list(self):
+        """Empty payload → empty list."""
+        import base64
+        raw = base64.b64encode(bytes([0x00])).decode()
+        assert decode_clean_record_list(raw) == []
+
+
+# ============================================================================
+# Tests for decode_analysis_stats  (DPS 167)
+# ============================================================================
+
+
+class TestDecodeAnalysisStats:
+    """Tests for decode_analysis_stats."""
+
+    def test_dps167_sample_has_expected_keys(self):
+        """Decode the observed DPS 167 sample."""
+        result = decode_analysis_stats("HwoFCPABEAQSCgigik0Q52cYgAMaCgjsiE0Q5GcY/gI=")
+        assert "clean" in result
+        assert result["clean"].get(1) == 240   # clean_id = 240
+
+    def test_empty_payload_returns_empty_dict(self):
+        """Empty payload → empty dict."""
+        import base64
+        raw = base64.b64encode(bytes([0x00])).decode()
+        assert decode_analysis_stats(raw) == {}

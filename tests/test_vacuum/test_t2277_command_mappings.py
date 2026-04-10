@@ -32,6 +32,7 @@ def test_t2277_dps_codes(mock_t2277_robovac) -> None:
     assert dps_codes["FAN_SPEED"] == "158"
     assert dps_codes["LOCATE"] == "160"
     assert dps_codes["BATTERY_LEVEL"] == "163"
+    assert dps_codes["ERROR_CODE"] == "177"
 
 
 def test_t2277_mode_command_values(mock_t2277_robovac) -> None:
@@ -88,3 +89,11 @@ def test_t2277_command_codes(mock_t2277_robovac) -> None:
     assert commands[RobovacCommand.FAN_SPEED]["code"] == 158
     assert commands[RobovacCommand.LOCATE]["code"] == 160
     assert commands[RobovacCommand.BATTERY]["code"] == 163
+    assert commands[RobovacCommand.ERROR]["code"] == 177
+
+
+def test_t2277_error_dps_enabled(mock_t2277_robovac):
+    """Test that ERROR command (DPS 177) is now enabled."""
+    commands = mock_t2277_robovac.model_details.commands
+    assert RobovacCommand.ERROR in commands
+    assert commands[RobovacCommand.ERROR]["code"] == 177
