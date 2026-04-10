@@ -77,10 +77,10 @@ async def async_setup_entry(
             error_dps = str(commands[RobovacCommand.ERROR]["code"])
             entities.append(RobovacErrorSensor(item, error_dps))
 
-        # Active-errors sensor — packed error codes (DPS 178)
+        # Notification sensor — prompt/notification codes (DPS 178)
         if RobovacCommand.ACTIVE_ERRORS in commands:
             dps = str(commands[RobovacCommand.ACTIVE_ERRORS]["code"])
-            entities.append(RobovacActiveErrorSensor(item, dps))
+            entities.append(RobovacNotificationSensor(item, dps))
 
         # Per-consumable sensors — proto models using DPS 168
         consumables_cmd = commands.get(RobovacCommand.CONSUMABLES, {})
@@ -284,24 +284,25 @@ class RobovacErrorSensor(SensorEntity):
             self._attr_available = False
 
 
-class RobovacActiveErrorSensor(SensorEntity):
-    """Active system error codes from DPS 178 (packed repeated uint32 field_2).
+class RobovacNotificationSensor(SensorEntity):
+    """Informational prompt / notification codes from DPS 178.
 
-    Distinct from DPS 177 (warnings): DPS 178 carries lower-level system
-    error codes delivered as packed integers rather than varint repeated fields.
-    Shows "no_error" when clear.
+    DPS 178 carries PromptCodeList values (small integers such as 40, 76, 79)
+    that describe the robot's current operational context — e.g.
+    "Returning to dock", "Cannot start while at dock", "Low battery".
+    These are NOT hardware faults; use the Error sensor (DPS 177) for faults.
+    Shows "no_error" when no active notification.
     """
 
     _attr_has_entity_name = True
     _attr_should_poll = True
-    _attr_entity_category = EntityCategory.DIAGNOSTIC
-    _attr_icon = "mdi:alert-octagon-outline"
+    _attr_icon = "mdi:bell-outline"
 
     def __init__(self, item: dict, dps_code: str) -> None:
         self.robovac_id = item[CONF_ID]
         self._dps_code = dps_code
-        self._attr_unique_id = f"{item[CONF_ID]}_active_errors"
-        self._attr_name = "Active Errors"
+        self._attr_unique_id = f"{item[CONF_ID]}_notification"
+        self._attr_name = "Notification"
         self._attr_device_info = _device_info(item)
 
     async def async_update(self) -> None:
@@ -319,7 +320,7 @@ class RobovacActiveErrorSensor(SensorEntity):
             self._attr_native_value = decode_error_code(raw)
             self._attr_available = True
         except Exception as ex:
-            _LOGGER.error("Failed to update active-errors sensor for %s: %s", self.robovac_id, ex)
+            _LOGGER.error("Failed to update notification sensor for %s: %s", self.robovac_id, ex)
             self._attr_available = False
 
 
