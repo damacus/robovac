@@ -12,19 +12,33 @@ jobs:
     runs-on: ubuntu-latest
     name: runner / hacs
     steps:
-      - uses: hacs/action@d556e736723344f83838d08488c983a15381059a # 22.5.0
+      - name: Check out code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Run HACS validation
+        uses: hacs/action@d556e736723344f83838d08488c983a15381059a # 22.5.0
         with:
           category: integration
+
+  hassfest:
+    runs-on: ubuntu-latest
+    name: runner / hassfest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Run hassfest validation
+        uses: home-assistant/actions/hassfest@master
 
   check-markdown:
     runs-on: ubuntu-latest
     name: runner / markdownlint
     steps:
       - name: Check out code
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Run Markdown Lint
-        uses: DavidAnson/markdownlint-cli2-action@992badcdf24e3b8eb7e87ff9287fe931bcb00c6e # v20
+        uses: DavidAnson/markdownlint-cli2-action@ce4853d43830c74c1753b39f3cf40f71c2031eb9 # v23
         with:
           globs: "**/*.md"
 
@@ -33,10 +47,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Run linkspector
-        uses: umbrelladocs/action-linkspector@874d01cae9fd488e3077b08952093235bd626977 # v1
+        uses: umbrelladocs/action-linkspector@37c85bcde51b30bf929936502bac6bfb7e8f0a4d # v1
         with:
           fail_on_error: false
           reporter: github-pr-review
@@ -46,7 +60,7 @@ jobs:
     name: runner / lint
     steps:
       - name: Check out code
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Setup Python Environment
         uses: ./.github/actions/setup-python-env
@@ -62,10 +76,10 @@ jobs:
   test:
     runs-on: ubuntu-latest
     name: runner / test
-    needs: [check-markdown, check-links, lint, hacs]
+    needs: [check-markdown, check-links, lint, hacs, hassfest]
     steps:
       - name: Check out code
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Setup Python Environment
         uses: ./.github/actions/setup-python-env
@@ -81,6 +95,6 @@ jobs:
           filename: coverage.xml
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@5a1091511ad55cbe89839c7260b706298ca349f7 # v5
+        uses: codecov/codecov-action@75cd11691c0faa626561e295848008c8a7dddffe # v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}

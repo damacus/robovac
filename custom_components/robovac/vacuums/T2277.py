@@ -18,8 +18,7 @@ _LOGGER = logging.getLogger(__name__)
 
 class T2277(RobovacModelDetails):
     homeassistant_features = (
-        VacuumEntityFeature.BATTERY
-        | VacuumEntityFeature.CLEAN_SPOT
+        VacuumEntityFeature.CLEAN_SPOT
         | VacuumEntityFeature.FAN_SPEED
         | VacuumEntityFeature.LOCATE
         | VacuumEntityFeature.PAUSE
@@ -167,6 +166,7 @@ class T2277(RobovacModelDetails):
 
                 # WorkStatus { mode=AUTO(0), state=CLEANING(5), cleaning={PAUSED, CLEANING} }
                 "CAoAEAUyAggB": "Paused",          # capitalized in vacuum.py
+                "AggB": "Paused",
 
                 # WorkStatus { mode=SELECT_ROOM(1), state=CLEANING(5), cleaning={DOING, CLEANING} }
                 "CAoCCAEQBTIA": "room",
@@ -242,6 +242,20 @@ class T2277(RobovacModelDetails):
             # Codes are looked up in errors.T2277_ERROR_CODES (from proto_decode.py).
             "code": 177,
         },
+        # RobovacCommand.ERROR: {  # doesnt work, includes encrypted last error timestamp
+        #    "code": 177,
+        #    "values":
+        #    {
+        #        "DAiI6suO9dXszgFSAA==": "no_error",
+        #        "FAjwudWorOPszgEaAqURUgQSAqUR": "Sidebrush stuck",
+        #        "FAj+nMu7zuPszgEaAtg2UgQSAtg2": "Robot stuck",
+        #        "DAjtzbfps+XszgFSAA==": "no_error",
+        #        "DAiom9rd6eTszgFSAA==": "no_error",
+        #        "DAia8JTV5OPszgFSAA==": "no_error",
+        #        "DAj489bWsePszgFSAA==": "no_error",
+        #        "ByIDCgEAUgA=": "no_error",
+        #    }
+        # },
     }
 
     @classmethod

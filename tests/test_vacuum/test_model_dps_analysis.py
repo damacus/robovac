@@ -1,6 +1,7 @@
 """Tests to analyze DPS codes for all models."""
 
 import pytest
+from typing import Any, Dict
 from unittest.mock import patch
 
 from custom_components.robovac.robovac import RoboVac
@@ -11,7 +12,7 @@ from custom_components.robovac.vacuums import ROBOVAC_MODELS
 def test_analyze_model_dps_codes() -> None:
     """Analyze DPS codes for all models to determine which ones differ from defaults."""
     # Dictionary to store results
-    model_dps_analysis = {}
+    model_dps_analysis: Dict[str, Dict[str, Any]] = {}
 
     # Default codes from TuyaCodes
     default_codes = {

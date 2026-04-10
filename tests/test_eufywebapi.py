@@ -3,34 +3,36 @@
 import json
 from unittest.mock import patch, MagicMock
 import pytest
+from typing import Any
 import requests
 
 from custom_components.robovac.eufywebapi import EufyLogon
+from custom_components.robovac.robovac import RoboVac
 
 
 @pytest.fixture
-def mock_requests_post():
+def mock_requests_post() -> RoboVac:
     """Create a mock for requests.post."""
     with patch("requests.post") as mock_post:
         yield mock_post
 
 
 @pytest.fixture
-def mock_requests_get():
+def mock_requests_get() -> RoboVac:
     """Create a mock for requests.get."""
     with patch("requests.get") as mock_get:
         yield mock_get
 
 
 @pytest.fixture
-def mock_requests_request():
+def mock_requests_request() -> RoboVac:
     """Create a mock for requests.request."""
     with patch("requests.request") as mock_request:
         yield mock_request
 
 
 @pytest.fixture
-def mock_successful_login_response():
+def mock_successful_login_response() -> RoboVac:
     """Create a mock successful login response."""
     response = MagicMock()
     response.status_code = 200
@@ -53,7 +55,7 @@ def mock_successful_login_response():
 
 
 @pytest.fixture
-def mock_device_info_response():
+def mock_device_info_response() -> RoboVac:
     """Create a mock device info response."""
     response = MagicMock()
     response.status_code = 200
@@ -79,7 +81,7 @@ def mock_device_info_response():
 
 
 @pytest.fixture
-def mock_user_settings_response():
+def mock_user_settings_response() -> RoboVac:
     """Create a mock user settings response."""
     response = MagicMock()
     response.status_code = 200
@@ -95,14 +97,14 @@ def mock_user_settings_response():
     return response
 
 
-def test_init():
+def test_init() -> None:
     """Test EufyLogon initialization."""
     eufy = EufyLogon("test@example.com", "password123")
     assert eufy.username == "test@example.com"
     assert eufy.password == "password123"
 
 
-def test_get_user_info(mock_requests_post, mock_successful_login_response):
+def test_get_user_info(mock_requests_post, mock_successful_login_response) -> None:
     """Test get_user_info method."""
     # Set up the mock
     mock_requests_post.return_value = mock_successful_login_response
@@ -127,7 +129,7 @@ def test_get_user_info(mock_requests_post, mock_successful_login_response):
     assert "User-Agent" in kwargs["headers"]
 
 
-def test_get_device_info(mock_requests_request, mock_device_info_response):
+def test_get_device_info(mock_requests_request, mock_device_info_response) -> None:
     """Test get_device_info method."""
     # Set up the mock
     mock_requests_request.return_value = mock_device_info_response
@@ -152,7 +154,7 @@ def test_get_device_info(mock_requests_request, mock_device_info_response):
     assert "User-Agent" in kwargs["headers"]
 
 
-def test_get_user_settings(mock_requests_request, mock_user_settings_response):
+def test_get_user_settings(mock_requests_request, mock_user_settings_response) -> None:
     """Test get_user_settings method."""
     # Set up the mock
     mock_requests_request.return_value = mock_user_settings_response
@@ -180,7 +182,7 @@ def test_get_user_settings(mock_requests_request, mock_user_settings_response):
     assert "User-Agent" in kwargs["headers"]
 
 
-def test_failed_login():
+def test_failed_login() -> None:
     """Test failed login."""
     # Create a mock response for a failed login
     mock_response = MagicMock()
@@ -196,7 +198,7 @@ def test_failed_login():
         assert response.json()["res_code"] == 0
 
 
-def test_connection_error():
+def test_connection_error() -> None:
     """Test connection error handling."""
     # We need to modify the EufyLogon class to handle connection errors
     # For now, let's patch the get_user_info method to handle the error

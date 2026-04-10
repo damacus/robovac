@@ -8,7 +8,7 @@ from custom_components.robovac.vacuums.T2320 import T2320
 
 
 @pytest.fixture
-def t2320_robovac():
+def t2320_robovac() -> RoboVac:
     """Create a T2320 RoboVac instance for testing."""
     with patch("custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None):
         robovac = RoboVac(

@@ -14,7 +14,7 @@ from hashlib import md5, sha256
 import hmac
 import json
 import math
-import random
+import secrets
 import string
 import time
 import uuid
@@ -173,13 +173,12 @@ class TuyaAPISession:
         Returns:
             A string containing the generated device ID.
         """
-        expected_length = 44
-        base64_characters = string.ascii_letters + string.digits
         device_id_dependent_part = "8534c8ec0ed0"
-        return device_id_dependent_part + "".join(
-            random.choice(base64_characters)
-            for _ in range(expected_length - len(device_id_dependent_part))
-        )
+        # ⚡ Bolt optimization: Use C-implemented token_urlsafe instead of a Python list
+        # comprehension with secrets.choice() to avoid O(N) Python loop overhead.
+        # 24 random bytes produces exactly 32 base64 characters.
+        # We replace the URL-safe characters '-' and '_' to strictly match alphanumeric.
+        return device_id_dependent_part + secrets.token_urlsafe(24).replace("-", "A").replace("_", "B")
 
     @staticmethod
     def get_signature(query_params: dict, encoded_post_data: str) -> str:
@@ -269,6 +268,7 @@ class TuyaAPISession:
                     "sign": self.get_signature(query_params, encoded_post_data),
                 },
                 data={"postData": encoded_post_data} if encoded_post_data else None,
+                timeout=10,
             )
             resp.raise_for_status()
             response_data: Dict[str, Any] = resp.json()

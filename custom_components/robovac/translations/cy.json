@@ -15,6 +15,10 @@
                     "password": "Cyfrinair",
                     "username": "Enw defnyddiwr"
                 },
+                "data_description": {
+                    "username": "Y cyfeiriad e-bost sy'n gysylltiedig â'ch cyfrif Eufy.",
+                    "password": "Y cyfrinair a ddefnyddir i fewngofnodi i'r app Eufy."
+                },
                 "description": "Rhowch fanylion eich cyfrif Eufy"
             }
         }
@@ -25,6 +29,9 @@
                 "title": "Rheoli sugnwyr llwch",
                 "data": {
                     "selected_vacuum": "Dewiswch y sugnwr llwch i'w olygu"
+                },
+                "data_description": {
+                    "selected_vacuum": "Dewiswch y ddyfais Eufy RoboVac rydych chi am ei ffurfweddu o'r rhestr o sugnwyr llwch a ddarganfuwyd."
                 }
             },
             "edit": {
@@ -32,6 +39,10 @@
                 "data": {
                     "autodiscovery": "Galluogi awto-ddarganfod",
                     "ip_address": "Cyfeiriad IP"
+                },
+                "data_description": {
+                    "autodiscovery": "Dod o hyd i'r sugnwr llwch yn awtomatig ar y rhwydwaith.",
+                    "ip_address": "Cyfeiriad IP statig eich sugnwr llwch ar eich rhwydwaith lleol (dewisol os yw awto-ddarganfod wedi'i alluogi)."
                 },
                 "description": "Bydd awto-ddarganfod yn diweddaru'r cyfeiriad IP yn awtomatig"
             }

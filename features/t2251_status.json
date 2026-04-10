@@ -1,0 +1,50 @@
+[
+    {
+        "id": "T2251-001",
+        "category": "verification",
+        "area": "vacuum_models",
+        "description": "T2251 (G30 Edge) model file exists with complete command mappings",
+        "steps": [
+            "Verify T2251.py exists in vacuums directory",
+            "Verify all required commands defined (MODE, STATUS, RETURN_HOME, FAN_SPEED, LOCATE, BATTERY, ERROR)",
+            "Verify homeassistant_features configured correctly"
+        ],
+        "passes": true
+    },
+    {
+        "id": "T2251-002",
+        "category": "testing",
+        "area": "vacuum_models",
+        "description": "T2251 has comprehensive test coverage",
+        "steps": [
+            "Verify test_t2251_command_mappings.py exists",
+            "Verify MODE command value mappings tested",
+            "Verify FAN_SPEED command value mappings tested",
+            "Verify case-insensitive lookup tested",
+            "Verify error code mapping tested"
+        ],
+        "passes": true
+    },
+    {
+        "id": "T2251-003",
+        "category": "compliance",
+        "area": "vacuum_models",
+        "description": "T2251 complies with HA 2026.8 battery deprecation",
+        "steps": [
+            "Verify VacuumEntityFeature.BATTERY NOT in homeassistant_features",
+            "Verify battery command mapping still exists for sensor"
+        ],
+        "passes": true
+    },
+    {
+        "id": "T2251-004",
+        "category": "documentation",
+        "area": "vacuum_models",
+        "description": "T2251 is documented in supported models",
+        "steps": [
+            "Verify T2251 listed in vacuums/__init__.py",
+            "Verify T2251 appears in site_docs/index.md"
+        ],
+        "passes": true
+    }
+]

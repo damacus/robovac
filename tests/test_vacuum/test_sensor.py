@@ -39,7 +39,14 @@ async def test_battery_sensor_update_success():
 
     # Create mock vacuum entity
     mock_vacuum_entity = MagicMock()
-    mock_vacuum_entity.tuyastatus = {TuyaCodes.BATTERY_LEVEL: 85}
+    mock_vacuum_entity.tuyastatus = {str(TuyaCodes.BATTERY_LEVEL): 85}
+    # Using side_effect to verify input argument if needed, or just return based on it
+
+    def mock_get_dps_code(name):
+        if name == TuyaCodes.BATTERY_LEVEL:
+            return str(TuyaCodes.BATTERY_LEVEL)
+        return ""
+    mock_vacuum_entity.get_dps_code.side_effect = mock_get_dps_code
 
     # Create mock hass data structure
     mock_hass = MagicMock()
@@ -106,3 +113,26 @@ async def test_battery_sensor_update_exception():
 
     # Assert
     assert sensor._attr_available is False
+
+
+@pytest.mark.asyncio
+async def test_battery_sensor_get_dps_code_alias(mock_vacuum_data):
+    """Test get_dps_code with BATTERY alias."""
+    # We want to verify that in a real RoboVacEntity it works
+    from custom_components.robovac.vacuum import RoboVacEntity
+    mock_robovac = MagicMock()
+    mock_robovac.getDpsCodes.return_value = {}
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
+        entity = RoboVacEntity(mock_vacuum_data)
+        # Default should be 104 for BATTERY_LEVEL
+        assert entity.get_dps_code("BATTERY") == "104"
+        assert entity.get_dps_code(TuyaCodes.BATTERY_LEVEL) == "104"
+        # Test model-specific
+        mock_robovac.getDpsCodes.return_value = {"BATTERY_LEVEL": "163"}
+        # Clear the cache for the specific lookups
+        entity._dps_codes_memo.pop("BATTERY_LEVEL", None)
+        assert entity.get_dps_code("BATTERY") == "163"
+        # Clear the cache again before calling with TuyaCodes.BATTERY_LEVEL
+        # because the internal lookup name is "BATTERY_LEVEL" again.
+        entity._dps_codes_memo.pop("BATTERY_LEVEL", None)
+        assert entity.get_dps_code(TuyaCodes.BATTERY_LEVEL) == "163"

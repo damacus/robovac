@@ -2,6 +2,7 @@
 
 # Python cache files
 __pycache__/
+tests/test_vacuum/__pycache__
 *.py[cod]
 *$py.class
 
@@ -20,9 +21,15 @@ env/
 htmlcov/
 .pytest_cache/
 coverage.xml
+.mypy_cache
+__pycache__/
 
 # IDE specific files
 .idea/
 .vscode/
 *.swp
 *.swo
+
+# Zensical build output
+site/
+message.txt
