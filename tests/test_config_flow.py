@@ -1,10 +1,8 @@
 """Tests for the RoboVac config flow."""
 
-import json
 import asyncio
-from unittest.mock import patch, MagicMock, AsyncMock
+from unittest.mock import patch, MagicMock
 import pytest
-from typing import Any
 
 from homeassistant import config_entries, data_entry_flow
 from homeassistant.const import (

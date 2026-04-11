@@ -1,8 +1,7 @@
 """Tests for the RoboVac vacuum entity."""
 
 import pytest
-from typing import Any
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 from homeassistant.components.vacuum import VacuumActivity
 from custom_components.robovac.vacuum import RoboVacEntity

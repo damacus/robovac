@@ -4,7 +4,7 @@ import pytest
 from unittest.mock import patch, MagicMock
 
 from homeassistant.const import PERCENTAGE, CONF_ID
-from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
+from homeassistant.components.sensor import SensorDeviceClass
 
 from custom_components.robovac.sensor import RobovacBatterySensor
 from custom_components.robovac.vacuums.base import TuyaCodes

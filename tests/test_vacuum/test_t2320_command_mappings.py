@@ -4,7 +4,6 @@ import pytest
 from unittest.mock import patch
 
 from custom_components.robovac.robovac import RoboVac, RobovacCommand
-from custom_components.robovac.vacuums.T2320 import T2320
 
 
 @pytest.fixture

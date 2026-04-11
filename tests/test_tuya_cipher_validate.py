@@ -1,4 +1,3 @@
-import pytest
 from custom_components.robovac.tuyalocalapi import TuyaCipher, Message
 import struct
 

@@ -1,9 +1,7 @@
 """Tests for the Eufy web API integration."""
 
-import json
 from unittest.mock import patch, MagicMock
 import pytest
-from typing import Any
 import requests
 
 from custom_components.robovac.eufywebapi import EufyLogon

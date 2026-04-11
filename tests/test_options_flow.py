@@ -1,15 +1,12 @@
 """Tests for the RoboVac options flow."""
 
-import json
 import asyncio
-from unittest.mock import patch, MagicMock, AsyncMock
+from unittest.mock import patch, MagicMock
 import pytest
 from typing import Any
 
 from homeassistant import config_entries, data_entry_flow
 from homeassistant.const import (
-    CONF_USERNAME,
-    CONF_PASSWORD,
     CONF_ACCESS_TOKEN,
     CONF_NAME,
     CONF_ID,
@@ -22,7 +19,6 @@ from homeassistant.core import HomeAssistant
 
 from custom_components.robovac.config_flow import OptionsFlowHandler
 from custom_components.robovac.const import DOMAIN, CONF_AUTODISCOVERY, CONF_VACS
-from custom_components.robovac.robovac import RoboVac
 
 
 def create_mock_config_entry(data: dict[str, Any] | None = None) -> MagicMock:
