@@ -1,6 +1,6 @@
 import pytest
 import base64
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from custom_components.robovac.vacuum import RoboVacEntity
 from custom_components.robovac.vacuums.base import RoboVacEntityFeature
 

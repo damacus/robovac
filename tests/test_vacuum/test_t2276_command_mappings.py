@@ -5,6 +5,7 @@ codes (1-135), not the protobuf-encoded DPS 152-173 previously configured.
 """
 
 import pytest
+from typing import Any
 from unittest.mock import patch
 
 from custom_components.robovac.robovac import RoboVac

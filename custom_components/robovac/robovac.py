@@ -1,4 +1,5 @@
-from typing import Any
+from typing import Any, cast
+from collections.abc import Mapping
 from homeassistant.components.vacuum import VacuumActivity
 
 from .case_insensitive_lookup import case_insensitive_lookup

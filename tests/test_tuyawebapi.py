@@ -1,3 +1,4 @@
+import pytest
 from unittest.mock import patch, MagicMock
 from custom_components.robovac.tuyawebapi import TuyaAPISession
 

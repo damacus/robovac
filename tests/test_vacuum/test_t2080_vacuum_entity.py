@@ -1,6 +1,7 @@
 """Tests for T2080 vacuum entity integration with activity mapping."""
 
 import pytest
+from typing import Any
 from unittest.mock import patch, MagicMock
 
 from homeassistant.components.vacuum import VacuumActivity

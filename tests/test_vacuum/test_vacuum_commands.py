@@ -2,7 +2,7 @@
 
 import pytest
 from typing import Any
-from unittest.mock import patch, AsyncMock
+from unittest.mock import patch, MagicMock, AsyncMock, call
 
 from custom_components.robovac.robovac import RoboVac
 from custom_components.robovac.vacuum import RoboVacEntity

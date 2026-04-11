@@ -5,7 +5,7 @@ from unittest.mock import patch, MagicMock
 
 from custom_components.robovac.robovac import RoboVac
 from custom_components.robovac.vacuum import RoboVacEntity
-from custom_components.robovac.vacuums.base import TuyaCodes
+from custom_components.robovac.vacuums.base import RobovacCommand, TuyaCodes
 from homeassistant.const import (
     CONF_NAME,
     CONF_ID,
