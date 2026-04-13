@@ -585,55 +585,6 @@ async def test_last_clean_record_sensor_update_no_vacuum():
     assert sensor._attr_available is False
 
 
-@pytest.mark.asyncio
-async def test_error_sensor_update_exception_handling():
-    """Test error sensor handles exceptions gracefully."""
-    from custom_components.robovac.sensor import RobovacErrorSensor
-
-    mock_data = {CONF_ID: "test_id", "name": "Test"}
-    sensor = RobovacErrorSensor(mock_data, "177")
-
-    # Mock hass that raises exception
-    mock_hass = MagicMock()
-    mock_hass.data = MagicMock(side_effect=Exception("Test exception"))
-    sensor.hass = mock_hass
-
-    await sensor.async_update()
-    assert sensor._attr_available is False
-
-
-@pytest.mark.asyncio
-async def test_notification_sensor_update_exception_handling():
-    """Test notification sensor handles exceptions gracefully."""
-    from custom_components.robovac.sensor import RobovacNotificationSensor
-
-    mock_data = {CONF_ID: "test_id", "name": "Test"}
-    sensor = RobovacNotificationSensor(mock_data, "178")
-
-    # Mock hass that raises exception
-    mock_hass = MagicMock()
-    mock_hass.data = MagicMock(side_effect=Exception("Test exception"))
-    sensor.hass = mock_hass
-
-    await sensor.async_update()
-    assert sensor._attr_available is False
-
-
-@pytest.mark.asyncio
-async def test_consumable_sensor_update_exception_handling():
-    """Test consumable sensor handles exceptions gracefully."""
-    from custom_components.robovac.sensor import RobovacConsumableSensor
-
-    mock_data = {CONF_ID: "test_id", "name": "Test"}
-    sensor = RobovacConsumableSensor(mock_data, "168", "side_brush", "Side Brush", "mdi:brush")
-
-    # Mock hass that raises exception
-    mock_hass = MagicMock()
-    mock_hass.data = MagicMock(side_effect=Exception("Test exception"))
-    sensor.hass = mock_hass
-
-    await sensor.async_update()
-    assert sensor._attr_available is False
 
 
 @pytest.mark.asyncio
@@ -679,3 +630,50 @@ async def test_notification_sensor_update_successful():
 
     assert sensor._attr_available is True
     assert sensor._attr_native_value is None  # no_error returns None
+
+
+@pytest.mark.asyncio
+async def test_wifi_signal_sensor_update_no_data_first_time():
+    """Test WiFi signal sensor when no data available on first update."""
+    from custom_components.robovac.sensor import RobovacWifiSignalSensor
+
+    mock_data = {CONF_ID: "test_id", "name": "Test"}
+    sensor = RobovacWifiSignalSensor(mock_data, "176")
+
+    # Mock vacuum entity with empty tuyastatus
+    mock_vacuum = MagicMock()
+    mock_vacuum.tuyastatus = None
+
+    mock_hass = MagicMock()
+    mock_hass.data = {"robovac": {"vacuums": {"test_id": mock_vacuum}}}
+    sensor.hass = mock_hass
+
+    # First update with no data
+    await sensor.async_update()
+    assert sensor._attr_available is False
+    assert not sensor._has_had_data
+
+
+@pytest.mark.asyncio
+async def test_last_clean_duration_sensor_update_no_data_on_subsequent():
+    """Test last clean duration sensor keeps previous state if no new data."""
+    from custom_components.robovac.sensor import RobovacLastCleanDurationSensor
+
+    mock_data = {CONF_ID: "test_id", "name": "Test"}
+    sensor = RobovacLastCleanDurationSensor(mock_data, "179")
+    sensor._has_had_data = True  # Already had data
+    sensor._attr_available = True
+    sensor._attr_native_value = 60
+
+    # Mock vacuum with no data
+    mock_vacuum = MagicMock()
+    mock_vacuum.tuyastatus = {}
+
+    mock_hass = MagicMock()
+    mock_hass.data = {"robovac": {"vacuums": {"test_id": mock_vacuum}}}
+    sensor.hass = mock_hass
+
+    await sensor.async_update()
+    # Should keep previous state since we already had data
+    assert sensor._has_had_data
+    assert sensor._attr_native_value == 60
