@@ -21,7 +21,7 @@ def mock_t2277_robovac() -> RoboVac:
         return robovac
 
 
-def test_t2277_dps_codes(mock_t2277_robovac) -> None:
+def test_t2277_dps_codes(mock_t2277_robovac: RoboVac) -> None:
     """Test that T2277 has the correct DPS codes."""
     dps_codes = mock_t2277_robovac.getDpsCodes()
 
@@ -35,7 +35,7 @@ def test_t2277_dps_codes(mock_t2277_robovac) -> None:
     assert dps_codes["ERROR_CODE"] == "177"
 
 
-def test_t2277_mode_command_values(mock_t2277_robovac) -> None:
+def test_t2277_mode_command_values(mock_t2277_robovac: RoboVac) -> None:
     """Test T2277 MODE command value mappings."""
     assert mock_t2277_robovac.getRoboVacCommandValue(RobovacCommand.MODE, "standby") == "AA=="
     assert mock_t2277_robovac.getRoboVacCommandValue(RobovacCommand.MODE, "pause") == "AggN"
@@ -48,7 +48,7 @@ def test_t2277_mode_command_values(mock_t2277_robovac) -> None:
     assert mock_t2277_robovac.getRoboVacCommandValue(RobovacCommand.MODE, "unknown") == "unknown"
 
 
-def test_t2277_return_home_command_values(mock_t2277_robovac) -> None:
+def test_t2277_return_home_command_values(mock_t2277_robovac: RoboVac) -> None:
     """Test T2277 RETURN_HOME value mapping."""
     assert (
         mock_t2277_robovac.getRoboVacCommandValue(RobovacCommand.RETURN_HOME, "return")
@@ -60,7 +60,7 @@ def test_t2277_return_home_command_values(mock_t2277_robovac) -> None:
     )
 
 
-def test_t2277_fan_speed_command_values(mock_t2277_robovac) -> None:
+def test_t2277_fan_speed_command_values(mock_t2277_robovac: RoboVac) -> None:
     """Test T2277 FAN_SPEED value mapping."""
     assert mock_t2277_robovac.getRoboVacCommandValue(RobovacCommand.FAN_SPEED, "quiet") == "Quiet"
     assert mock_t2277_robovac.getRoboVacCommandValue(RobovacCommand.FAN_SPEED, "standard") == "Standard"
@@ -72,13 +72,13 @@ def test_t2277_fan_speed_command_values(mock_t2277_robovac) -> None:
     )
 
 
-def test_t2277_locate_command_values(mock_t2277_robovac) -> None:
+def test_t2277_locate_command_values(mock_t2277_robovac: RoboVac) -> None:
     """Test T2277 LOCATE value mapping."""
     assert mock_t2277_robovac.getRoboVacCommandValue(RobovacCommand.LOCATE, "locate") == "true"
     assert mock_t2277_robovac.getRoboVacCommandValue(RobovacCommand.LOCATE, "unknown") == "unknown"
 
 
-def test_t2277_command_codes(mock_t2277_robovac) -> None:
+def test_t2277_command_codes(mock_t2277_robovac: RoboVac) -> None:
     """Test that T2277 command codes are correctly defined on model."""
     commands = mock_t2277_robovac.model_details.commands
 
@@ -92,14 +92,14 @@ def test_t2277_command_codes(mock_t2277_robovac) -> None:
     assert commands[RobovacCommand.ERROR]["code"] == 177
 
 
-def test_t2277_error_dps_enabled(mock_t2277_robovac):
+def test_t2277_error_dps_enabled(mock_t2277_robovac: RoboVac) -> None:
     """Test that ERROR command (DPS 177) is now enabled."""
     commands = mock_t2277_robovac.model_details.commands
     assert RobovacCommand.ERROR in commands
     assert commands[RobovacCommand.ERROR]["code"] == 177
 
 
-def test_t2277_decode_dps_mode_ctrl():
+def test_t2277_decode_dps_mode_ctrl() -> None:
     """Test decode_dps for MODE command (DPS 152)."""
     from custom_components.robovac.vacuums.T2277 import T2277
 
@@ -108,16 +108,17 @@ def test_t2277_decode_dps_mode_ctrl():
     assert result is not None
 
 
-def test_t2277_decode_dps_status():
+def test_t2277_decode_dps_status() -> None:
     """Test decode_dps for STATUS command (DPS 153)."""
     from custom_components.robovac.vacuums.T2277 import T2277
 
     # Test returns None when no valid data
     result = T2277.decode_dps(153, "AA==")
     # Should not raise an exception
+    assert result is None or isinstance(result, str)
 
 
-def test_t2277_decode_dps_battery():
+def test_t2277_decode_dps_battery() -> None:
     """Test decode_dps for unknown DPS code."""
     from custom_components.robovac.vacuums.T2277 import T2277
 
@@ -126,7 +127,7 @@ def test_t2277_decode_dps_battery():
     assert result is None
 
 
-def test_t2277_decode_dps_invalid_base64():
+def test_t2277_decode_dps_invalid_base64() -> None:
     """Test decode_dps handles invalid base64 gracefully."""
     from custom_components.robovac.vacuums.T2277 import T2277
 
@@ -135,7 +136,7 @@ def test_t2277_decode_dps_invalid_base64():
     assert result is None
 
 
-def test_t2277_decode_dps_exception_handling():
+def test_t2277_decode_dps_exception_handling() -> None:
     """Test decode_dps exception handling."""
     from custom_components.robovac.vacuums.T2277 import T2277
     from unittest.mock import patch
@@ -146,7 +147,7 @@ def test_t2277_decode_dps_exception_handling():
         assert result is None
 
 
-def test_t2277_decode_dps_clean_param():
+def test_t2277_decode_dps_clean_param() -> None:
     """Test decode_dps for CLEAN_PARAM (DPS 154)."""
     from custom_components.robovac.vacuums.T2277 import T2277
     from unittest.mock import patch
@@ -159,7 +160,7 @@ def test_t2277_decode_dps_clean_param():
         assert result == "Standard"
 
 
-def test_t2277_decode_dps_clean_records():
+def test_t2277_decode_dps_clean_records() -> None:
     """Test decode_dps for CLEAN_RECORDS (DPS 164)."""
     from custom_components.robovac.vacuums.T2277 import T2277
     from unittest.mock import patch
@@ -172,7 +173,7 @@ def test_t2277_decode_dps_clean_records():
         assert "record" in result
 
 
-def test_t2277_decode_dps_consumables():
+def test_t2277_decode_dps_consumables() -> None:
     """Test decode_dps for CONSUMABLES (DPS 168)."""
     from custom_components.robovac.vacuums.T2277 import T2277
     from unittest.mock import patch
@@ -185,7 +186,7 @@ def test_t2277_decode_dps_consumables():
         assert "side_brush" in result
 
 
-def test_t2277_decode_dps_device_info():
+def test_t2277_decode_dps_device_info() -> None:
     """Test decode_dps for DEVICE_INFO (DPS 169)."""
     from custom_components.robovac.vacuums.T2277 import T2277
     from unittest.mock import patch
@@ -198,7 +199,7 @@ def test_t2277_decode_dps_device_info():
         assert "product_name" in result
 
 
-def test_t2277_decode_dps_work_status_v2():
+def test_t2277_decode_dps_work_status_v2() -> None:
     """Test decode_dps for WORK_STATUS_V2 (DPS 173)."""
     from custom_components.robovac.vacuums.T2277 import T2277
     from unittest.mock import patch
@@ -211,7 +212,7 @@ def test_t2277_decode_dps_work_status_v2():
         assert result == "Cleaning"
 
 
-def test_t2277_decode_dps_unisetting():
+def test_t2277_decode_dps_unisetting() -> None:
     """Test decode_dps for UNISETTING (DPS 176)."""
     from custom_components.robovac.vacuums.T2277 import T2277
     from unittest.mock import patch
@@ -224,7 +225,7 @@ def test_t2277_decode_dps_unisetting():
         assert "wifi_ssid" in result
 
 
-def test_t2277_decode_dps_error_code():
+def test_t2277_decode_dps_error_code() -> None:
     """Test decode_dps for ERROR (DPS 177)."""
     from custom_components.robovac.vacuums.T2277 import T2277
     from unittest.mock import patch
@@ -237,7 +238,7 @@ def test_t2277_decode_dps_error_code():
         assert result == "Battery low"
 
 
-def test_t2277_decode_dps_last_clean():
+def test_t2277_decode_dps_last_clean() -> None:
     """Test decode_dps for LAST_CLEAN (DPS 179)."""
     from custom_components.robovac.vacuums.T2277 import T2277
     from unittest.mock import patch

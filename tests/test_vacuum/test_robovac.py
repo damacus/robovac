@@ -306,5 +306,3 @@ def test_get_dps_codes() -> None:
         assert len(dps_codes) > 0
         # All values should be string DPS codes
         assert all(isinstance(code, str) for code in dps_codes.values())
-
-
