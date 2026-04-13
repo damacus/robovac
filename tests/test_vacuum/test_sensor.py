@@ -391,3 +391,110 @@ async def test_children_lock_sensor_init(mock_vacuum_data):
     sensor = RobovacChildrenLockSensor(mock_vacuum_data, "176")
     assert sensor is not None
     assert sensor.robovac_id == mock_vacuum_data[CONF_ID]
+
+
+@pytest.mark.asyncio
+async def test_error_sensor_update_no_vacuum():
+    """Test error sensor update when vacuum entity not found."""
+    from custom_components.robovac.sensor import RobovacErrorSensor
+
+    mock_data = {CONF_ID: "test_id", "name": "Test"}
+    sensor = RobovacErrorSensor(mock_data, "177")
+
+    # Mock hass with no vacuum entity
+    mock_hass = MagicMock()
+    mock_hass.data = {"robovac": {"vacuums": {}}}
+    sensor.hass = mock_hass
+
+    await sensor.async_update()
+    assert sensor._attr_available is False
+
+
+@pytest.mark.asyncio
+async def test_error_sensor_update_no_tuyastatus():
+    """Test error sensor update when tuyastatus not available."""
+    from custom_components.robovac.sensor import RobovacErrorSensor
+
+    mock_data = {CONF_ID: "test_id", "name": "Test"}
+    sensor = RobovacErrorSensor(mock_data, "177")
+
+    # Mock vacuum entity without tuyastatus
+    mock_vacuum = MagicMock()
+    mock_vacuum.tuyastatus = None
+    mock_hass = MagicMock()
+    mock_hass.data = {"robovac": {"vacuums": {"test_id": mock_vacuum}}}
+    sensor.hass = mock_hass
+
+    # First update with no data
+    await sensor.async_update()
+    assert sensor._attr_available is False
+
+
+@pytest.mark.asyncio
+async def test_error_sensor_update_no_dps_code():
+    """Test error sensor update when DPS code not in tuyastatus."""
+    from custom_components.robovac.sensor import RobovacErrorSensor
+
+    mock_data = {CONF_ID: "test_id", "name": "Test"}
+    sensor = RobovacErrorSensor(mock_data, "177")
+
+    # Mock vacuum entity with empty tuyastatus
+    mock_vacuum = MagicMock()
+    mock_vacuum.tuyastatus = {}
+    mock_hass = MagicMock()
+    mock_hass.data = {"robovac": {"vacuums": {"test_id": mock_vacuum}}}
+    sensor.hass = mock_hass
+
+    await sensor.async_update()
+    assert sensor._attr_available is False
+
+
+@pytest.mark.asyncio
+async def test_notification_sensor_update_no_vacuum():
+    """Test notification sensor update when vacuum entity not found."""
+    from custom_components.robovac.sensor import RobovacNotificationSensor
+
+    mock_data = {CONF_ID: "test_id", "name": "Test"}
+    sensor = RobovacNotificationSensor(mock_data, "178")
+
+    # Mock hass with no vacuum entity
+    mock_hass = MagicMock()
+    mock_hass.data = {"robovac": {"vacuums": {}}}
+    sensor.hass = mock_hass
+
+    await sensor.async_update()
+    assert sensor._attr_available is False
+
+
+@pytest.mark.asyncio
+async def test_consumable_sensor_update_no_vacuum():
+    """Test consumable sensor update when vacuum entity not found."""
+    from custom_components.robovac.sensor import RobovacConsumableSensor
+
+    mock_data = {CONF_ID: "test_id", "name": "Test"}
+    sensor = RobovacConsumableSensor(mock_data, "168", "side_brush", "Side Brush", "mdi:brush")
+
+    # Mock hass with no vacuum entity
+    mock_hass = MagicMock()
+    mock_hass.data = {"robovac": {"vacuums": {}}}
+    sensor.hass = mock_hass
+
+    await sensor.async_update()
+    assert sensor._attr_available is False
+
+
+@pytest.mark.asyncio
+async def test_clean_type_sensor_update_no_vacuum():
+    """Test clean type sensor update when vacuum entity not found."""
+    from custom_components.robovac.sensor import RobovacCleanTypeSensor
+
+    mock_data = {CONF_ID: "test_id", "name": "Test"}
+    sensor = RobovacCleanTypeSensor(mock_data, "154")
+
+    # Mock hass with no vacuum entity
+    mock_hass = MagicMock()
+    mock_hass.data = {"robovac": {"vacuums": {}}}
+    sensor.hass = mock_hass
+
+    await sensor.async_update()
+    assert sensor._attr_available is False
