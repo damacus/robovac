@@ -6,8 +6,62 @@ from unittest.mock import patch, MagicMock
 from homeassistant.const import PERCENTAGE, CONF_ID
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
 
-from custom_components.robovac.sensor import RobovacBatterySensor
+from custom_components.robovac.sensor import (
+    RobovacBatterySensor,
+    RobovacErrorSensor,
+    RobovacNotificationSensor,
+    RobovacConsumableSensor,
+    RobovacCleanTypeSensor,
+    RobovacLastCleanRecordSensor,
+    RobovacWorkStatusV2Sensor,
+    RobovacLastCleanAreaSensor,
+    RobovacLastCleanDurationSensor,
+    RobovacFirmwareSensor,
+    RobovacWifiSignalSensor,
+)
 from custom_components.robovac.vacuums.base import TuyaCodes
+
+
+# ============================================================================
+# Fixtures for common test scenarios
+# ============================================================================
+
+
+@pytest.fixture
+def mock_hass_with_valid_vacuum():
+    """Mock hass with a fully functional vacuum entity."""
+    mock_vacuum = MagicMock()
+    mock_vacuum.tuyastatus = {
+        str(TuyaCodes.BATTERY_LEVEL): 85,
+        "177": "base64_error_data",
+        "178": "base64_notification_data",
+        "168": "base64_consumable_data",
+        "154": "base64_clean_param_data",
+        "176": "base64_wifi_data",
+        "179": "base64_analysis_data",
+    }
+    mock_vacuum.vacuum = MagicMock()
+    mock_hass = MagicMock()
+    mock_hass.data = {"robovac": {"vacuums": {"test_id": mock_vacuum}}}
+    return mock_hass
+
+
+@pytest.fixture
+def mock_hass_empty():
+    """Mock hass with no vacuums."""
+    mock_hass = MagicMock()
+    mock_hass.data = {"robovac": {"vacuums": {}}}
+    return mock_hass
+
+
+@pytest.fixture
+def mock_hass_no_tuyastatus():
+    """Mock hass with vacuum but no tuyastatus."""
+    mock_vacuum = MagicMock()
+    mock_vacuum.tuyastatus = {}
+    mock_hass = MagicMock()
+    mock_hass.data = {"robovac": {"vacuums": {"test_id": mock_vacuum}}}
+    return mock_hass
 
 
 @pytest.mark.asyncio
@@ -677,3 +731,364 @@ async def test_last_clean_duration_sensor_update_no_data_on_subsequent():
     # Should keep previous state since we already had data
     assert sensor._has_had_data
     assert sensor._attr_native_value == 60
+
+
+# ============================================================================
+# Successful Update Path Tests (Scenario #3)
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_error_sensor_successful_update_with_error():
+    """Test error sensor successfully updates with actual error data."""
+    from custom_components.robovac.sensor import RobovacErrorSensor
+
+    mock_data = {CONF_ID: "test_id", "name": "Test"}
+    sensor = RobovacErrorSensor(mock_data, "177")
+
+    # Setup proper mocks
+    mock_vacuum = MagicMock()
+    mock_vacuum.tuyastatus = {"177": "error_data"}
+    mock_vacuum.vacuum = MagicMock()
+    mock_vacuum.vacuum.getRoboVacHumanReadableValue.return_value = "Battery low"
+
+    mock_hass = MagicMock()
+    mock_hass.data = {"robovac": {"vacuums": {"test_id": mock_vacuum}}}
+    sensor.hass = mock_hass
+
+    await sensor.async_update()
+
+    assert sensor._attr_available is True
+    assert sensor._attr_native_value == "Battery low"
+    assert sensor._has_had_data is True
+
+
+@pytest.mark.asyncio
+async def test_error_sensor_successful_update_no_error():
+    """Test error sensor updates with no error state."""
+    from custom_components.robovac.sensor import RobovacErrorSensor
+
+    mock_data = {CONF_ID: "test_id", "name": "Test"}
+    sensor = RobovacErrorSensor(mock_data, "177")
+
+    # Setup proper mocks
+    mock_vacuum = MagicMock()
+    mock_vacuum.tuyastatus = {"177": "error_data"}
+    mock_vacuum.vacuum = MagicMock()
+    mock_vacuum.vacuum.getRoboVacHumanReadableValue.return_value = "no_error"
+
+    mock_hass = MagicMock()
+    mock_hass.data = {"robovac": {"vacuums": {"test_id": mock_vacuum}}}
+    sensor.hass = mock_hass
+
+    await sensor.async_update()
+
+    assert sensor._attr_available is True
+    assert sensor._attr_native_value is None  # no_error becomes None
+    assert sensor._has_had_data is True
+
+
+@pytest.mark.asyncio
+async def test_notification_sensor_successful_update(mock_hass_with_valid_vacuum):
+    """Test notification sensor successfully decodes and updates."""
+    from custom_components.robovac.sensor import RobovacNotificationSensor
+
+    mock_data = {CONF_ID: "test_id", "name": "Test"}
+    sensor = RobovacNotificationSensor(mock_data, "178")
+    sensor.hass = mock_hass_with_valid_vacuum
+
+    with patch(
+        "custom_components.robovac.sensor.decode_error_code",
+        return_value="Task finished"
+    ):
+        await sensor.async_update()
+
+    assert sensor._attr_available is True
+    assert sensor._attr_native_value == "Task finished"
+    assert sensor._has_had_data is True
+
+
+@pytest.mark.asyncio
+async def test_battery_sensor_successful_update(mock_hass_with_valid_vacuum):
+    """Test battery sensor successfully updates with valid data."""
+    mock_data = {CONF_ID: "test_id", "name": "Test"}
+    sensor = RobovacBatterySensor(mock_data)
+    sensor.hass = mock_hass_with_valid_vacuum
+
+    mock_hass_with_valid_vacuum.data["robovac"]["vacuums"]["test_id"].get_dps_code.return_value = str(
+        TuyaCodes.BATTERY_LEVEL
+    )
+
+    await sensor.async_update()
+
+    assert sensor._attr_available is True
+    assert sensor._attr_native_value == 85
+
+
+# ============================================================================
+# Missing DPS Code Tests (Scenario #5.2)
+# ============================================================================
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("sensor_class,dps_code", [
+    (RobovacErrorSensor, "177"),
+    (RobovacNotificationSensor, "178"),
+    (RobovacConsumableSensor, "168"),
+    (RobovacCleanTypeSensor, "154"),
+])
+async def test_sensor_missing_dps_code(sensor_class, dps_code):
+    """Test sensors handle missing DPS code in tuyastatus."""
+    mock_data = {CONF_ID: "test_id", "name": "Test"}
+
+    if sensor_class == RobovacConsumableSensor:
+        sensor = sensor_class(mock_data, dps_code, "side_brush", "Side Brush", "mdi:brush")
+    else:
+        sensor = sensor_class(mock_data, dps_code)
+
+    # Vacuum with empty tuyastatus (no DPS code)
+    mock_vacuum = MagicMock()
+    mock_vacuum.tuyastatus = {}
+    mock_hass = MagicMock()
+    mock_hass.data = {"robovac": {"vacuums": {"test_id": mock_vacuum}}}
+    sensor.hass = mock_hass
+    sensor._has_had_data = False  # First update
+
+    await sensor.async_update()
+
+    assert sensor._attr_available is False
+
+
+# ============================================================================
+# Malformed Data Error Handling Tests (Scenario #5.3)
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_battery_sensor_malformed_data():
+    """Test battery sensor handles malformed data gracefully."""
+    mock_data = {CONF_ID: "test_id", "name": "Test"}
+    sensor = RobovacBatterySensor(mock_data)
+
+    # Vacuum with malformed battery value
+    mock_vacuum = MagicMock()
+    mock_vacuum.tuyastatus = {str(TuyaCodes.BATTERY_LEVEL): "invalid_number"}
+    mock_vacuum.get_dps_code.return_value = str(TuyaCodes.BATTERY_LEVEL)
+
+    mock_hass = MagicMock()
+    mock_hass.data = {"robovac": {"vacuums": {"test_id": mock_vacuum}}}
+    sensor.hass = mock_hass
+
+    await sensor.async_update()
+
+    assert sensor._attr_available is False
+
+
+@pytest.mark.asyncio
+async def test_battery_sensor_none_value():
+    """Test battery sensor handles None battery value."""
+    mock_data = {CONF_ID: "test_id", "name": "Test"}
+    sensor = RobovacBatterySensor(mock_data)
+
+    # Vacuum with None battery value
+    mock_vacuum = MagicMock()
+    mock_vacuum.tuyastatus = {str(TuyaCodes.BATTERY_LEVEL): None}
+    mock_vacuum.get_dps_code.return_value = str(TuyaCodes.BATTERY_LEVEL)
+
+    mock_hass = MagicMock()
+    mock_hass.data = {"robovac": {"vacuums": {"test_id": mock_vacuum}}}
+    sensor.hass = mock_hass
+
+    await sensor.async_update()
+
+    assert sensor._attr_available is False
+
+
+# ============================================================================
+# State Persistence Tests (Scenario #5.4)
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_error_sensor_state_persistence():
+    """Test error sensor maintains state across updates without new data."""
+    mock_data = {CONF_ID: "test_id", "name": "Test"}
+    sensor = RobovacErrorSensor(mock_data, "177")
+
+    # First update with data
+    mock_vacuum = MagicMock()
+    mock_vacuum.tuyastatus = {"177": "error_data"}
+    mock_hass = MagicMock()
+    mock_hass.data = {"robovac": {"vacuums": {"test_id": mock_vacuum}}}
+    sensor.hass = mock_hass
+
+    with patch(
+        "custom_components.robovac.sensor.decode_error_code",
+        return_value="Battery low"
+    ):
+        await sensor.async_update()
+
+    old_value = sensor._attr_native_value
+    old_available = sensor._attr_available
+
+    # Second update with no data - should maintain state
+    mock_vacuum.tuyastatus = {}
+    await sensor.async_update()
+
+    assert sensor._attr_native_value == old_value
+    assert sensor._attr_available == old_available
+    assert sensor._has_had_data is True
+
+
+@pytest.mark.asyncio
+async def test_firmware_sensor_state_persistence():
+    """Test firmware sensor maintains state when data becomes unavailable."""
+    mock_data = {CONF_ID: "test_id", "name": "Test"}
+    sensor = RobovacFirmwareSensor(mock_data, "169")
+
+    # First update with data
+    mock_vacuum = MagicMock()
+    mock_vacuum.tuyastatus = {"169": "device_info_data"}
+    mock_hass = MagicMock()
+    mock_hass.data = {"robovac": {"vacuums": {"test_id": mock_vacuum}}}
+    sensor.hass = mock_hass
+
+    with patch(
+        "custom_components.robovac.sensor.decode_device_info",
+        return_value={"software": "1.0.0"}
+    ):
+        await sensor.async_update()
+
+    assert sensor._attr_available is True
+    old_value = sensor._attr_native_value
+
+    # Second update without DPS code - should keep old state
+    mock_vacuum.tuyastatus = {}
+    await sensor.async_update()
+
+    assert sensor._attr_native_value == old_value
+    assert sensor._has_had_data is True
+
+
+@pytest.mark.asyncio
+async def test_last_clean_area_sensor_value_accumulation():
+    """Test last clean area sensor accumulates data properly."""
+    mock_data = {CONF_ID: "test_id", "name": "Test"}
+    sensor = RobovacLastCleanAreaSensor(mock_data, "179")
+
+    # First update
+    mock_vacuum = MagicMock()
+    mock_vacuum.tuyastatus = {"179": "data1"}
+    mock_hass = MagicMock()
+    mock_hass.data = {"robovac": {"vacuums": {"test_id": mock_vacuum}}}
+    sensor.hass = mock_hass
+
+    with patch(
+        "custom_components.robovac.sensor.decode_analysis_response",
+        return_value={"clean_area_m2": 50.5}
+    ):
+        await sensor.async_update()
+
+    assert sensor._attr_available is True
+    assert sensor._attr_native_value == 50.5
+    assert sensor._has_had_data is True
+
+    # Second update with new data
+    mock_vacuum.tuyastatus = {"179": "data2"}
+
+    with patch(
+        "custom_components.robovac.sensor.decode_analysis_response",
+        return_value={"clean_area_m2": 75.3}
+    ):
+        await sensor.async_update()
+
+    # Should update to new value
+    assert sensor._attr_native_value == 75.3
+
+
+@pytest.mark.asyncio
+async def test_consumable_sensor_successful_update():
+    """Test consumable sensor successfully updates with data."""
+    mock_data = {CONF_ID: "test_id", "name": "Test"}
+    sensor = RobovacConsumableSensor(mock_data, "168", "side_brush", "Side Brush", "mdi:brush")
+
+    mock_vacuum = MagicMock()
+    mock_vacuum.tuyastatus = {"168": "consumable_data"}
+    mock_hass = MagicMock()
+    mock_hass.data = {"robovac": {"vacuums": {"test_id": mock_vacuum}}}
+    sensor.hass = mock_hass
+
+    with patch(
+        "custom_components.robovac.sensor.decode_consumable_response",
+        return_value={"side_brush": 45}
+    ):
+        await sensor.async_update()
+
+    assert sensor._attr_available is True
+    assert sensor._attr_native_value == 45
+
+
+@pytest.mark.asyncio
+async def test_clean_type_sensor_successful_update():
+    """Test clean type sensor successfully updates with data."""
+    mock_data = {CONF_ID: "test_id", "name": "Test"}
+    sensor = RobovacCleanTypeSensor(mock_data, "154")
+
+    mock_vacuum = MagicMock()
+    mock_vacuum.tuyastatus = {"154": "clean_param_data"}
+    mock_hass = MagicMock()
+    mock_hass.data = {"robovac": {"vacuums": {"test_id": mock_vacuum}}}
+    sensor.hass = mock_hass
+
+    with patch(
+        "custom_components.robovac.sensor.decode_clean_param_response",
+        return_value={"running_clean_param": {"clean_type": "Sweep and mop"}}
+    ):
+        await sensor.async_update()
+
+    assert sensor._attr_available is True
+    assert sensor._attr_native_value == "Sweep and mop"
+
+
+@pytest.mark.asyncio
+async def test_work_status_v2_sensor_successful_update():
+    """Test work status v2 sensor successfully updates."""
+    mock_data = {CONF_ID: "test_id", "name": "Test"}
+    sensor = RobovacWorkStatusV2Sensor(mock_data, "173")
+
+    mock_vacuum = MagicMock()
+    mock_vacuum.tuyastatus = {"173": "status_data"}
+    mock_hass = MagicMock()
+    mock_hass.data = {"robovac": {"vacuums": {"test_id": mock_vacuum}}}
+    sensor.hass = mock_hass
+
+    with patch(
+        "custom_components.robovac.sensor.decode_work_status_v2",
+        return_value="Cleaning"
+    ):
+        await sensor.async_update()
+
+    assert sensor._attr_available is True
+    assert sensor._attr_native_value == "Cleaning"
+
+
+@pytest.mark.asyncio
+async def test_last_clean_record_sensor_successful_update():
+    """Test last clean record sensor successfully updates."""
+    mock_data = {CONF_ID: "test_id", "name": "Test"}
+    sensor = RobovacLastCleanRecordSensor(mock_data, "164")
+
+    mock_vacuum = MagicMock()
+    mock_vacuum.tuyastatus = {"164": "record_data"}
+    mock_hass = MagicMock()
+    mock_hass.data = {"robovac": {"vacuums": {"test_id": mock_vacuum}}}
+    sensor.hass = mock_hass
+
+    with patch(
+        "custom_components.robovac.sensor.decode_clean_record_list",
+        return_value=[{"timestamp": 1234567890, "status": "successful"}]
+    ):
+        await sensor.async_update()
+
+    assert sensor._attr_available is True
+    assert "record" in str(sensor._attr_native_value)
