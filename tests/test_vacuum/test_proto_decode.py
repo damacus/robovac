@@ -312,24 +312,24 @@ class TestDecodeErrorCode:
         result = decode_error_code("AA==")
         assert result == "no_error"
 
-    def test_single_error_code_2101(self):
-        """Test payload with single error code 2101 (Front bumper stuck)."""
-        # Build proto bytes with field_3 (warn) = 2101
-        # 2101 varint = [0xB5, 0x10]
+    def test_single_error_code_4111(self):
+        """Test payload with single error code 4111 (Front bumper stuck left)."""
+        # Build proto bytes with field_3 (warn) = 4111
+        # 4111 varint = [0x8F, 0x20]
         # Tag for field_3 = (3 << 3) | 0 = 0x18
-        # Proto bytes = [0x18, 0xB5, 0x10]
-        proto_bytes = bytes([0x18, 0xB5, 0x10])
+        # Proto bytes = [0x18, 0x8F, 0x20]
+        proto_bytes = bytes([0x18, 0x8F, 0x20])
         # Add length prefix
         with_length = bytes([len(proto_bytes)]) + proto_bytes
         raw_b64 = base64.b64encode(with_length).decode()
 
         result = decode_error_code(raw_b64)
-        assert result == "Front bumper stuck"
+        assert result == "Front bumper stuck (left)"
 
-    def test_single_error_code_2102(self):
-        """Test payload with single error code 2102 (Left wheel stuck)."""
-        # 2102 varint = [0xB6, 0x10]
-        proto_bytes = bytes([0x18, 0xB6, 0x10])
+    def test_single_error_code_1013(self):
+        """Test payload with single error code 1013 (Left wheel stuck)."""
+        # 1013 varint = [0xF5, 0x07]
+        proto_bytes = bytes([0x18, 0xF5, 0x07])
         with_length = bytes([len(proto_bytes)]) + proto_bytes
         raw_b64 = base64.b64encode(with_length).decode()
 
@@ -338,10 +338,10 @@ class TestDecodeErrorCode:
 
     def test_multiple_error_codes_sorted(self):
         """Test payload with multiple error codes (should be sorted)."""
-        # field_3 (warn) with values 2102 and 2103
-        # 2102 varint = [0xB6, 0x10], 2103 = [0xB7, 0x10]
+        # field_3 (warn) with values 1013 and 1023
+        # 1013 varint = [0xF5, 0x07], 1023 = [0xFF, 0x07]
         # Tag for field_3 = 0x18
-        proto_bytes = bytes([0x18, 0xB6, 0x10, 0x18, 0xB7, 0x10])
+        proto_bytes = bytes([0x18, 0xF5, 0x07, 0x18, 0xFF, 0x07])
         with_length = bytes([len(proto_bytes)]) + proto_bytes
         raw_b64 = base64.b64encode(with_length).decode()
 
@@ -352,9 +352,9 @@ class TestDecodeErrorCode:
     def test_error_code_with_new_code_message(self):
         """Test payload with error codes in new_code message (field_10)."""
         # field_10 is a message containing field_1 (error codes)
-        # Create new_code message: field_1 = 2104 (Both wheels stuck)
-        # 2104 varint = [0xB8, 0x10]
-        inner_proto = bytes([0x08, 0xB8, 0x10])  # field_1 = 2104
+        # Create new_code message: field_1 = 1033 (Both wheels stuck)
+        # 1033 varint = [0x89, 0x08]
+        inner_proto = bytes([0x08, 0x89, 0x08])  # field_1 = 1033
         # Tag for field_10 = (10 << 3) | 2 = 0x52
         proto_bytes = bytes([0x52, len(inner_proto)]) + inner_proto
         with_length = bytes([len(proto_bytes)]) + proto_bytes
@@ -365,10 +365,10 @@ class TestDecodeErrorCode:
 
     def test_error_code_from_both_warn_and_new_code(self):
         """Test payload with codes from both field_3 (warn) and new_code."""
-        # field_3 (warn) = 2102, field_10 (new_code.field_1) = 2104
-        warn_bytes = bytes([0x18, 0xB6, 0x10])  # field_3 = 2102 (Left wheel)
+        # field_3 (warn) = 1013, field_10 (new_code.field_1) = 1033
+        warn_bytes = bytes([0x18, 0xF5, 0x07])  # field_3 = 1013 (Left wheel)
 
-        inner_proto = bytes([0x08, 0xB8, 0x10])  # new_code.field_1 = 2104 (Both wheels)
+        inner_proto = bytes([0x08, 0x89, 0x08])  # new_code.field_1 = 1033 (Both wheels)
         new_code_bytes = bytes([0x52, len(inner_proto)]) + inner_proto
 
         proto_bytes = warn_bytes + new_code_bytes
@@ -396,9 +396,9 @@ class TestDecodeErrorCode:
 
     def test_error_code_field_3_repeated(self):
         """Test field_3 with multiple repeated values."""
-        # field_3 repeated with values 2102 and 2103
-        # 2102 = [0xB6, 0x10], 2103 = [0xB7, 0x10]
-        proto_bytes = bytes([0x18, 0xB6, 0x10, 0x18, 0xB7, 0x10])
+        # field_3 repeated with values 1013 and 1023
+        # 1013 = [0xF5, 0x07], 1023 = [0xFF, 0x07]
+        proto_bytes = bytes([0x18, 0xF5, 0x07, 0x18, 0xFF, 0x07])
         with_length = bytes([len(proto_bytes)]) + proto_bytes
         raw_b64 = base64.b64encode(with_length).decode()
 
@@ -418,13 +418,13 @@ class TestGetT2277ErrorMessage:
     @pytest.mark.parametrize(
         "code,expected",
         [
-            (2101, "Front bumper stuck"),
-            (2102, "Left wheel stuck"),
-            (2103, "Right wheel stuck"),
-            (2104, "Both wheels stuck"),
-            (2601, "Battery low"),
+            (4111, "Front bumper stuck (left)"),
+            (1013, "Left wheel stuck"),
+            (1023, "Right wheel stuck"),
+            (1033, "Both wheels stuck"),
+            (5014, "Battery low"),
             (7000, "Robot trapped"),
-            (7001, "Return to dock failed"),
+            (7031, "Return to dock failed"),
             (9999, "Unknown error 9999"),
         ],
     )
@@ -438,14 +438,14 @@ class TestGetT2277ErrorMessage:
         from custom_components.robovac.proto_decode import T2277_ERROR_CODES
 
         test_codes = [
-            2101,  # Front bumper stuck
-            2102,  # Left wheel stuck
-            2103,  # Right wheel stuck
-            2104,  # Both wheels stuck
-            2601,  # Battery low
+            4111,  # Front bumper stuck (left)
+            1013,  # Left wheel stuck
+            1023,  # Right wheel stuck
+            1033,  # Both wheels stuck
+            5014,  # Battery low
             7000,  # Robot trapped
-            7001,  # Return to dock failed
-            8103,  # System error
+            7031,  # Return to dock failed
+            2112,  # Main brush stuck
         ]
 
         for code in test_codes:
@@ -498,13 +498,13 @@ class TestDecodeErrorCodeExtended:
     def test_field2_packed_single_known_error(self):
         """field_2 as packed repeated uint32 with a known error code."""
         import base64
-        # Build proto: field_2 packed = [2101]
-        # 2101 varint = [0xB5, 0x10]
+        # Build proto: field_2 packed = [4111]
+        # 4111 varint = [0x8F, 0x20]
         # tag for field_2 packed = (2<<3)|2 = 0x12
-        proto = bytes([0x12, 0x02, 0xB5, 0x10])
+        proto = bytes([0x12, 0x02, 0x8F, 0x20])
         raw = base64.b64encode(bytes([len(proto)]) + proto).decode()
         result = decode_error_code(raw)
-        assert result == "Front bumper stuck"
+        assert result == "Front bumper stuck (left)"
 
     def test_prompt_code_76_at_station(self):
         """Code 76 (P0076) maps to 'Cannot start task while at charging dock'."""
