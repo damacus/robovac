@@ -6,6 +6,8 @@ import pytest
 from custom_components.robovac.proto_decode import (
     _parse_varint,
     _parse_proto,
+    _as_varint,
+    _decode_packed_varints,
     decode_mode_ctrl,
     decode_work_status,
     decode_work_status_v2,
@@ -692,3 +694,65 @@ class TestDecodeAnalysisStats:
         import base64
         raw = base64.b64encode(bytes([0x00])).decode()
         assert decode_analysis_stats(raw) == {}
+
+
+# ============================================================================
+# Tests for _as_varint (internal helper)
+# ============================================================================
+
+
+class TestAsVarint:
+    """Tests for _as_varint helper function."""
+
+    def test_as_varint_with_none(self):
+        """Test _as_varint with None input returns None."""
+        assert _as_varint(None) is None
+
+    def test_as_varint_with_int(self):
+        """Test _as_varint with int input returns the int."""
+        assert _as_varint(42) == 42
+        assert _as_varint(0) == 0
+        assert _as_varint(1000000) == 1000000
+
+    def test_as_varint_with_bytes_wrapping_int(self):
+        """Test _as_varint with bytes encoding int in field_1."""
+        # field_1 = 5 -> tag (1 << 3 | 0) = 0x08, then varint value 0x05
+        data = bytes([0x08, 0x05])
+        assert _as_varint(data) == 5
+
+    def test_as_varint_with_unknown_type(self):
+        """Test _as_varint with unknown type returns None."""
+        assert _as_varint("string") is None
+        assert _as_varint([1, 2, 3]) is None
+        assert _as_varint({"key": "value"}) is None
+
+
+# ============================================================================
+# Tests for _decode_packed_varints (internal helper)
+# ============================================================================
+
+
+class TestDecodePackedVarints:
+    """Tests for _decode_packed_varints helper function."""
+
+    def test_empty_data(self):
+        """Test decoding empty data returns empty list."""
+        assert _decode_packed_varints(bytes([])) == []
+
+    def test_single_varint(self):
+        """Test decoding single varint."""
+        data = bytes([0x05])  # varint value 5
+        assert _decode_packed_varints(data) == [5]
+
+    def test_multiple_varints(self):
+        """Test decoding multiple packed varints."""
+        # 1, 2, 3 encoded as varints: 0x01, 0x02, 0x03
+        data = bytes([0x01, 0x02, 0x03])
+        assert _decode_packed_varints(data) == [1, 2, 3]
+
+    def test_larger_varints(self):
+        """Test decoding larger values (multi-byte varints)."""
+        # 300 = 0xAC, 0x02 in varint encoding
+        data = bytes([0xAC, 0x02])
+        result = _decode_packed_varints(data)
+        assert result == [300]
