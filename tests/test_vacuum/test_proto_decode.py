@@ -756,3 +756,48 @@ class TestDecodePackedVarints:
         data = bytes([0xAC, 0x02])
         result = _decode_packed_varints(data)
         assert result == [300]
+
+
+# ============================================================================
+# Additional edge case tests
+# ============================================================================
+
+
+class TestEdgeCases:
+    """Tests for edge cases and boundary conditions."""
+
+    def test_parse_varint_at_buffer_end(self):
+        """Test parsing varint at end of buffer."""
+        data = bytes([0x00, 0x01, 0x7F])
+        # Parse from position 1
+        value, pos = _parse_varint(data, 1)
+        assert value == 1
+        assert pos == 2
+
+    def test_parse_proto_with_repeated_fields(self):
+        """Test parsing proto with repeated varint fields."""
+        # field_1: repeated values 1, 2, 3
+        # This is encoded as separate tag+value pairs
+        data = bytes([0x08, 0x01, 0x08, 0x02, 0x08, 0x03])
+        fields = _parse_proto(data)
+        # Repeated fields should be in a list
+        assert isinstance(fields[1], list)
+        assert fields[1] == [1, 2, 3]
+
+    def test_as_varint_with_bytes_no_field_1(self):
+        """Test _as_varint with bytes that don't have field_1."""
+        # field_2 = 5 -> tag (2 << 3 | 0) = 0x10, varint 0x05
+        data = bytes([0x10, 0x05])
+        assert _as_varint(data) is None  # field_1 not present
+
+    def test_strip_length_prefix_simple(self):
+        """Test stripping length prefix from base64."""
+        import base64
+        from custom_components.robovac.proto_decode import _strip_length_prefix
+
+        # Create data: length byte (1) + value (0x05)
+        data = bytes([0x01, 0x05])
+        b64 = base64.b64encode(data).decode()
+
+        result = _strip_length_prefix(b64)
+        assert result == bytes([0x05])
