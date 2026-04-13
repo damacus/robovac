@@ -270,3 +270,38 @@ def test_get_robovac_command_value_with_decode_dps() -> None:
         assert hasattr(robovac.model_details, 'decode_dps')
 
 
+def test_get_supported_commands() -> None:
+    """Test getSupportedCommands returns list of supported commands."""
+    with patch(
+        "custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None
+    ):
+        robovac = RoboVac(
+            model_code="T2118",
+            device_id="test_id",
+            host="192.168.1.100",
+            local_key="test_key",
+        )
+
+        commands = robovac.getSupportedCommands()
+        assert isinstance(commands, list)
+        assert len(commands) > 0
+        assert "MODE" in commands or "BATTERY" in commands  # Should have at least some common commands
+
+
+def test_get_dps_codes() -> None:
+    """Test getDpsCodes returns dict of DPS codes."""
+    with patch(
+        "custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None
+    ):
+        robovac = RoboVac(
+            model_code="T2118",
+            device_id="test_id",
+            host="192.168.1.100",
+            local_key="test_key",
+        )
+
+        dps_codes = robovac.getDpsCodes()
+        assert isinstance(dps_codes, dict)
+        assert len(dps_codes) > 0
+
+
