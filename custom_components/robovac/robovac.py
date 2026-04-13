@@ -190,7 +190,9 @@ class RoboVac(TuyaDevice):
         # Extract codes from commands dictionary
         for key, value in self.model_details.commands.items():
             # Get the DPS name from the mapping, or use the command name if not in mapping
-            dps_name = command_to_dps.get(key.name, key.name)
+            # Handle both RobovacCommand enum keys and string keys
+            key_name = key.name if hasattr(key, 'name') else str(key)
+            dps_name = command_to_dps.get(key_name, key_name)
 
             # Extract code value based on whether it's a direct value or in a dictionary
             if isinstance(value, dict) and "code" in value:
