@@ -34,12 +34,12 @@ SCAN_INTERVAL = timedelta(seconds=REFRESH_RATE)
 # Consumables exposed as individual sensors for proto-based models (DPS 168).
 # Tuple: (decode_key, display_name, icon)
 _PROTO_CONSUMABLES = [
-    ("side_brush",    "Side Brush",    "mdi:brush"),
+    ("side_brush", "Side Brush", "mdi:brush"),
     ("rolling_brush", "Rolling Brush", "mdi:brush-variant"),
-    ("filter_mesh",   "Filter",        "mdi:air-filter"),
-    ("scrape",        "Scraper",       "mdi:squeegee"),
-    ("sensor",        "Sensor",        "mdi:motion-sensor"),
-    ("dustbag",       "Dust Bag",      "mdi:trash-can-outline"),
+    ("filter_mesh", "Filter", "mdi:air-filter"),
+    ("scrape", "Scraper", "mdi:squeegee"),
+    ("sensor", "Sensor", "mdi:motion-sensor"),
+    ("dustbag", "Dust Bag", "mdi:trash-can-outline"),
 ]
 
 
