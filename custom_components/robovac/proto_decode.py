@@ -106,15 +106,15 @@ def _parse_proto(data: bytes) -> dict[int, Any]:
 
         elif wire_type == 2:  # length-delimited
             length, pos = _parse_varint(data, pos)
-            value = data[pos: pos + length]
+            raw_value: bytes = data[pos: pos + length]
             pos += length
             if field_num in fields:
                 # Repeated length-delimited field → accumulate as list
                 if not isinstance(fields[field_num], list):
                     fields[field_num] = [fields[field_num]]
-                fields[field_num].append(value)
+                fields[field_num].append(raw_value)
             else:
-                fields[field_num] = value
+                fields[field_num] = raw_value
 
         elif wire_type == 1:  # 64-bit
             pos += 8
@@ -491,7 +491,7 @@ def decode_clean_param_response(raw_b64: str) -> dict[str, Any]:
     def _enum_val(b: Any) -> int:
         """Extract enum value from sub-message {field_1: N} or plain int."""
         if isinstance(b, bytes):
-            return _parse_proto(b).get(1, 0)
+            return int(_parse_proto(b).get(1, 0))
         if isinstance(b, int):
             return b
         return 0
@@ -656,7 +656,7 @@ def decode_unisetting_response(raw_b64: str) -> dict[str, Any]:
 
     def _switch_on(b: Any) -> bool:
         if isinstance(b, bytes):
-            return _parse_proto(b).get(1, 0) == 1
+            return bool(_parse_proto(b).get(1, 0) == 1)
         return False
 
     result: dict[str, Any] = {}

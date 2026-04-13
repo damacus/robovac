@@ -133,7 +133,7 @@ async def async_setup_entry(
 # Internal helpers
 # ---------------------------------------------------------------------------
 
-def _vacuum_and_status(hass, domain, conf_vacs, robovac_id):
+def _vacuum_and_status(hass: HomeAssistant, domain: str, conf_vacs: str, robovac_id: str) -> tuple[Any, Any]:
     """Return (vacuum_entity, tuyastatus) or (None, None) if vacuum not found."""
     vacuum_entity = hass.data[domain][conf_vacs].get(robovac_id)
     if not vacuum_entity:
