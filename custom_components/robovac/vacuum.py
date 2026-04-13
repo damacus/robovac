@@ -533,7 +533,7 @@ class RoboVacEntity(StateVacuumEntity):
             current_time = time.time()
             # Only log warning when state changes or after 5 minutes
             if not self._no_data_warning_logged or (current_time - self._last_no_data_warning_time) >= 300:
-                _LOGGER.debug("Values not updated as no longer available")
+                _LOGGER.warning("Vacuum %s has no data points available", self.name)
                 self._last_no_data_warning_time = current_time
                 self._no_data_warning_logged = True
             return

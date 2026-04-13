@@ -23,7 +23,12 @@ from typing import Any
 # T2277 error/warning codes (DPS 177 field_3 warn / field_10 new_code)
 # Empirically observed on T2277 hardware; codes are in the 2100–8100 range.
 T2277_ERROR_CODES = {
-    # Mobility
+    # Mobility (2100-series)
+    2101: "Front bumper stuck",
+    2102: "Left wheel stuck",
+    2103: "Right wheel stuck",
+    2104: "Both wheels stuck",
+    # Mobility (legacy codes)
     4111: "Front bumper stuck (left)",
     4112: "Front bumper stuck (right)",
     1013: "Left wheel stuck",
@@ -39,6 +44,7 @@ T2277_ERROR_CODES = {
     4011: "Laser sensor blocked",
     4130: "Laser cover stuck",
     # Power
+    2601: "Battery low",
     5014: "Battery low",
     2602: "Battery error",
     2603: "Charging error",
@@ -46,11 +52,13 @@ T2277_ERROR_CODES = {
     2605: "Return to charge failed",
     # Navigation / task
     7000: "Robot trapped",
-    7001: "Robot partly suspended",
+    7001: "Return to dock failed",
     7002: "Robot suspended",
     7010: "Robot entered no go zone",
     7031: "Return to dock failed",
     7050: "Inaccessible areas not cleaned",
+    # System
+    8103: "System error",
 }
 
 # T2277 prompt/notification codes (DPS 178 field_2 packed uint32)
