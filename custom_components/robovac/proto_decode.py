@@ -24,53 +24,37 @@ from typing import Any
 # Empirically observed on T2277 hardware; codes are in the 2100–8100 range.
 T2277_ERROR_CODES = {
     # Mobility
-    2101: "Front bumper stuck",
-    2102: "Left wheel stuck",
-    2103: "Right wheel stuck",
-    2104: "Both wheels stuck",
-    2105: "Wheel suspended",
-    2106: "Wheel module error",
+    4111: "Front bumper stuck (left)",
+    4112: "Front bumper stuck (right)",
+    1013: "Left wheel stuck",
+    1023: "Right wheel stuck",
+    1033: "Both wheels stuck",
+    
     # Brushes
-    2201: "Main brush stuck",
-    2202: "Main brush tangled",
-    2211: "Side brush stuck",
-    2212: "Side brush tangled",
+    2112: "Main brush stuck",
     2213: "Side brush stuck",
-    2214: "Main brush stuck",
+    
     # Dust system
-    2301: "Filter blocked",
-    2302: "Dust box full",
-    2303: "Dust box missing",
-    2304: "Dust collector blocked",
+    2310: "Dust box missing",
     # Sensors
-    2401: "Laser sensor stuck",
-    2402: "Laser sensor blocked",
-    2403: "Wall sensor error",
-    2404: "Laser cover stuck",
-    2405: "Path tracking sensor dirty",
-    2406: "Ultrasonic sensor error",
-    # Physical state
-    2501: "Robot tilted",
-    2502: "Cliff detected",
-    2503: "Magnetic boundary detected",
-    2504: "Restricted area detected",
+    4012: "Laser sensor stuck",
+    4011: "Laser sensor blocked",
+    4130: "Laser cover stuck",
+
     # Power
-    2601: "Battery low",
+    5014: "Battery low",
     2602: "Battery error",
     2603: "Charging error",
     2604: "Charging abnormal",
     2605: "Return to charge failed",
     # Navigation / task
     7000: "Robot trapped",
-    7001: "Return to dock failed",
-    7002: "Inaccessible areas not cleaned",
-    7003: "Navigation error",
-    7004: "Relocalization failed",
-    7005: "Map error",
-    # System
-    8101: "LIDAR error",
-    8102: "Camera error",
-    8103: "System error",
+    7001: "Robot partly suspended",
+    7002: "Robot suspended",
+    7010: "Robot entered no go zone",
+    7031: "Return to dock failed",
+    7050: "Inaccessible areas not cleaned",
+
 }
 
 # T2277 prompt/notification codes (DPS 178 field_2 packed uint32)
