@@ -31,28 +31,28 @@ from custom_components.robovac.errors import getT2277ErrorMessage
 class TestParseVarint:
     """Tests for _parse_varint function."""
 
-    def test_single_byte_varint_value_1(self):
+    def test_single_byte_varint_value_1(self) -> None:
         """Test parsing single-byte varint with value 1."""
         data = bytes([0x01])
         value, pos = _parse_varint(data, 0)
         assert value == 1
         assert pos == 1
 
-    def test_single_byte_varint_value_127(self):
+    def test_single_byte_varint_value_127(self) -> None:
         """Test parsing single-byte varint with value 127 (max single byte)."""
         data = bytes([0x7F])
         value, pos = _parse_varint(data, 0)
         assert value == 127
         assert pos == 1
 
-    def test_single_byte_varint_value_0(self):
+    def test_single_byte_varint_value_0(self) -> None:
         """Test parsing single-byte varint with value 0."""
         data = bytes([0x00])
         value, pos = _parse_varint(data, 0)
         assert value == 0
         assert pos == 1
 
-    def test_multibyte_varint_value_300(self):
+    def test_multibyte_varint_value_300(self) -> None:
         """Test parsing multi-byte varint with value 300."""
         # 300 = 0xAC, 0x02 in varint encoding
         data = bytes([0xAC, 0x02])
@@ -60,7 +60,7 @@ class TestParseVarint:
         assert value == 300
         assert pos == 2
 
-    def test_multibyte_varint_value_2101(self):
+    def test_multibyte_varint_value_2101(self) -> None:
         """Test parsing multi-byte varint with value 2101."""
         # 2101 in binary is 0x835 = varint [0xB5, 0x10]
         data = bytes([0xB5, 0x10])
@@ -68,14 +68,14 @@ class TestParseVarint:
         assert value == 2101
         assert pos == 2
 
-    def test_varint_at_nonzero_position(self):
+    def test_varint_at_nonzero_position(self) -> None:
         """Test parsing varint starting at non-zero position."""
         data = bytes([0xFF, 0xFF, 0x05])  # junk + varint for 5
         value, pos = _parse_varint(data, 2)
         assert value == 5
         assert pos == 3
 
-    def test_varint_three_byte_value(self):
+    def test_varint_three_byte_value(self) -> None:
         """Test parsing three-byte varint."""
         # 16384 = 0x4000 = varint [0x80, 0x80, 0x01]
         data = bytes([0x80, 0x80, 0x01])
@@ -92,13 +92,13 @@ class TestParseVarint:
 class TestParseProto:
     """Tests for _parse_proto function."""
 
-    def test_empty_bytes(self):
+    def test_empty_bytes(self) -> None:
         """Test parsing empty protobuf data."""
         data = bytes([])
         fields = _parse_proto(data)
         assert fields == {}
 
-    def test_single_varint_field(self):
+    def test_single_varint_field(self) -> None:
         """Test parsing single varint field (field_1 = 5)."""
         # Tag for field_1 varint = (1 << 3) | 0 = 0x08
         # Value = 5
@@ -106,14 +106,14 @@ class TestParseProto:
         fields = _parse_proto(data)
         assert fields == {1: 5}
 
-    def test_single_varint_field_value_300(self):
+    def test_single_varint_field_value_300(self) -> None:
         """Test parsing varint field with value 300."""
         # Tag for field_1 = 0x08, value 300 = [0xAC, 0x02]
         data = bytes([0x08, 0xAC, 0x02])
         fields = _parse_proto(data)
         assert fields == {1: 300}
 
-    def test_single_length_delimited_field(self):
+    def test_single_length_delimited_field(self) -> None:
         """Test parsing single length-delimited field (field_2 = some bytes)."""
         # Tag for field_2 length-delimited = (2 << 3) | 2 = 0x12
         # Length = 3, value = b'hello'[0:3] = b'hel'
@@ -121,7 +121,7 @@ class TestParseProto:
         fields = _parse_proto(data)
         assert fields == {2: b'hel'}
 
-    def test_repeated_varint_field_becomes_list(self):
+    def test_repeated_varint_field_becomes_list(self) -> None:
         """Test parsing repeated varint field creates a list."""
         # field_3 = 5, field_3 = 10
         # Tag for field_3 = (3 << 3) | 0 = 0x18
@@ -129,13 +129,13 @@ class TestParseProto:
         fields = _parse_proto(data)
         assert fields == {3: [5, 10]}
 
-    def test_repeated_varint_field_three_values(self):
+    def test_repeated_varint_field_three_values(self) -> None:
         """Test repeated varint field with three values."""
         data = bytes([0x18, 0x05, 0x18, 0x0A, 0x18, 0x0F])
         fields = _parse_proto(data)
         assert fields == {3: [5, 10, 15]}
 
-    def test_mixed_fields_varint_and_length_delimited(self):
+    def test_mixed_fields_varint_and_length_delimited(self) -> None:
         """Test parsing mixed field types."""
         # field_1 = 5 (varint)
         # field_2 = b'hi' (length-delimited)
@@ -144,7 +144,7 @@ class TestParseProto:
         fields = _parse_proto(data)
         assert fields == {1: 5, 2: b'hi', 3: 10}
 
-    def test_field_numbers_with_higher_values(self):
+    def test_field_numbers_with_higher_values(self) -> None:
         """Test parsing fields with higher field numbers."""
         # field_10 = 42
         # Tag = (10 << 3) | 0 = 0x50
@@ -152,7 +152,7 @@ class TestParseProto:
         fields = _parse_proto(data)
         assert fields == {10: 42}
 
-    def test_skips_64bit_fields(self):
+    def test_skips_64bit_fields(self) -> None:
         """Test that 64-bit fields (wire_type 1) are skipped."""
         # field_1 = 5, field_2 (64-bit), field_3 = 10
         # Tag for field_2 64-bit = (2 << 3) | 1 = 0x11
@@ -163,7 +163,7 @@ class TestParseProto:
         assert fields[1] == 5
         assert fields[3] == 10
 
-    def test_skips_32bit_fields(self):
+    def test_skips_32bit_fields(self) -> None:
         """Test that 32-bit fields (wire_type 5) are skipped."""
         # field_1 = 5, field_2 (32-bit), field_3 = 10
         # Tag for field_2 32-bit = (2 << 3) | 5 = 0x15
@@ -199,12 +199,12 @@ class TestDecodeModeCtrl:
             ("BAgCEHQ=", "spot"),           # method=START_SELECT_ZONES_CLEAN (2), seq=116
         ],
     )
-    def test_mode_ctrl_payloads(self, raw_b64, expected):
+    def test_mode_ctrl_payloads(self, raw_b64: str, expected: str) -> None:
         """Test decoding MODE control payloads from T2277."""
         result = decode_mode_ctrl(raw_b64)
         assert result == expected
 
-    def test_mode_ctrl_seq_only_returns_auto(self):
+    def test_mode_ctrl_seq_only_returns_auto(self) -> None:
         """Test that seq-only payload (no method, no param) returns auto.
 
         A seq-only payload is sent during an active cleaning session as a
@@ -217,11 +217,11 @@ class TestDecodeModeCtrl:
         # AhBs = {field_2: 108} — seq=108, no method, no param
         assert decode_mode_ctrl("AhBs") == "auto"
 
-    def test_mode_ctrl_empty_is_standby(self):
+    def test_mode_ctrl_empty_is_standby(self) -> None:
         """Test that a completely empty payload (no fields at all) returns standby."""
         assert decode_mode_ctrl("AA==") == "standby"
 
-    def test_mode_ctrl_new_methods(self):
+    def test_mode_ctrl_new_methods(self) -> None:
         """Test newly mapped method values."""
         assert decode_mode_ctrl("BAgGEHA=") == "stop"     # method=6
         assert decode_mode_ctrl("BAgCEHQ=") == "spot"     # method=2
@@ -252,12 +252,12 @@ class TestDecodeWorkStatus:
             ("BhADGgIIAQ==", "completed"),  # state=CHARGING(3), charging.state=DONE
         ],
     )
-    def test_work_status_payloads(self, raw_b64, expected):
+    def test_work_status_payloads(self, raw_b64: str, expected: str) -> None:
         """Test decoding WORK_STATUS payloads from T2277."""
         result = decode_work_status(raw_b64)
         assert result == expected
 
-    def test_work_status_empty_standby(self):
+    def test_work_status_empty_standby(self) -> None:
         """Test that empty payload with no state field defaults to Standby-like behavior."""
         # AA== has no fields, so state is None
         # The code returns state_None for this case
@@ -265,7 +265,7 @@ class TestDecodeWorkStatus:
         # When state is None, code returns f"state_{state}" which is "state_None"
         assert result == "state_None"
 
-    def test_work_status_positioning_with_empty_relocating(self):
+    def test_work_status_positioning_with_empty_relocating(self) -> None:
         """Test positioning payloads that have relocating field."""
         # BgoAEAVSAA== has state=CLEANING(5) and field_10 (relocating) with empty bytes
         # Empty bytes are falsy, so relocating_fields = {}
@@ -273,26 +273,26 @@ class TestDecodeWorkStatus:
         result = decode_work_status("BgoAEAVSAA==")
         assert result == "auto"  # Falls through to active cleaning
 
-    def test_work_status_room_positioning_with_empty_relocating(self):
+    def test_work_status_room_positioning_with_empty_relocating(self) -> None:
         """Test room positioning payloads that have relocating field."""
         result = decode_work_status("CAoCCAEQBVIA")
         # Has state=CLEANING(5), mode=SELECT_ROOM(1), empty relocating
         assert result == "room"
 
-    def test_work_status_spot_positioning_with_empty_relocating(self):
+    def test_work_status_spot_positioning_with_empty_relocating(self) -> None:
         """Test spot positioning payloads that have relocating field."""
         result = decode_work_status("CAoCCAIQBVIA")
         # Has state=CLEANING(5), mode=SELECT_ZONE(2), empty relocating
         assert result == "spot"
 
-    def test_work_status_going_to_recharge(self):
+    def test_work_status_going_to_recharge(self) -> None:
         """Test going_to_recharge with breakpoint field."""
         result = decode_work_status("CAoAEAdCAFoA")
         # Has state=GO_HOME(7) and breakpoint field (field_11) with empty bytes
         # Empty bytes are falsy, so the breakpoint check fails and returns going_to_charge
         assert result == "going_to_charge"
 
-    def test_work_status_recharging(self):
+    def test_work_status_recharging(self) -> None:
         """Test recharging with breakpoint field."""
         result = decode_work_status("CAoAEAMaAFoA")
         # Has state=CHARGING(3) and breakpoint field with empty bytes
@@ -308,13 +308,13 @@ class TestDecodeWorkStatus:
 class TestDecodeErrorCode:
     """Tests for decode_error_code function."""
 
-    def test_empty_error_payload(self):
+    def test_empty_error_payload(self) -> None:
         """Test that empty/no-error payload returns 'no_error'."""
         # "AA==" is the empty payload (length prefix only)
         result = decode_error_code("AA==")
         assert result == "no_error"
 
-    def test_single_error_code_4111(self):
+    def test_single_error_code_4111(self) -> None:
         """Test payload with single error code 4111 (Front bumper stuck left)."""
         # Build proto bytes with field_3 (warn) = 4111
         # 4111 varint = [0x8F, 0x20]
@@ -328,7 +328,7 @@ class TestDecodeErrorCode:
         result = decode_error_code(raw_b64)
         assert result == "Front bumper stuck (left)"
 
-    def test_single_error_code_1013(self):
+    def test_single_error_code_1013(self) -> None:
         """Test payload with single error code 1013 (Left wheel stuck)."""
         # 1013 varint = [0xF5, 0x07]
         proto_bytes = bytes([0x18, 0xF5, 0x07])
@@ -338,7 +338,7 @@ class TestDecodeErrorCode:
         result = decode_error_code(raw_b64)
         assert result == "Left wheel stuck"
 
-    def test_multiple_error_codes_sorted(self):
+    def test_multiple_error_codes_sorted(self) -> None:
         """Test payload with multiple error codes (should be sorted)."""
         # field_3 (warn) with values 1013 and 1023
         # 1013 varint = [0xF5, 0x07], 1023 = [0xFF, 0x07]
@@ -351,7 +351,7 @@ class TestDecodeErrorCode:
         # Should be sorted by code value, comma-separated
         assert result == "Left wheel stuck, Right wheel stuck"
 
-    def test_error_code_with_new_code_message(self):
+    def test_error_code_with_new_code_message(self) -> None:
         """Test payload with error codes in new_code message (field_10)."""
         # field_10 is a message containing field_1 (error codes)
         # Create new_code message: field_1 = 1033 (Both wheels stuck)
@@ -365,7 +365,7 @@ class TestDecodeErrorCode:
         result = decode_error_code(raw_b64)
         assert result == "Both wheels stuck"
 
-    def test_error_code_from_both_warn_and_new_code(self):
+    def test_error_code_from_both_warn_and_new_code(self) -> None:
         """Test payload with codes from both field_3 (warn) and new_code."""
         # field_3 (warn) = 1013, field_10 (new_code.field_1) = 1033
         warn_bytes = bytes([0x18, 0xF5, 0x07])  # field_3 = 1013 (Left wheel)
@@ -383,7 +383,7 @@ class TestDecodeErrorCode:
         assert "Both wheels stuck" in result
         assert result.startswith("Left wheel stuck")  # sorted by code
 
-    def test_error_code_unknown_code(self):
+    def test_error_code_unknown_code(self) -> None:
         """Test payload with unknown error code."""
         # field_3 (warn) = 9999 (unknown code)
         # 9999 varint encoding: 9999 = 0x270F
@@ -396,7 +396,7 @@ class TestDecodeErrorCode:
         result = decode_error_code(raw_b64)
         assert result == "error_9999"
 
-    def test_error_code_field_3_repeated(self):
+    def test_error_code_field_3_repeated(self) -> None:
         """Test field_3 with multiple repeated values."""
         # field_3 repeated with values 1013 and 1023
         # 1013 = [0xF5, 0x07], 1023 = [0xFF, 0x07]
@@ -430,12 +430,12 @@ class TestGetT2277ErrorMessage:
             (9999, "Unknown error 9999"),
         ],
     )
-    def test_t2277_error_messages(self, code, expected):
+    def test_t2277_error_messages(self, code: int, expected: str) -> None:
         """Test error message lookup for known and unknown codes."""
         result = getT2277ErrorMessage(code)
         assert result == expected
 
-    def test_all_defined_error_codes_have_messages(self):
+    def test_all_defined_error_codes_have_messages(self) -> None:
         """Verify all T2277 error codes are defined."""
         from custom_components.robovac.proto_decode import T2277_ERROR_CODES
 
@@ -465,14 +465,14 @@ class TestGetT2277ErrorMessage:
 class TestDecodeWorkStatusV2:
     """Tests for decode_work_status_v2 — wrapped WorkStatus with sub-message RunState."""
 
-    def test_dps173_sample_cleaning_paused(self):
+    def test_dps173_sample_cleaning_paused(self) -> None:
         """Decode the observed DPS 173 sample: Cleaning + GoWash both PAUSED."""
         # FgoQMggKAggBEgIQAToECgIIARICCAE=
         # Outer field_1 = WorkStatus with Cleaning(PAUSED) + GoWash(PAUSED), no State
         result = decode_work_status_v2("FgoQMggKAggBEgIQAToECgIIARICCAE=")
         assert result == "Paused"
 
-    def test_empty_payload_returns_standby(self):
+    def test_empty_payload_returns_standby(self) -> None:
         """Outer with no WorkStatus field → Standby."""
         import base64
         # build: outer has no field_1
@@ -489,7 +489,7 @@ class TestDecodeWorkStatusV2:
 class TestDecodeErrorCodeExtended:
     """Tests for the extended decode_error_code handling field_2 packed errors."""
 
-    def test_dps178_sample_with_packed_error(self):
+    def test_dps178_sample_with_packed_error(self) -> None:
         """Decode the observed DPS 178 sample: last_time + packed prompt field_2."""
         # DQiiguWKr+3szgESASg=
         # field_1 = large monotonic timestamp, field_2 packed = [40]
@@ -497,7 +497,7 @@ class TestDecodeErrorCodeExtended:
         result = decode_error_code("DQiiguWKr+3szgESASg=")
         assert result == "Task finished, returning to dock"
 
-    def test_field2_packed_single_known_error(self):
+    def test_field2_packed_single_known_error(self) -> None:
         """field_2 as packed repeated uint32 with a known error code."""
         import base64
         # Build proto: field_2 packed = [4111]
@@ -508,7 +508,7 @@ class TestDecodeErrorCodeExtended:
         result = decode_error_code(raw)
         assert result == "Front bumper stuck (left)"
 
-    def test_prompt_code_76_at_station(self):
+    def test_prompt_code_76_at_station(self) -> None:
         """Code 76 (P0076) maps to 'Cannot start task while at charging dock'."""
         import base64
         # field_2 packed = [76]
@@ -517,7 +517,7 @@ class TestDecodeErrorCodeExtended:
         result = decode_error_code(raw)
         assert result == "Cannot start task while at charging dock"
 
-    def test_prompt_code_40_heading_home(self):
+    def test_prompt_code_40_heading_home(self) -> None:
         """Code 40 (P0040) maps to 'Task finished, returning to dock'."""
         import base64
         proto = bytes([0x12, 0x01, 0x28])  # varint 40=0x28
@@ -525,7 +525,7 @@ class TestDecodeErrorCodeExtended:
         result = decode_error_code(raw)
         assert result == "Task finished, returning to dock"
 
-    def test_code_zero_discarded(self):
+    def test_code_zero_discarded(self) -> None:
         """Code 0 (P0000_NONE) is treated as no notification."""
         import base64
         proto = bytes([0x12, 0x01, 0x00])  # field_2 packed = [0]
@@ -541,7 +541,7 @@ class TestDecodeErrorCodeExtended:
 class TestDecodeCleanParamResponse:
     """Tests for decode_clean_param_response."""
 
-    def test_dps154_sample(self):
+    def test_dps154_sample(self) -> None:
         """Decode the observed DPS 154 sample."""
         # DgoKCgAaAggBIgIIARIA
         # clean_param: clean_type=SWEEP_ONLY, clean_extent=NARROW, mop_level=MIDDLE
@@ -552,7 +552,7 @@ class TestDecodeCleanParamResponse:
         assert cp.get("clean_extent") == "narrow"
         assert cp.get("mop_level") == "middle"
 
-    def test_empty_payload_returns_empty_dict(self):
+    def test_empty_payload_returns_empty_dict(self) -> None:
         """Empty payload → empty dict."""
         import base64
         raw = base64.b64encode(bytes([0x00])).decode()
@@ -568,7 +568,7 @@ class TestDecodeCleanParamResponse:
 class TestDecodeConsumableResponse:
     """Tests for decode_consumable_response."""
 
-    def test_dps168_sample(self):
+    def test_dps168_sample(self) -> None:
         """Decode the observed DPS 168 sample."""
         # JAoiCgIIMBIDCN4CGgIIMCoDCN4COgMIpgygAaGFva/W7uzOAQ==
         result = decode_consumable_response("JAoiCgIIMBIDCN4CGgIIMCoDCN4COgMIpgygAaGFva/W7uzOAQ==")
@@ -577,7 +577,7 @@ class TestDecodeConsumableResponse:
         assert result.get("filter_mesh") == 48
         assert result.get("dustbag") == 1574
 
-    def test_empty_payload_returns_empty_dict(self):
+    def test_empty_payload_returns_empty_dict(self) -> None:
         """Empty payload → empty dict."""
         import base64
         raw = base64.b64encode(bytes([0x00])).decode()
@@ -593,7 +593,7 @@ class TestDecodeConsumableResponse:
 class TestDecodeDeviceInfo:
     """Tests for decode_device_info."""
 
-    def test_dps169_sample(self):
+    def test_dps169_sample(self) -> None:
         """Decode the observed DPS 169 sample (eufy Clean L60 SES device)."""
         result = decode_device_info(
             "cgoSZXVmeSBDbGVhbiBMNjAgU0VTGhFDODpGRTowRjo3Nzo5NDo5QyIFMi4wLjAoBUI"
@@ -613,7 +613,7 @@ class TestDecodeDeviceInfo:
 class TestDecodeUnisettingResponse:
     """Tests for decode_unisetting_response."""
 
-    def test_dps176_sample(self):
+    def test_dps176_sample(self) -> None:
         """Decode the observed DPS 176 sample."""
         result = decode_unisetting_response(
             "MwoAGgIIAVIKGgIIASICCAEqAFgkYh0KGwoRQSBuZXR3b3JrIGZvciB5b3UaBhCxit/OBg=="
@@ -631,7 +631,7 @@ class TestDecodeUnisettingResponse:
 class TestDecodeAnalysisResponse:
     """Tests for decode_analysis_response."""
 
-    def test_dps179_sample(self):
+    def test_dps179_sample(self) -> None:
         """Decode the observed DPS 179 sample (clean record)."""
         result = decode_analysis_response(
             "JRIjCiEIEBABIAIwsZbfzgY41ZjfzgZA8AFIBFA6WAJgB2oCEAI="
@@ -643,7 +643,7 @@ class TestDecodeAnalysisResponse:
         assert result.get("clean_area_m2") == 4
         assert result.get("room_count") == 7
 
-    def test_empty_payload_returns_empty(self):
+    def test_empty_payload_returns_empty(self) -> None:
         """Empty payload → empty dict."""
         import base64
         raw = base64.b64encode(bytes([0x00])).decode()
@@ -658,7 +658,7 @@ class TestDecodeAnalysisResponse:
 class TestDecodeCleanRecordList:
     """Tests for decode_clean_record_list."""
 
-    def test_dps164_sample_returns_two_records(self):
+    def test_dps164_sample_returns_two_records(self) -> None:
         """Decode the observed DPS 164 sample (two clean record entries)."""
         result = decode_clean_record_list(
             "UBoAIiYKBgi4y/q0BhICCAEaDAgBEgQYCSAeGgIIPioKGggIARIECgIIAiIkCgYImsPGvw"
@@ -668,7 +668,7 @@ class TestDecodeCleanRecordList:
         # First record should have a timestamp
         assert "timestamp" in result[0]
 
-    def test_empty_payload_returns_empty_list(self):
+    def test_empty_payload_returns_empty_list(self) -> None:
         """Empty payload → empty list."""
         import base64
         raw = base64.b64encode(bytes([0x00])).decode()
@@ -683,13 +683,13 @@ class TestDecodeCleanRecordList:
 class TestDecodeAnalysisStats:
     """Tests for decode_analysis_stats."""
 
-    def test_dps167_sample_has_expected_keys(self):
+    def test_dps167_sample_has_expected_keys(self) -> None:
         """Decode the observed DPS 167 sample."""
         result = decode_analysis_stats("HwoFCPABEAQSCgigik0Q52cYgAMaCgjsiE0Q5GcY/gI=")
         assert "clean" in result
         assert result["clean"].get(1) == 240   # clean_id = 240
 
-    def test_empty_payload_returns_empty_dict(self):
+    def test_empty_payload_returns_empty_dict(self) -> None:
         """Empty payload → empty dict."""
         import base64
         raw = base64.b64encode(bytes([0x00])).decode()
@@ -704,23 +704,23 @@ class TestDecodeAnalysisStats:
 class TestAsVarint:
     """Tests for _as_varint helper function."""
 
-    def test_as_varint_with_none(self):
+    def test_as_varint_with_none(self) -> None:
         """Test _as_varint with None input returns None."""
         assert _as_varint(None) is None
 
-    def test_as_varint_with_int(self):
+    def test_as_varint_with_int(self) -> None:
         """Test _as_varint with int input returns the int."""
         assert _as_varint(42) == 42
         assert _as_varint(0) == 0
         assert _as_varint(1000000) == 1000000
 
-    def test_as_varint_with_bytes_wrapping_int(self):
+    def test_as_varint_with_bytes_wrapping_int(self) -> None:
         """Test _as_varint with bytes encoding int in field_1."""
         # field_1 = 5 -> tag (1 << 3 | 0) = 0x08, then varint value 0x05
         data = bytes([0x08, 0x05])
         assert _as_varint(data) == 5
 
-    def test_as_varint_with_unknown_type(self):
+    def test_as_varint_with_unknown_type(self) -> None:
         """Test _as_varint with unknown type returns None."""
         assert _as_varint("string") is None
         assert _as_varint([1, 2, 3]) is None
@@ -735,22 +735,22 @@ class TestAsVarint:
 class TestDecodePackedVarints:
     """Tests for _decode_packed_varints helper function."""
 
-    def test_empty_data(self):
+    def test_empty_data(self) -> None:
         """Test decoding empty data returns empty list."""
         assert _decode_packed_varints(bytes([])) == []
 
-    def test_single_varint(self):
+    def test_single_varint(self) -> None:
         """Test decoding single varint."""
         data = bytes([0x05])  # varint value 5
         assert _decode_packed_varints(data) == [5]
 
-    def test_multiple_varints(self):
+    def test_multiple_varints(self) -> None:
         """Test decoding multiple packed varints."""
         # 1, 2, 3 encoded as varints: 0x01, 0x02, 0x03
         data = bytes([0x01, 0x02, 0x03])
         assert _decode_packed_varints(data) == [1, 2, 3]
 
-    def test_larger_varints(self):
+    def test_larger_varints(self) -> None:
         """Test decoding larger values (multi-byte varints)."""
         # 300 = 0xAC, 0x02 in varint encoding
         data = bytes([0xAC, 0x02])
@@ -766,7 +766,7 @@ class TestDecodePackedVarints:
 class TestEdgeCases:
     """Tests for edge cases and boundary conditions."""
 
-    def test_parse_varint_at_buffer_end(self):
+    def test_parse_varint_at_buffer_end(self) -> None:
         """Test parsing varint at end of buffer."""
         data = bytes([0x00, 0x01, 0x7F])
         # Parse from position 1
@@ -774,7 +774,7 @@ class TestEdgeCases:
         assert value == 1
         assert pos == 2
 
-    def test_parse_proto_with_repeated_fields(self):
+    def test_parse_proto_with_repeated_fields(self) -> None:
         """Test parsing proto with repeated varint fields."""
         # field_1: repeated values 1, 2, 3
         # This is encoded as separate tag+value pairs
@@ -784,13 +784,13 @@ class TestEdgeCases:
         assert isinstance(fields[1], list)
         assert fields[1] == [1, 2, 3]
 
-    def test_as_varint_with_bytes_no_field_1(self):
+    def test_as_varint_with_bytes_no_field_1(self) -> None:
         """Test _as_varint with bytes that don't have field_1."""
         # field_2 = 5 -> tag (2 << 3 | 0) = 0x10, varint 0x05
         data = bytes([0x10, 0x05])
         assert _as_varint(data) is None  # field_1 not present
 
-    def test_strip_length_prefix_simple(self):
+    def test_strip_length_prefix_simple(self) -> None:
         """Test stripping length prefix from base64."""
         import base64
         from custom_components.robovac.proto_decode import _strip_length_prefix
