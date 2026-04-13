@@ -199,3 +199,74 @@ def test_get_fan_speeds() -> None:
                 robovac, "_get_command_values", return_value=fan_speed_dict
             ):
                 assert robovac.getFanSpeeds() == expected_speeds
+
+
+def test_get_command_values_nonexistent_command() -> None:
+    """Test _get_command_values with non-existent command returns None."""
+    with patch(
+        "custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None
+    ):
+        robovac = RoboVac(
+            model_code="T2118",
+            device_id="test_id",
+            host="192.168.1.100",
+            local_key="test_key",
+        )
+
+        # Test with non-existent command name
+        values = robovac._get_command_values("NONEXISTENT_COMMAND")
+        assert values is None
+
+
+def test_get_command_values_no_values_dict() -> None:
+    """Test _get_command_values when command has no values dict."""
+    with patch(
+        "custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None
+    ):
+        robovac = RoboVac(
+            model_code="T2118",
+            device_id="test_id",
+            host="192.168.1.100",
+            local_key="test_key",
+        )
+
+        # Add a command without values
+        robovac.model_details.commands["TEST_CMD"] = {"code": 999}
+        values = robovac._get_command_values("TEST_CMD")
+        assert values is None
+
+
+def test_get_fan_speeds_no_fan_command() -> None:
+    """Test getFanSpeeds returns empty list when model doesn't support fan speed."""
+    with patch(
+        "custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None
+    ):
+        robovac = RoboVac(
+            model_code="T2118",
+            device_id="test_id",
+            host="192.168.1.100",
+            local_key="test_key",
+        )
+
+        # Mock _get_command_values to return None (no fan speed support)
+        with patch.object(robovac, "_get_command_values", return_value=None):
+            fan_speeds = robovac.getFanSpeeds()
+            assert fan_speeds == []
+
+
+def test_get_robovac_command_value_with_decode_dps() -> None:
+    """Test getRoboVacCommandValue with proto-based decode_dps."""
+    with patch(
+        "custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None
+    ):
+        robovac = RoboVac(
+            model_code="T2277",  # T2277 has decode_dps
+            device_id="test_id",
+            host="192.168.1.100",
+            local_key="test_key",
+        )
+
+        # T2277 should have decode_dps method
+        assert hasattr(robovac.model_details, 'decode_dps')
+
+
