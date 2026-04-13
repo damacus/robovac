@@ -9,7 +9,7 @@ from custom_components.robovac.robovac import (
     RoboVac,
     ModelNotSupportedException,
 )
-from custom_components.robovac.vacuums.base import RoboVacEntityFeature
+from custom_components.robovac.vacuums.base import RoboVacEntityFeature, RobovacCommand
 
 
 def test_init_unsupported_model() -> None:
@@ -133,7 +133,7 @@ def test_get_fan_speeds() -> None:
         "custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None
     ):
         test_cases = [
-            # Model code, expected fan speeds (title-cased keys), and the dictionary to mock
+            # Model code, expected fan speeds, and mock dictionary
             (
                 "T2118",
                 ["No Suction", "Standard", "Boost Iq", "Max"],
@@ -286,7 +286,9 @@ def test_get_supported_commands() -> None:
         assert isinstance(commands, list)
         assert len(commands) > 0
         # Commands are RobovacCommand enums
-        assert any("mode" in str(cmd).lower() for cmd in commands) or any("battery" in str(cmd).lower() for cmd in commands)
+        has_mode = any("mode" in str(cmd).lower() for cmd in commands)
+        has_battery = any("battery" in str(cmd).lower() for cmd in commands)
+        assert has_mode or has_battery
 
 
 def test_get_dps_codes() -> None:
@@ -339,7 +341,8 @@ def test_get_robovac_command_value_with_model_value_mapping() -> None:
         )
 
         # Test mapping a command value
-        with patch.object(robovac, "_get_command_values", return_value={"auto": "Auto", "edge": "Edge"}):
+        mock_values = {"auto": "Auto", "edge": "Edge"}
+        with patch.object(robovac, "_get_command_values", return_value=mock_values):
             result = robovac.getRoboVacCommandValue(RobovacCommand.MODE, "auto")
             assert result == "Auto"
 
@@ -357,7 +360,9 @@ def test_get_robovac_command_value_unmapped() -> None:
         )
 
         with patch.object(robovac, "_get_command_values", return_value=None):
-            result = robovac.getRoboVacCommandValue(RobovacCommand.MODE, "unknown_value")
+            result = robovac.getRoboVacCommandValue(
+                RobovacCommand.MODE, "unknown_value"
+            )
             assert result == "unknown_value"
 
 
@@ -397,7 +402,7 @@ def test_dps_codes_cache() -> None:
         dps_codes_1 = robovac.getDpsCodes()
         # Second call (should use cache)
         dps_codes_2 = robovac.getDpsCodes()
-        
+
         assert dps_codes_1 == dps_codes_2
         assert robovac._dps_codes_cache is not None
 
@@ -423,7 +428,7 @@ def test_robovac_attributes() -> None:
 def test_robovac_different_models() -> None:
     """Test RoboVac initialization with different supported models."""
     test_models = ["T2118", "T2190", "T2250", "T2277"]
-    
+
     for model_code in test_models:
         with patch(
             "custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None
@@ -434,7 +439,7 @@ def test_robovac_different_models() -> None:
                 host="192.168.1.100",
                 local_key="test_key",
             )
-            
+
             assert robovac.model_code == model_code
             dps_codes = robovac.getDpsCodes()
             assert isinstance(dps_codes, dict)

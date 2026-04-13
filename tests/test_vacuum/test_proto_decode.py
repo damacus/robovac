@@ -185,18 +185,18 @@ class TestDecodeModeCtrl:
     @pytest.mark.parametrize(
         "raw_b64,expected",
         [
-            ("AA==", "standby"),            # empty payload (no method, no param, no seq)
+            ("AA==", "standby"),            # empty payload
             ("AggN", "pause"),              # method=PAUSE_TASK (13)
             ("AggG", "stop"),               # method=START_GOHOME (6)
-            ("BBoCCAE=", "auto"),           # param.auto_clean present (method=0 or absent)
+            ("BBoCCAE=", "auto"),           # param.auto_clean present
             ("AggO", "nosweep"),            # method=RESUME_TASK (14)
             ("BAgNEGg=", "pause"),          # method=PAUSE_TASK (13) with seq=104
             ("BAgOEGg=", "nosweep"),        # method=RESUME_TASK (14) with seq=104
             ("BAgOEGw=", "nosweep"),        # method=RESUME_TASK (14) with seq=108
             # Three new command values
-            ("AhBs", "auto"),               # seq=108 only — active-session param update
+            ("AhBs", "auto"),               # seq=108 only - active session update
             ("BAgGEHA=", "stop"),           # method=START_GOHOME (6), seq=112
-            ("BAgCEHQ=", "spot"),           # method=START_SELECT_ZONES_CLEAN (2), seq=116
+            ("BAgCEHQ=", "spot"),           # method=START_SELECT_ZONES (2), seq=116
         ],
     )
     def test_mode_ctrl_payloads(self, raw_b64: str, expected: str) -> None:
@@ -240,12 +240,12 @@ class TestDecodeWorkStatus:
         [
             # Confirmed working cases from T2277.py reverse lookup
             ("AhAB", "Sleeping"),           # state=SLEEP(1)
-            ("BgoAEAUyAA==", "auto"),       # state=CLEANING(5), mode=AUTO, no relocating
-            ("CAoAEAUyAggB", "Paused"),     # state=CLEANING(5), cleaning.run_state=PAUSED
-            ("CAoCCAEQBTIA", "room"),       # state=CLEANING(5), mode=SELECT_ROOM(1)
-            ("CgoCCAEQBTICCAE=", "room_pause"),  # state=CLEANING(5), mode=SELECT_ROOM, paused
-            ("CAoCCAIQBTIA", "spot"),       # state=CLEANING(5), mode=SELECT_ZONE(2)
-            ("CgoCCAIQBTICCAE=", "spot_pause"),  # state=CLEANING(5), mode=SELECT_ZONE, paused
+            ("BgoAEAUyAA==", "auto"),       # state=CLEANING, mode=AUTO
+            ("CAoAEAUyAggB", "Paused"),     # state=CLEANING, paused
+            ("CAoCCAEQBTIA", "room"),       # state=CLEANING, SELECT_ROOM mode
+            ("CgoCCAEQBTICCAE=", "room_pause"),  # SELECT_ROOM mode, paused
+            ("CAoCCAIQBTIA", "spot"),       # state=CLEANING, SELECT_ZONE mode
+            ("CgoCCAIQBTICCAE=", "spot_pause"),  # SELECT_ZONE mode, paused
             ("BAoAEAY=", "start_manual"),   # state=REMOTE_CTRL(6)
             ("BBAHQgA=", "going_to_charge"),  # state=GO_HOME(7), no breakpoint
             ("BBADGgA=", "Charging"),       # state=CHARGING(3), charging.state != DONE
@@ -258,7 +258,7 @@ class TestDecodeWorkStatus:
         assert result == expected
 
     def test_work_status_empty_standby(self) -> None:
-        """Test that empty payload with no state field defaults to Standby-like behavior."""
+        """Test empty payload with no state field defaults to Standby-like behavior."""
         # AA== has no fields, so state is None
         # The code returns state_None for this case
         result = decode_work_status("AA==")
@@ -288,8 +288,8 @@ class TestDecodeWorkStatus:
     def test_work_status_going_to_recharge(self) -> None:
         """Test going_to_recharge with breakpoint field."""
         result = decode_work_status("CAoAEAdCAFoA")
-        # Has state=GO_HOME(7) and breakpoint field (field_11) with empty bytes
-        # Empty bytes are falsy, so the breakpoint check fails and returns going_to_charge
+        # Has state=GO_HOME(7) and breakpoint field with empty bytes
+        # Empty bytes are falsy, so breakpoint check fails
         assert result == "going_to_charge"
 
     def test_work_status_recharging(self) -> None:
@@ -463,7 +463,7 @@ class TestGetT2277ErrorMessage:
 
 
 class TestDecodeWorkStatusV2:
-    """Tests for decode_work_status_v2 — wrapped WorkStatus with sub-message RunState."""
+    """Tests for decode_work_status_v2 with WorkStatus and RunState."""
 
     def test_dps173_sample_cleaning_paused(self) -> None:
         """Decode the observed DPS 173 sample: Cleaning + GoWash both PAUSED."""
@@ -570,8 +570,9 @@ class TestDecodeConsumableResponse:
 
     def test_dps168_sample(self) -> None:
         """Decode the observed DPS 168 sample."""
-        # JAoiCgIIMBIDCN4CGgIIMCoDCN4COgMIpgygAaGFva/W7uzOAQ==
-        result = decode_consumable_response("JAoiCgIIMBIDCN4CGgIIMCoDCN4COgMIpgygAaGFva/W7uzOAQ==")
+        # Consumable response with side_brush, filter, and other data
+        payload = "JAoiCgIIMBIDCN4CGgIIMCoDCN4COgMIpgygAaGFva/W7uzOAQ=="
+        result = decode_consumable_response(payload)
         assert result.get("side_brush") == 48
         assert result.get("rolling_brush") == 350
         assert result.get("filter_mesh") == 48
@@ -818,7 +819,8 @@ def test_analyze_response_with_empty_data() -> None:
 def test_clean_record_list_with_multiple_records() -> None:
     """Test decode_clean_record_list with multiple cleaning records."""
     # Create a payload with multiple records
-    test_payload = base64.b64encode(b'\x0a\x04\x08\x01\x10\x02\x0a\x04\x08\x03\x10\x04').decode()
+    data = b'\x0a\x04\x08\x01\x10\x02\x0a\x04\x08\x03\x10\x04'
+    test_payload = base64.b64encode(data).decode()
     result = decode_clean_record_list(test_payload)
     # Should return list or None
     assert result is None or isinstance(result, list)
@@ -838,7 +840,7 @@ def test_unisetting_with_various_field_combinations() -> None:
         "AA==",  # Empty
         "Cg==",  # Single byte field
     ]
-    
+
     for payload in payloads:
         result = decode_unisetting_response(payload)
         # Should handle all gracefully
@@ -848,15 +850,15 @@ def test_unisetting_with_various_field_combinations() -> None:
 def test_parse_varint_boundary_values() -> None:
     """Test _parse_varint with boundary values."""
     from custom_components.robovac.proto_decode import _parse_varint
-    
+
     # Test zero
     offset, value = _parse_varint(b'\x00', 0)
     assert value == 0
-    
+
     # Test max single byte (127)
     offset, value = _parse_varint(b'\x7f', 0)
     assert value == 127
-    
+
     # Test value requiring multiple bytes
     offset, value = _parse_varint(b'\x80\x01', 0)
     assert value == 128
@@ -865,12 +867,12 @@ def test_parse_varint_boundary_values() -> None:
 def test_parse_proto_with_unknown_field_types() -> None:
     """Test _parse_proto handles unknown field types gracefully."""
     from custom_components.robovac.proto_decode import _parse_proto
-    
+
     # Payload with unknown field type (should skip)
     # Field with type 6 (reserved) or 7 (reserved)
     test_data = base64.b64decode("Cw==")  # Field 1, wire type 3 (length-delimited)
     result = _parse_proto(test_data)
-    
+
     # Should return dict
     assert isinstance(result, dict)
 
@@ -891,7 +893,7 @@ def test_work_status_v2_sensor_state_values() -> None:
         "CA==",  # Minimal data
         "Cg==",  # Different minimal data
     ]
-    
+
     for payload in test_cases:
         result = decode_work_status_v2(payload)
         # Should return a string state or None
