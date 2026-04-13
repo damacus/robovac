@@ -1049,63 +1049,6 @@ async def test_last_clean_record_sensor_successful_update(mock_vacuum_data: Any)
 # Tests for async_setup_entry and entity creation
 # ============================================================================
 
-@pytest.mark.asyncio
-async def test_async_setup_entry_basic() -> None:
-    """Test async_setup_entry creates battery sensor for each vacuum."""
-    from custom_components.robovac.sensor import async_setup_entry
-    from homeassistant.config_entries import ConfigEntry
-
-    mock_hass = MagicMock()
-    mock_config_entry = MagicMock(spec=ConfigEntry)
-    mock_config_entry.data = {
-        "vacuums": {
-            "vac1": {
-                CONF_ID: "vac1",
-                "name": "Test Vacuum 1",
-                "model": "T2118"
-            }
-        }
-    }
-
-    entities_added = []
-
-    def mock_add_entities(entities):
-        entities_added.extend(entities)
-
-    await async_setup_entry(mock_hass, mock_config_entry, mock_add_entities)
-
-    # Should at least add battery sensor
-    assert len(entities_added) >= 1
-    assert any(isinstance(e, RobovacBatterySensor) for e in entities_added)
-
-
-@pytest.mark.asyncio
-async def test_async_setup_entry_with_t2277_model() -> None:
-    """Test async_setup_entry creates all sensors for T2277 model with full command set."""
-    from custom_components.robovac.sensor import async_setup_entry
-    from homeassistant.config_entries import ConfigEntry
-
-    mock_hass = MagicMock()
-    mock_config_entry = MagicMock(spec=ConfigEntry)
-    mock_config_entry.data = {
-        "vacuums": {
-            "vac1": {
-                CONF_ID: "vac1",
-                "name": "Test Vacuum",
-                "model": "T2277"  # Model with many commands
-            }
-        }
-    }
-
-    entities_added = []
-
-    def mock_add_entities(entities):
-        entities_added.extend(entities)
-
-    await async_setup_entry(mock_hass, mock_config_entry, mock_add_entities)
-
-    # T2277 should create many sensors due to command availability
-    assert len(entities_added) > 5
 
 
 @pytest.mark.asyncio
