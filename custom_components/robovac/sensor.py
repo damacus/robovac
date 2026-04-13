@@ -57,7 +57,7 @@ async def async_setup_entry(
 ) -> None:
     """Set up the Eufy RoboVac sensor platform."""
     vacuums = config_entry.data[CONF_VACS]
-    entities = []
+    entities: list[SensorEntity] = []
 
     for item in vacuums:
         item = vacuums[item]
