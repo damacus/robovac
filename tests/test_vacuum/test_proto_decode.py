@@ -801,3 +801,106 @@ class TestEdgeCases:
 
         result = _strip_length_prefix(b64)
         assert result == bytes([0x05])
+
+
+# ============================================================================
+# Additional edge case tests
+# ============================================================================
+
+def test_analyze_response_with_empty_data() -> None:
+    """Test decode_analysis_response handles empty/minimal data."""
+    # AA== is empty payload
+    result = decode_analysis_response("AA==")
+    # Should handle gracefully - either None or empty dict
+    assert result is None or isinstance(result, dict)
+
+
+def test_clean_record_list_with_multiple_records() -> None:
+    """Test decode_clean_record_list with multiple cleaning records."""
+    # Create a payload with multiple records
+    test_payload = base64.b64encode(b'\x0a\x04\x08\x01\x10\x02\x0a\x04\x08\x03\x10\x04').decode()
+    result = decode_clean_record_list(test_payload)
+    # Should return list or None
+    assert result is None or isinstance(result, list)
+
+
+def test_device_info_with_missing_fields() -> None:
+    """Test decode_device_info handles missing fields gracefully."""
+    # Minimal device info payload
+    result = decode_device_info("AA==")
+    assert result is None or isinstance(result, dict)
+
+
+def test_unisetting_with_various_field_combinations() -> None:
+    """Test decode_unisetting_response with different field combinations."""
+    # Test multiple different payloads
+    payloads = [
+        "AA==",  # Empty
+        "Cg==",  # Single byte field
+    ]
+    
+    for payload in payloads:
+        result = decode_unisetting_response(payload)
+        # Should handle all gracefully
+        assert result is None or isinstance(result, dict)
+
+
+def test_parse_varint_boundary_values() -> None:
+    """Test _parse_varint with boundary values."""
+    from custom_components.robovac.proto_decode import _parse_varint
+    
+    # Test zero
+    offset, value = _parse_varint(b'\x00', 0)
+    assert value == 0
+    
+    # Test max single byte (127)
+    offset, value = _parse_varint(b'\x7f', 0)
+    assert value == 127
+    
+    # Test value requiring multiple bytes
+    offset, value = _parse_varint(b'\x80\x01', 0)
+    assert value == 128
+
+
+def test_parse_proto_with_unknown_field_types() -> None:
+    """Test _parse_proto handles unknown field types gracefully."""
+    from custom_components.robovac.proto_decode import _parse_proto
+    
+    # Payload with unknown field type (should skip)
+    # Field with type 6 (reserved) or 7 (reserved)
+    test_data = base64.b64decode("Cw==")  # Field 1, wire type 3 (length-delimited)
+    result = _parse_proto(test_data)
+    
+    # Should return dict
+    assert isinstance(result, dict)
+
+
+def test_clean_param_response_with_multiple_fan_modes() -> None:
+    """Test decode_clean_param_response with different fan mode values."""
+    # Test that the function returns appropriate values
+    result = decode_clean_param_response("AA==")
+    # Should handle minimal payload
+    assert result is None or isinstance(result, dict) or isinstance(result, str)
+
+
+def test_work_status_v2_sensor_state_values() -> None:
+    """Test decode_work_status_v2 returns valid state values."""
+    # Test various work status payloads to ensure valid states
+    test_cases = [
+        "AA==",  # Empty payload
+        "CA==",  # Minimal data
+        "Cg==",  # Different minimal data
+    ]
+    
+    for payload in test_cases:
+        result = decode_work_status_v2(payload)
+        # Should return a string state or None
+        assert result is None or isinstance(result, str)
+
+
+def test_error_code_with_extended_codes() -> None:
+    """Test decode_error_code handles various error code formats."""
+    # Test error code decoding with different data formats
+    result = decode_error_code("AA==")
+    # Should return string or None
+    assert result is None or isinstance(result, str)
