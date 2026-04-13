@@ -97,3 +97,154 @@ def test_t2277_error_dps_enabled(mock_t2277_robovac):
     commands = mock_t2277_robovac.model_details.commands
     assert RobovacCommand.ERROR in commands
     assert commands[RobovacCommand.ERROR]["code"] == 177
+
+
+def test_t2277_decode_dps_mode_ctrl():
+    """Test decode_dps for MODE command (DPS 152)."""
+    from custom_components.robovac.vacuums.T2277 import T2277
+
+    # Test with a valid mode control value
+    result = T2277.decode_dps(152, "AggN")
+    assert result is not None
+
+
+def test_t2277_decode_dps_status():
+    """Test decode_dps for STATUS command (DPS 153)."""
+    from custom_components.robovac.vacuums.T2277 import T2277
+
+    # Test returns None when no valid data
+    result = T2277.decode_dps(153, "AA==")
+    # Should not raise an exception
+
+
+def test_t2277_decode_dps_battery():
+    """Test decode_dps for unknown DPS code."""
+    from custom_components.robovac.vacuums.T2277 import T2277
+
+    # Unknown DPS codes should return None
+    result = T2277.decode_dps(999, "AA==")
+    assert result is None
+
+
+def test_t2277_decode_dps_invalid_base64():
+    """Test decode_dps handles invalid base64 gracefully."""
+    from custom_components.robovac.vacuums.T2277 import T2277
+
+    # Invalid base64 should return None without raising
+    result = T2277.decode_dps(152, "invalid@base64!")
+    assert result is None
+
+
+def test_t2277_decode_dps_exception_handling():
+    """Test decode_dps exception handling."""
+    from custom_components.robovac.vacuums.T2277 import T2277
+    from unittest.mock import patch
+
+    # Mock proto_decode to raise an exception
+    with patch("custom_components.robovac.proto_decode.decode_mode_ctrl", side_effect=Exception("decode error")):
+        result = T2277.decode_dps(152, "AggN")
+        assert result is None
+
+
+def test_t2277_decode_dps_clean_param():
+    """Test decode_dps for CLEAN_PARAM (DPS 154)."""
+    from custom_components.robovac.vacuums.T2277 import T2277
+    from unittest.mock import patch
+
+    with patch(
+        "custom_components.robovac.proto_decode.decode_clean_param_response",
+        return_value={"running_clean_param": {"fan": "Standard"}}
+    ):
+        result = T2277.decode_dps(154, "AA==")
+        assert result == "Standard"
+
+
+def test_t2277_decode_dps_clean_records():
+    """Test decode_dps for CLEAN_RECORDS (DPS 164)."""
+    from custom_components.robovac.vacuums.T2277 import T2277
+    from unittest.mock import patch
+
+    with patch(
+        "custom_components.robovac.proto_decode.decode_clean_record_list",
+        return_value=[{"timestamp": 1234567890}]
+    ):
+        result = T2277.decode_dps(164, "AA==")
+        assert "record" in result
+
+
+def test_t2277_decode_dps_consumables():
+    """Test decode_dps for CONSUMABLES (DPS 168)."""
+    from custom_components.robovac.vacuums.T2277 import T2277
+    from unittest.mock import patch
+
+    with patch(
+        "custom_components.robovac.proto_decode.decode_consumable_response",
+        return_value={"side_brush": 100, "filter": 80}
+    ):
+        result = T2277.decode_dps(168, "AA==")
+        assert "side_brush" in result
+
+
+def test_t2277_decode_dps_device_info():
+    """Test decode_dps for DEVICE_INFO (DPS 169)."""
+    from custom_components.robovac.vacuums.T2277 import T2277
+    from unittest.mock import patch
+
+    with patch(
+        "custom_components.robovac.proto_decode.decode_device_info",
+        return_value={"product_name": "T2277", "software": "1.0.0"}
+    ):
+        result = T2277.decode_dps(169, "AA==")
+        assert "product_name" in result
+
+
+def test_t2277_decode_dps_work_status_v2():
+    """Test decode_dps for WORK_STATUS_V2 (DPS 173)."""
+    from custom_components.robovac.vacuums.T2277 import T2277
+    from unittest.mock import patch
+
+    with patch(
+        "custom_components.robovac.proto_decode.decode_work_status_v2",
+        return_value="Cleaning"
+    ):
+        result = T2277.decode_dps(173, "AA==")
+        assert result == "Cleaning"
+
+
+def test_t2277_decode_dps_unisetting():
+    """Test decode_dps for UNISETTING (DPS 176)."""
+    from custom_components.robovac.vacuums.T2277 import T2277
+    from unittest.mock import patch
+
+    with patch(
+        "custom_components.robovac.proto_decode.decode_unisetting_response",
+        return_value={"wifi_ssid": "MyNetwork"}
+    ):
+        result = T2277.decode_dps(176, "AA==")
+        assert "wifi_ssid" in result
+
+
+def test_t2277_decode_dps_error_code():
+    """Test decode_dps for ERROR (DPS 177)."""
+    from custom_components.robovac.vacuums.T2277 import T2277
+    from unittest.mock import patch
+
+    with patch(
+        "custom_components.robovac.proto_decode.decode_error_code",
+        return_value="Battery low"
+    ):
+        result = T2277.decode_dps(177, "AA==")
+        assert result == "Battery low"
+
+
+def test_t2277_decode_dps_last_clean():
+    """Test decode_dps for LAST_CLEAN (DPS 179)."""
+    from custom_components.robovac.vacuums.T2277 import T2277
+    from unittest.mock import patch
+
+    with patch(
+        "custom_components.robovac.proto_decode.decode_analysis_response",
+        return_value={"clean_time_s": 3600}
+    ):
+        result = T2277.decode_dps(179, "AA==")
+        assert "clean_time_s" in result
