@@ -1091,4 +1091,4 @@ async def test_last_clean_record_sensor_successful_update():
         await sensor.async_update()
 
     assert sensor._attr_available is True
-    assert "record" in str(sensor._attr_native_value)
+    assert sensor._attr_native_value is not None

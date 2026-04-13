@@ -285,7 +285,8 @@ def test_get_supported_commands() -> None:
         commands = robovac.getSupportedCommands()
         assert isinstance(commands, list)
         assert len(commands) > 0
-        assert "MODE" in commands or "BATTERY" in commands  # Should have at least some common commands
+        # Commands are RobovacCommand enums
+        assert any("mode" in str(cmd).lower() for cmd in commands) or any("battery" in str(cmd).lower() for cmd in commands)
 
 
 def test_get_dps_codes() -> None:
@@ -303,5 +304,7 @@ def test_get_dps_codes() -> None:
         dps_codes = robovac.getDpsCodes()
         assert isinstance(dps_codes, dict)
         assert len(dps_codes) > 0
+        # All values should be string DPS codes
+        assert all(isinstance(code, str) for code in dps_codes.values())
 
 
