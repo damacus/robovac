@@ -634,3 +634,48 @@ async def test_consumable_sensor_update_exception_handling():
 
     await sensor.async_update()
     assert sensor._attr_available is False
+
+
+@pytest.mark.asyncio
+async def test_error_sensor_update_successful():
+    """Test error sensor update with successful decode."""
+    from custom_components.robovac.sensor import RobovacErrorSensor
+
+    mock_data = {CONF_ID: "test_id", "name": "Test"}
+    sensor = RobovacErrorSensor(mock_data, "177")
+
+    # Mock vacuum entity with error data
+    mock_vacuum = MagicMock()
+    mock_vacuum.tuyastatus = {"177": "AA=="}  # Some error code
+    mock_vacuum.vacuum.getRoboVacHumanReadableValue.return_value = "no_error"
+
+    mock_hass = MagicMock()
+    mock_hass.data = {"robovac": {"vacuums": {"test_id": mock_vacuum}}}
+    sensor.hass = mock_hass
+
+    await sensor.async_update()
+    assert sensor._attr_available is True
+    assert sensor._attr_native_value is None  # no_error returns None
+
+
+@pytest.mark.asyncio
+async def test_notification_sensor_update_successful():
+    """Test notification sensor update with successful decode."""
+    from custom_components.robovac.sensor import RobovacNotificationSensor
+
+    mock_data = {CONF_ID: "test_id", "name": "Test"}
+    sensor = RobovacNotificationSensor(mock_data, "178")
+
+    # Mock vacuum entity with notification data
+    mock_vacuum = MagicMock()
+    mock_vacuum.tuyastatus = {"178": "AA=="}
+
+    mock_hass = MagicMock()
+    mock_hass.data = {"robovac": {"vacuums": {"test_id": mock_vacuum}}}
+    sensor.hass = mock_hass
+
+    with patch("custom_components.robovac.sensor.decode_error_code", return_value="no_error"):
+        await sensor.async_update()
+
+    assert sensor._attr_available is True
+    assert sensor._attr_native_value is None  # no_error returns None
