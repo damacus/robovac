@@ -263,7 +263,7 @@ class RoboVac(TuyaDevice):
                     dps_code = cmd_entry["code"]
                     decoded = self.model_details.decode_dps(dps_code, str(value))
                     if decoded is not None:
-                        return decoded
+                        return str(decoded)
 
             values = self._get_command_values(cmd)
 
