@@ -29,18 +29,15 @@ T2277_ERROR_CODES = {
     1013: "Left wheel stuck",
     1023: "Right wheel stuck",
     1033: "Both wheels stuck",
-    
     # Brushes
     2112: "Main brush stuck",
     2213: "Side brush stuck",
-    
     # Dust system
     2310: "Dust box missing",
     # Sensors
     4012: "Laser sensor stuck",
     4011: "Laser sensor blocked",
     4130: "Laser cover stuck",
-
     # Power
     5014: "Battery low",
     2602: "Battery error",
@@ -54,7 +51,6 @@ T2277_ERROR_CODES = {
     7010: "Robot entered no go zone",
     7031: "Return to dock failed",
     7050: "Inaccessible areas not cleaned",
-
 }
 
 # T2277 prompt/notification codes (DPS 178 field_2 packed uint32)
@@ -110,7 +106,7 @@ def _parse_proto(data: bytes) -> dict[int, Any]:
 
         elif wire_type == 2:  # length-delimited
             length, pos = _parse_varint(data, pos)
-            value = data[pos : pos + length]
+            value = data[pos: pos + length]
             pos += length
             if field_num in fields:
                 # Repeated length-delimited field → accumulate as list
@@ -233,8 +229,8 @@ def decode_work_status(raw_b64: str) -> str:
     mode = mode_fields.get(1, 0)
     charging_state = charging_fields.get(1)
     cleaning_run_state = cleaning_fields.get(1)
-    cleaning_mode = cleaning_fields.get(2)
-    gohome_run_state = gohome_fields.get(1)
+    # cleaning_mode = cleaning_fields.get(2)
+    # gohome_run_state = gohome_fields.get(1)
 
     # State-based routing
     if state == 0:  # STANDBY
