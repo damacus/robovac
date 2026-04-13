@@ -97,3 +97,50 @@ def test_t2277_error_dps_enabled(mock_t2277_robovac):
     commands = mock_t2277_robovac.model_details.commands
     assert RobovacCommand.ERROR in commands
     assert commands[RobovacCommand.ERROR]["code"] == 177
+
+
+def test_t2277_decode_dps_mode_ctrl():
+    """Test decode_dps for MODE command (DPS 152)."""
+    from custom_components.robovac.vacuums.T2277 import T2277
+
+    # Test with a valid mode control value
+    result = T2277.decode_dps(152, "AggN")
+    assert result is not None
+
+
+def test_t2277_decode_dps_status():
+    """Test decode_dps for STATUS command (DPS 153)."""
+    from custom_components.robovac.vacuums.T2277 import T2277
+
+    # Test returns None when no valid data
+    result = T2277.decode_dps(153, "AA==")
+    # Should not raise an exception
+
+
+def test_t2277_decode_dps_battery():
+    """Test decode_dps for unknown DPS code."""
+    from custom_components.robovac.vacuums.T2277 import T2277
+
+    # Unknown DPS codes should return None
+    result = T2277.decode_dps(999, "AA==")
+    assert result is None
+
+
+def test_t2277_decode_dps_invalid_base64():
+    """Test decode_dps handles invalid base64 gracefully."""
+    from custom_components.robovac.vacuums.T2277 import T2277
+
+    # Invalid base64 should return None without raising
+    result = T2277.decode_dps(152, "invalid@base64!")
+    assert result is None
+
+
+def test_t2277_decode_dps_exception_handling():
+    """Test decode_dps exception handling."""
+    from custom_components.robovac.vacuums.T2277 import T2277
+    from unittest.mock import patch
+
+    # Mock proto_decode to raise an exception
+    with patch("custom_components.robovac.proto_decode.decode_mode_ctrl", side_effect=Exception("decode error")):
+        result = T2277.decode_dps(152, "AggN")
+        assert result is None
