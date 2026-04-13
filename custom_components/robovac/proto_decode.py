@@ -61,13 +61,13 @@ T2277_ERROR_CODES = {
 # Source: PromptCodeList enum in error_code_list_t2265.proto
 # These are informational notifications, not hardware faults.
 T2277_PROMPT_CODES = {
-    31:   "Positioning successful",
-    40:   "Task finished, returning to dock",
-    76:   "Cannot start task while at charging dock",
-    78:   "Low battery, please charge before cleaning",
-    79:   "Low battery, returning to dock",
-    85:   "Starting scheduled cleaning",
-    87:   "Map updating, please try again later",
+    31: "Positioning successful",
+    40: "Task finished, returning to dock",
+    76: "Cannot start task while at charging dock",
+    78: "Low battery, please charge before cleaning",
+    79: "Low battery, returning to dock",
+    85: "Starting scheduled cleaning",
+    87: "Map updating, please try again later",
     6300: "Cutting hair / debris",
     6301: "Low battery, cannot cut hair",
 }
@@ -396,16 +396,16 @@ def decode_work_status_v2(raw_b64: str) -> str:
         b = fields.get(field_num)
         return _parse_proto(b) if isinstance(b, bytes) and b else {}
 
-    charging_fields   = _sub(3)
-    cleaning_fields   = _sub(6)
-    gowash_fields     = _sub(7)
-    gohome_fields     = _sub(8)
+    charging_fields = _sub(3)
+    cleaning_fields = _sub(6)
+    gowash_fields = _sub(7)
+    gohome_fields = _sub(8)
     relocating_fields = _sub(10)
     breakpoint_fields = _sub(11)
 
     cleaning_run_state = _as_varint(cleaning_fields.get(1))
-    gowash_run_state   = _as_varint(gowash_fields.get(1))
-    charging_state     = _as_varint(charging_fields.get(1))
+    gowash_run_state = _as_varint(gowash_fields.get(1))
+    charging_state = _as_varint(charging_fields.get(1))
 
     # Infer overall state from sub-state presence when explicit state absent
     if state is None:
@@ -486,11 +486,11 @@ def decode_clean_param_response(raw_b64: str) -> dict[str, Any]:
       field_6 Fan         {suction: QUIET=0, STANDARD=1, TURBO=2, MAX=3, MAX_PLUS=4}
       field_7 uint32      clean_times
     """
-    FAN_NAMES         = ["quiet", "standard", "turbo", "max", "max_plus"]
-    CLEAN_TYPE_NAMES  = ["sweep_only", "mop_only", "sweep_and_mop", "sweep_then_mop"]
-    CARPET_NAMES      = ["auto_raise", "avoid", "ignore"]
-    EXTENT_NAMES      = ["normal", "narrow", "quick"]
-    MOP_LEVEL_NAMES   = ["low", "middle", "high"]
+    FAN_NAMES = ["quiet", "standard", "turbo", "max", "max_plus"]
+    CLEAN_TYPE_NAMES = ["sweep_only", "mop_only", "sweep_and_mop", "sweep_then_mop"]
+    CARPET_NAMES = ["auto_raise", "avoid", "ignore"]
+    EXTENT_NAMES = ["normal", "narrow", "quick"]
+    MOP_LEVEL_NAMES = ["low", "middle", "high"]
 
     def _enum_val(b: Any) -> int:
         """Extract enum value from sub-message {field_1: N} or plain int."""
@@ -721,8 +721,8 @@ def decode_analysis_response(raw_b64: str) -> dict[str, Any]:
           field_12 uint32  room_count
           field_13 RollBrush roll_brush
     """
-    MODES      = ["auto_clean", "select_rooms_clean", "select_zones_clean", "spot_clean", "fast_mapping"]
-    TYPES      = ["sweep_only", "mop_only", "sweep_and_mop"]
+    MODES = ["auto_clean", "select_rooms_clean", "select_zones_clean", "spot_clean", "fast_mapping"]
+    TYPES = ["sweep_only", "mop_only", "sweep_and_mop"]
     FAIL_CODES = ["unknown", "robot_fault", "robot_alert", "manual_break"]
 
     data = _strip_length_prefix(raw_b64)
