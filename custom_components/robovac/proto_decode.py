@@ -222,7 +222,7 @@ def decode_work_status(raw_b64: str) -> str:
     mode_fields = _parse_proto(mode_bytes) if mode_bytes else {}
     charging_fields = _parse_proto(charging_bytes) if charging_bytes else {}
     cleaning_fields = _parse_proto(cleaning_bytes) if cleaning_bytes else {}
-    gohome_fields = _parse_proto(gohome_bytes) if gohome_bytes else {}
+    # gohome_fields = _parse_proto(gohome_bytes) if gohome_bytes else {}
     relocating_fields = _parse_proto(relocating_bytes) if relocating_bytes else {}
     breakpoint_fields = _parse_proto(breakpoint_bytes) if breakpoint_bytes else {}
 
