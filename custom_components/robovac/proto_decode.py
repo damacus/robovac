@@ -214,7 +214,7 @@ def decode_work_status(raw_b64: str) -> str:
     state = fields.get(2)
     charging_bytes = fields.get(3)
     cleaning_bytes = fields.get(6)
-    gohome_bytes = fields.get(8)
+    # gohome_bytes = fields.get(8)
     relocating_bytes = fields.get(10)
     breakpoint_bytes = fields.get(11)
 
