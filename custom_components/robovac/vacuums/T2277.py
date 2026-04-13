@@ -32,12 +32,12 @@ class T2277(RobovacModelDetails):
             # Decoded by decode_dps() via proto_decode.decode_mode_ctrl().
             "code": 152,
             "values": {
-                "standby":  "AA==",      # empty payload
-                "pause":    "AggN",      # method=PAUSE_TASK (13)
-                "stop":     "AggG",      # method=START_GOHOME (6)
-                "return":   "AggG",      # method=START_GOHOME (6)
-                "auto":     "BBoCCAE=",  # param.auto_clean={clean_times=1}
-                "nosweep":  "AggO",      # method=RESUME_TASK (14)
+                "standby": "AA==",      # empty payload
+                "pause": "AggN",      # method=PAUSE_TASK (13)
+                "stop": "AggG",      # method=START_GOHOME (6)
+                "return": "AggG",      # method=START_GOHOME (6)
+                "auto": "BBoCCAE=",  # param.auto_clean={clean_times=1}
+                "nosweep": "AggO",      # method=RESUME_TASK (14)
             },
         },
         RobovacCommand.START_PAUSE: {
@@ -79,10 +79,10 @@ class T2277(RobovacModelDetails):
         RobovacCommand.FAN_SPEED: {
             "code": 158,
             "values": {
-                "quiet":    "Quiet",
+                "quiet": "Quiet",
                 "standard": "Standard",
-                "turbo":    "Turbo",
-                "max":      "Max",
+                "turbo": "Turbo",
+                "max": "Max",
             },
         },
         RobovacCommand.LOCATE: {
