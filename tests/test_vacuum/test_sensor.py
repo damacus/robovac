@@ -1043,13 +1043,11 @@ async def test_last_clean_record_sensor_successful_update(mock_vacuum_data: Any)
 
     assert sensor._attr_available is True
     assert sensor._attr_native_value is not None
-
+    
 
 # ============================================================================
 # Tests for async_setup_entry and entity creation
 # ============================================================================
-
-
 
 @pytest.mark.asyncio
 async def test_battery_sensor_string_value() -> None:
