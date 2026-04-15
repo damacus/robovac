@@ -1043,7 +1043,7 @@ async def test_last_clean_record_sensor_successful_update(mock_vacuum_data: Any)
 
     assert sensor._attr_available is True
     assert sensor._attr_native_value is not None
-    
+
 
 # ============================================================================
 # Tests for async_setup_entry and entity creation
@@ -1258,12 +1258,12 @@ async def test_wifi_signal_sensor_with_signal_value() -> None:
 
     with patch(
         "custom_components.robovac.sensor.decode_unisetting_response",
-        return_value={"signal_strength": -45}  # dBm value
+        return_value={"wifi_signal_pct": 70}
     ):
         await sensor.async_update()
 
     assert sensor._attr_available is True
-    assert sensor._attr_native_value == -45
+    assert sensor._attr_native_value == 70
 
 
 @pytest.mark.asyncio
@@ -1333,4 +1333,4 @@ async def test_last_clean_duration_sensor_with_time_value() -> None:
         await sensor.async_update()
 
     assert sensor._attr_available is True
-    assert sensor._attr_native_value == 30  # Should be converted to minutes
+    assert sensor._attr_native_value == 1800  # Stored in seconds (unit: "s")

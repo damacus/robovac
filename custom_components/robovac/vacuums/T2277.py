@@ -43,7 +43,7 @@ class T2277(RobovacModelDetails):
         RobovacCommand.START_PAUSE: {
             "code": 152,
             "values": {
-            	"start": "AggO",			# method=RESUME_TASK (14)
+                "start": "AggO",         # method=RESUME_TASK (14)
                 "pause": "AggN",         # method=PAUSE_TASK (13)
             },
         },

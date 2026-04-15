@@ -852,15 +852,15 @@ def test_parse_varint_boundary_values() -> None:
     from custom_components.robovac.proto_decode import _parse_varint
 
     # Test zero
-    offset, value = _parse_varint(b'\x00', 0)
+    value, offset = _parse_varint(b'\x00', 0)
     assert value == 0
 
     # Test max single byte (127)
-    offset, value = _parse_varint(b'\x7f', 0)
+    value, offset = _parse_varint(b'\x7f', 0)
     assert value == 127
 
     # Test value requiring multiple bytes
-    offset, value = _parse_varint(b'\x80\x01', 0)
+    value, offset = _parse_varint(b'\x80\x01', 0)
     assert value == 128
 
 
