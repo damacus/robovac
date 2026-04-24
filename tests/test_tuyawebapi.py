@@ -3,7 +3,7 @@ from unittest.mock import patch, MagicMock
 from custom_components.robovac.tuyawebapi import TuyaAPISession
 
 
-def test_generate_new_device_id():
+def test_generate_new_device_id() -> None:
     """Test generating a new device ID."""
     device_id = TuyaAPISession.generate_new_device_id()
     assert isinstance(device_id, str)
@@ -17,7 +17,7 @@ def test_generate_new_device_id():
         assert char in allowed_chars, f"Invalid character '{char}' in device ID"
 
 
-def test_get_signature():
+def test_get_signature() -> None:
     """Test generating a signature for the Tuya API request."""
     query_params = {
         "a": "tuya.m.device.get",
@@ -37,7 +37,7 @@ def test_get_signature():
     int(signature, 16)
 
 
-def test_unpadded_rsa():
+def test_unpadded_rsa() -> None:
     from custom_components.robovac.tuyawebapi import unpadded_rsa
     # Small numbers for fast testing
     # Plaintext "A" = 65
@@ -45,7 +45,7 @@ def test_unpadded_rsa():
     assert isinstance(res, bytes)
 
 
-def test_shuffled_md5():
+def test_shuffled_md5() -> None:
     from custom_components.robovac.tuyawebapi import shuffled_md5
     res = shuffled_md5("test")
     assert isinstance(res, str)
@@ -53,7 +53,7 @@ def test_shuffled_md5():
 
 
 @patch("custom_components.robovac.tuyawebapi.requests.Session.post")
-def test_tuya_api_session_request(mock_post):
+def test_tuya_api_session_request(mock_post) -> None:
     """Test _request method of TuyaAPISession."""
     mock_response = MagicMock()
     mock_response.json.return_value = {"result": {"success": True}}
@@ -73,7 +73,7 @@ def test_tuya_api_session_request(mock_post):
     assert "sign" in kwargs["params"]
 
 
-def test_tuya_api_session_determine_password():
+def test_tuya_api_session_determine_password() -> None:
     session = TuyaAPISession("username", "EU", "Europe/London", "44")
     res = session.determine_password("username")
     assert isinstance(res, str)
