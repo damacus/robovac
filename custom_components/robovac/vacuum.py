@@ -19,6 +19,7 @@ This module provides the vacuum entity integration for Eufy Robovac devices.
 from __future__ import annotations
 import asyncio
 import base64
+from dataclasses import dataclass
 from datetime import timedelta
 from enum import StrEnum
 import json
@@ -54,9 +55,17 @@ from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import CONF_VACS, DOMAIN, PING_RATE, REFRESH_RATE, TIMEOUT
-from .eufywebapi import EufyLogon
+from .const import (
+    CONF_ROOM_SEGMENT_MAP_ID,
+    CONF_ROOM_SEGMENTS,
+    CONF_VACS,
+    DOMAIN,
+    PING_RATE,
+    REFRESH_RATE,
+    TIMEOUT,
+)
 from .errors import getErrorMessage
+from .eufywebapi import EufyLogon
 from .proto_decode import (
     build_t2320_room_clean_mode,
     decode_clean_param_response,
@@ -173,6 +182,50 @@ ROOM_DISCOVERY_STRATEGIES: dict[str, dict[str, str]] = {
 # ⚡ Bolt optimization: Pre-calculate valid VacuumActivity values into a set
 # to avoid O(n) list comprehension on every property getter access
 VACUUM_ACTIVITY_VALUES = {activity.value for activity in VacuumActivity}
+
+
+@dataclass(frozen=True)
+class RoomSegment:
+    """Cleanable room segment for a RoboVac map."""
+
+    id: int
+    name: str
+
+
+@dataclass(frozen=True)
+class RoomSegmentMap:
+    """Cleanable room segments and map id for a RoboVac."""
+
+    map_id: int
+    segments: tuple[RoomSegment, ...]
+
+
+def _parse_room_segments(raw_segments: str | None) -> tuple[RoomSegment, ...]:
+    """Parse configured room segments from 'id:name' comma-separated text."""
+    if not raw_segments:
+        return ()
+
+    segments: list[RoomSegment] = []
+    for raw_segment in raw_segments.split(","):
+        segment = raw_segment.strip()
+        if not segment:
+            continue
+        raw_id, separator, name = segment.partition(":")
+        if not separator:
+            _LOGGER.warning("Ignoring room segment without ':' separator: %s", segment)
+            continue
+        try:
+            segment_id = int(raw_id.strip())
+        except ValueError:
+            _LOGGER.warning("Ignoring room segment with invalid id: %s", segment)
+            continue
+        name = name.strip()
+        if not name:
+            _LOGGER.warning("Ignoring room segment without name: %s", segment)
+            continue
+        segments.append(RoomSegment(segment_id, name))
+
+    return tuple(segments)
 
 
 async def async_setup_entry(
@@ -624,6 +677,11 @@ class RoboVacEntity(StateVacuumEntity):
         self._attr_model_code = item[CONF_MODEL]
         self._attr_ip_address = item[CONF_IP_ADDRESS]
         self._attr_access_token = item[CONF_ACCESS_TOKEN]
+        configured_segments = _parse_room_segments(item.get(CONF_ROOM_SEGMENTS))
+        self._room_segment_map = RoomSegmentMap(
+            map_id=int(item.get(CONF_ROOM_SEGMENT_MAP_ID, 1)),
+            segments=configured_segments,
+        )
         self.vacuum: RoboVac | None = None
         self.update_failures = 0
         self.tuyastatus: dict[str, Any] | None = None
@@ -674,6 +732,8 @@ class RoboVacEntity(StateVacuumEntity):
         if self.vacuum is not None:
             # Get the supported features from the vacuum
             features = int(self.vacuum.getHomeAssistantFeatures())
+            if self._room_segment_map.segments:
+                features |= int(VacuumEntityFeature.CLEAN_AREA)
             self._attr_supported_features = VacuumEntityFeature(features)
             self._attr_robovac_supported = self.vacuum.getRoboVacFeatures()
             self._attr_activity_mapping = self.vacuum.getRoboVacActivityMapping()
@@ -713,6 +773,41 @@ class RoboVacEntity(StateVacuumEntity):
             model=item[CONF_DESCRIPTION],
             connections={
                 (CONNECTION_NETWORK_MAC, item[CONF_MAC]),
+            },
+        )
+
+    async def async_get_segments(self) -> list[Segment]:
+        """Return cleanable segments for Home Assistant clean-area mapping."""
+        return [
+            Segment(id=str(segment.id), name=segment.name)
+            for segment in self._room_segment_map.segments
+        ]
+
+    async def async_clean_segments(self, segment_ids: list[str], **kwargs: Any) -> None:
+        """Clean Home Assistant native clean-area segments."""
+        known_room_ids = {segment.id for segment in self._room_segment_map.segments}
+        room_ids: list[int] = []
+        for segment_id in segment_ids:
+            try:
+                room_id = int(segment_id)
+            except (TypeError, ValueError):
+                _LOGGER.warning("Ignoring invalid segment id for %s: %s", self.name, segment_id)
+                continue
+            if room_id not in known_room_ids:
+                _LOGGER.warning("Ignoring unknown segment id for %s: %s", self.name, segment_id)
+                continue
+            room_ids.append(room_id)
+
+        if not room_ids:
+            _LOGGER.warning("No valid segment ids supplied for %s: %s", self.name, segment_ids)
+            return
+
+        await self.async_send_command(
+            "roomClean",
+            {
+                "room_ids": room_ids,
+                "map_id": self._room_segment_map.map_id,
+                "count": int(kwargs.get("count", kwargs.get("repeats", 1))),
             },
         )
 

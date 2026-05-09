@@ -45,7 +45,13 @@ from homeassistant.const import (
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 
-from .const import CONF_AUTODISCOVERY, CONF_VACS, DOMAIN
+from .const import (
+    CONF_AUTODISCOVERY,
+    CONF_ROOM_SEGMENT_MAP_ID,
+    CONF_ROOM_SEGMENTS,
+    CONF_VACS,
+    DOMAIN,
+)
 from .countries import (
     get_phone_code_by_country_code,
     get_phone_code_by_region,
@@ -283,6 +289,12 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 updated_vacuums[self.selected_vacuum][CONF_IP_ADDRESS] = user_input[
                     CONF_IP_ADDRESS
                 ]
+            updated_vacuums[self.selected_vacuum][CONF_ROOM_SEGMENT_MAP_ID] = (
+                user_input[CONF_ROOM_SEGMENT_MAP_ID]
+            )
+            updated_vacuums[self.selected_vacuum][CONF_ROOM_SEGMENTS] = user_input[
+                CONF_ROOM_SEGMENTS
+            ]
 
             self.hass.config_entries.async_update_entry(
                 self.config_entry,
@@ -300,6 +312,14 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 vol.Optional(
                     CONF_IP_ADDRESS,
                     default=vacuums[self.selected_vacuum].get(CONF_IP_ADDRESS),
+                ): str,
+                vol.Required(
+                    CONF_ROOM_SEGMENT_MAP_ID,
+                    default=vacuums[self.selected_vacuum].get(CONF_ROOM_SEGMENT_MAP_ID, 1),
+                ): int,
+                vol.Optional(
+                    CONF_ROOM_SEGMENTS,
+                    default=vacuums[self.selected_vacuum].get(CONF_ROOM_SEGMENTS, ""),
                 ): str,
             }
         )

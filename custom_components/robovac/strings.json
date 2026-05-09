@@ -38,11 +38,15 @@
                 "title": "Edit vacuum",
                 "data": {
                     "autodiscovery": "Enable autodiscovery",
-                    "ip_address": "IP Address"
+                    "ip_address": "IP Address",
+                    "room_segment_map_id": "Room segment map ID",
+                    "room_segments": "Room segments"
                 },
                 "data_description": {
                     "autodiscovery": "Automatically find the vacuum on the network.",
-                    "ip_address": "The static IP address of your vacuum on your local network (optional if autodiscovery is enabled)."
+                    "ip_address": "The static IP address of your vacuum on your local network (optional if autodiscovery is enabled).",
+                    "room_segment_map_id": "The map ID used when cleaning configured room segments.",
+                    "room_segments": "Comma-separated room segments in id:name format, for example 1:Kitchen,2:Living Room."
                 },
                 "description": "Autodiscovery will automatically update the IP address"
             }
