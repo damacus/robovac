@@ -38,11 +38,15 @@
                 "title": "Editar aspiradora",
                 "data": {
                     "autodiscovery": "Habilitar autodescubrimiento",
-                    "ip_address": "Dirección IP"
+                    "ip_address": "Dirección IP",
+                    "room_segment_map_id": "Room segment map ID",
+                    "room_segments": "Room segments"
                 },
                 "data_description": {
                     "autodiscovery": "Encontrar automáticamente la aspiradora en la red.",
-                    "ip_address": "La dirección IP estática de su aspiradora en su red local (opcional si el autodescubrimiento está habilitado)."
+                    "ip_address": "La dirección IP estática de su aspiradora en su red local (opcional si el autodescubrimiento está habilitado).",
+                    "room_segment_map_id": "The map ID used when cleaning configured room segments.",
+                    "room_segments": "Comma-separated room segments in id:name format, for example 1:Kitchen,2:Living Room."
                 },
                 "description": "El autodescubrimiento actualizará automáticamente la dirección IP"
             }

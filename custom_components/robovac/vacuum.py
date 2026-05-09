@@ -1028,7 +1028,13 @@ class RoboVacEntity(StateVacuumEntity):
         elif command in ("roomClean", "room_clean") and params is not None and isinstance(params, dict):
             room_ids = params.get("roomIds") or params.get("room_ids", [1])
             count = params.get("count", 1)
+            map_id = params.get("mapId") or params.get("map_id")
+            if not isinstance(room_ids, list):
+                room_ids = [room_ids]
+
             clean_request = {"roomIds": room_ids, "cleanTimes": count}
+            if map_id is not None:
+                clean_request["mapId"] = map_id
             method_call = {
                 "method": "selectRoomsClean",
                 "data": clean_request,
