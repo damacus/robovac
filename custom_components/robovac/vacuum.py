@@ -81,6 +81,15 @@ def _build_protobuf_room_clean(
 ) -> str:
     """Build a base64-encoded protobuf SelectRoomsClean command."""
 
+    def validate_uint(name: str, value: Any) -> int:
+        if not isinstance(value, int) or value < 0:
+            raise ValueError(f"{name} must be a non-negative integer")
+        return value
+
+    room_ids = [validate_uint("room_id", room_id) for room_id in room_ids]
+    clean_times = validate_uint("clean_times", clean_times)
+    map_id = validate_uint("map_id", map_id)
+
     def vi(n: int) -> bytes:
         result: list[int] = []
         while True:

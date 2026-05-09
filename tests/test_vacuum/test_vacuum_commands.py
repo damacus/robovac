@@ -301,6 +301,45 @@ async def test_room_clean_accepts_single_room_id_for_dps_152(
 
 
 @pytest.mark.asyncio
+async def test_room_clean_rejects_negative_values_for_dps_152(
+    mock_l60, mock_l60_data
+) -> None:
+    """Test roomClean rejects negative protobuf values."""
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_l60):
+        entity = RoboVacEntity(mock_l60_data)
+
+        with pytest.raises(ValueError, match="room_id must be a non-negative integer"):
+            await entity.async_send_command(
+                "roomClean",
+                {"room_ids": [-1], "map_id": 1},
+            )
+
+        mock_l60.async_set.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_room_clean_legacy_path_still_uses_room_clean_dps(
+    mock_robovac, mock_vacuum_data
+) -> None:
+    """Test roomClean preserves the legacy DPS 124 JSON path."""
+    with (
+        patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac),
+        patch("custom_components.robovac.vacuum.asyncio.sleep", new_callable=AsyncMock) as sleep,
+    ):
+        entity = RoboVacEntity(mock_vacuum_data)
+
+        await entity.async_send_command(
+            "roomClean",
+            {"room_ids": [2], "count": 1},
+        )
+
+        first_call, second_call = mock_robovac.async_set.await_args_list
+        assert list(first_call.args[0]) == ["124"]
+        assert second_call.args[0] == {"2": True}
+        sleep.assert_awaited_once_with(1)
+
+
+@pytest.mark.asyncio
 async def test_async_update(mock_robovac, mock_vacuum_data) -> None:
     """Test the async_update method."""
     # Arrange
