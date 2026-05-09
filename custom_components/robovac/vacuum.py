@@ -76,6 +76,34 @@ UPDATE_RETRIES = 3
 VACUUM_ACTIVITY_VALUES = {activity.value for activity in VacuumActivity}
 
 
+def _build_protobuf_room_clean(
+    room_ids: list[int], clean_times: int = 1, map_id: int = 1
+) -> str:
+    """Build a base64-encoded protobuf SelectRoomsClean command."""
+
+    def vi(n: int) -> bytes:
+        result: list[int] = []
+        while True:
+            result.append(n & 0x7F)
+            n >>= 7
+            if not n:
+                break
+        for i in range(len(result) - 1):
+            result[i] |= 0x80
+        return bytes(result)
+
+    def lf(field_number: int, data: bytes) -> bytes:
+        return vi((field_number << 3) | 2) + vi(len(data)) + data
+
+    def vf(field_number: int, value: int) -> bytes:
+        return vi(field_number << 3) + vi(value)
+
+    rooms = b"".join(lf(1, vf(1, room_id) + vf(2, 1)) for room_id in room_ids)
+    select = rooms + vf(2, clean_times) + vf(3, map_id)
+    request = vf(1, 1) + lf(4, select)
+    return base64.b64encode(vi(len(request)) + request).decode()
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     config_entry: ConfigEntry,
@@ -929,24 +957,37 @@ class RoboVacEntity(StateVacuumEntity):
             await self.vacuum.async_set({
                 self.get_dps_code("BOOST_IQ"): new_value
             })
-        elif command in ("roomClean", "room_clean") and params is not None and isinstance(params, dict):
+        elif (
+            command in ("roomClean", "room_clean")
+            and params is not None
+            and isinstance(params, dict)
+        ):
             room_ids = params.get("roomIds") or params.get("room_ids", [1])
             count = params.get("count", 1)
-            clean_request = {"roomIds": room_ids, "cleanTimes": count}
-            method_call = {
-                "method": "selectRoomsClean",
-                "data": clean_request,
-                "timestamp": round(time.time() * 1000),
-            }
-            json_str = json.dumps(method_call, separators=(",", ":"))
-            base64_str = base64.b64encode(json_str.encode("utf8")).decode("utf8")
-            _LOGGER.debug("roomClean call %s", json_str)
-            await self.vacuum.async_set({TuyaCodes.ROOM_CLEAN: base64_str})
-            # Wait for the vacuum to ACK DPS 124 before sending the start command.
-            # Without this delay, DPS 2 arrives before the room selection is processed
-            # and the vacuum ignores the start command.
-            await asyncio.sleep(1)
-            await self.vacuum.async_set({TuyaCodes.START_PAUSE: True})
+            if not isinstance(room_ids, list):
+                room_ids = [room_ids]
+
+            if self.get_dps_code("MODE") == "152":
+                map_id = params.get("mapId") or params.get("map_id", 1)
+                payload = _build_protobuf_room_clean(room_ids, count, map_id)
+                _LOGGER.debug("roomClean protobuf rooms=%s map=%s", room_ids, map_id)
+                await self.vacuum.async_set({self.get_dps_code("MODE"): payload})
+            else:
+                clean_request = {"roomIds": room_ids, "cleanTimes": count}
+                method_call = {
+                    "method": "selectRoomsClean",
+                    "data": clean_request,
+                    "timestamp": round(time.time() * 1000),
+                }
+                json_str = json.dumps(method_call, separators=(",", ":"))
+                base64_str = base64.b64encode(json_str.encode("utf8")).decode("utf8")
+                _LOGGER.debug("roomClean call %s", json_str)
+                await self.vacuum.async_set({TuyaCodes.ROOM_CLEAN: base64_str})
+                # Wait for the vacuum to ACK DPS 124 before sending the start command.
+                # Without this delay, DPS 2 arrives before the room selection is processed
+                # and the vacuum ignores the start command.
+                await asyncio.sleep(1)
+                await self.vacuum.async_set({TuyaCodes.START_PAUSE: True})
 
     async def async_will_remove_from_hass(self) -> None:
         """Handle removal from Home Assistant."""

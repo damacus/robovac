@@ -269,6 +269,38 @@ async def test_async_send_command(mock_robovac, mock_vacuum_data) -> None:
 
 
 @pytest.mark.asyncio
+async def test_room_clean_uses_protobuf_for_dps_152(
+    mock_l60, mock_l60_data
+) -> None:
+    """Test roomClean sends protobuf payloads on DPS 152 models."""
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_l60):
+        entity = RoboVacEntity(mock_l60_data)
+
+        await entity.async_send_command(
+            "roomClean",
+            {"room_ids": [2], "map_id": 3},
+        )
+
+        mock_l60.async_set.assert_called_once_with({"152": "DggBIgoKBAgCEAEQARgD"})
+
+
+@pytest.mark.asyncio
+async def test_room_clean_accepts_single_room_id_for_dps_152(
+    mock_l60, mock_l60_data
+) -> None:
+    """Test roomClean accepts a single integer room id on DPS 152 models."""
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_l60):
+        entity = RoboVacEntity(mock_l60_data)
+
+        await entity.async_send_command(
+            "room_clean",
+            {"roomIds": 3, "mapId": 1},
+        )
+
+        mock_l60.async_set.assert_called_once_with({"152": "DggBIgoKBAgDEAEQARgB"})
+
+
+@pytest.mark.asyncio
 async def test_async_update(mock_robovac, mock_vacuum_data) -> None:
     """Test the async_update method."""
     # Arrange
