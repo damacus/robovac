@@ -228,6 +228,26 @@ def _parse_room_segments(raw_segments: str | None) -> tuple[RoomSegment, ...]:
     return tuple(segments)
 
 
+def _parse_room_segment_map_id(raw_map_id: Any) -> int:
+    """Parse configured room segment map id, falling back to the default map."""
+    if raw_map_id in (None, ""):
+        return 1
+    try:
+        return int(raw_map_id)
+    except (TypeError, ValueError):
+        _LOGGER.warning("Ignoring invalid room segment map id: %s", raw_map_id)
+        return 1
+
+
+def _parse_clean_count(raw_count: Any) -> int:
+    """Parse room clean repeat count, falling back to one pass."""
+    try:
+        return max(1, int(raw_count))
+    except (TypeError, ValueError):
+        _LOGGER.warning("Ignoring invalid room clean count: %s", raw_count)
+        return 1
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     config_entry: ConfigEntry,
@@ -679,7 +699,7 @@ class RoboVacEntity(StateVacuumEntity):
         self._attr_access_token = item[CONF_ACCESS_TOKEN]
         configured_segments = _parse_room_segments(item.get(CONF_ROOM_SEGMENTS))
         self._room_segment_map = RoomSegmentMap(
-            map_id=int(item.get(CONF_ROOM_SEGMENT_MAP_ID, 1)),
+            map_id=_parse_room_segment_map_id(item.get(CONF_ROOM_SEGMENT_MAP_ID)),
             segments=configured_segments,
         )
         self.vacuum: RoboVac | None = None
@@ -773,41 +793,6 @@ class RoboVacEntity(StateVacuumEntity):
             model=item[CONF_DESCRIPTION],
             connections={
                 (CONNECTION_NETWORK_MAC, item[CONF_MAC]),
-            },
-        )
-
-    async def async_get_segments(self) -> list[Segment]:
-        """Return cleanable segments for Home Assistant clean-area mapping."""
-        return [
-            Segment(id=str(segment.id), name=segment.name)
-            for segment in self._room_segment_map.segments
-        ]
-
-    async def async_clean_segments(self, segment_ids: list[str], **kwargs: Any) -> None:
-        """Clean Home Assistant native clean-area segments."""
-        known_room_ids = {segment.id for segment in self._room_segment_map.segments}
-        room_ids: list[int] = []
-        for segment_id in segment_ids:
-            try:
-                room_id = int(segment_id)
-            except (TypeError, ValueError):
-                _LOGGER.warning("Ignoring invalid segment id for %s: %s", self.name, segment_id)
-                continue
-            if room_id not in known_room_ids:
-                _LOGGER.warning("Ignoring unknown segment id for %s: %s", self.name, segment_id)
-                continue
-            room_ids.append(room_id)
-
-        if not room_ids:
-            _LOGGER.warning("No valid segment ids supplied for %s: %s", self.name, segment_ids)
-            return
-
-        await self.async_send_command(
-            "roomClean",
-            {
-                "room_ids": room_ids,
-                "map_id": self._room_segment_map.map_id,
-                "count": int(kwargs.get("count", kwargs.get("repeats", 1))),
             },
         )
 
@@ -1394,7 +1379,13 @@ class RoboVacEntity(StateVacuumEntity):
         return None
 
     async def async_get_segments(self) -> list[Segment]:
-        """Return known T2320 room segments for HA callers that support it."""
+        """Return cleanable segments for Home Assistant clean-area mapping."""
+        if self._room_segment_map.segments:
+            return [
+                Segment(id=str(segment.id), name=segment.name)
+                for segment in self._room_segment_map.segments
+            ]
+
         if not self._attr_room_names:
             await self._async_fetch_rooms_from_cloud_once()
         if not self._attr_room_names:
@@ -1405,10 +1396,52 @@ class RoboVacEntity(StateVacuumEntity):
         ]
 
     async def async_clean_segments(self, segment_ids: list[str], **kwargs: Any) -> None:
-        """Clean selected T2320 room segments."""
+        """Clean Home Assistant native clean-area segments."""
+        clean_count = kwargs.get("count", kwargs.get("repeats", 1))
+
+        if self._room_segment_map.segments:
+            known_room_ids = {segment.id for segment in self._room_segment_map.segments}
+            room_ids: list[int] = []
+            for segment_id in segment_ids:
+                try:
+                    room_id = int(segment_id)
+                except (TypeError, ValueError):
+                    _LOGGER.warning(
+                        "Ignoring invalid segment id for %s: %s",
+                        self.name,
+                        segment_id,
+                    )
+                    continue
+                if room_id not in known_room_ids:
+                    _LOGGER.warning(
+                        "Ignoring unknown segment id for %s: %s",
+                        self.name,
+                        segment_id,
+                    )
+                    continue
+                room_ids.append(room_id)
+
+            if not room_ids:
+                _LOGGER.warning(
+                    "No valid segment ids supplied for %s: %s",
+                    self.name,
+                    segment_ids,
+                )
+                return
+
+            await self.async_send_command(
+                "roomClean",
+                {
+                    "room_ids": room_ids,
+                    "map_id": self._room_segment_map.map_id,
+                    "count": _parse_clean_count(clean_count),
+                },
+            )
+            return
+
         await self.async_send_command(
             "roomClean",
-            {"roomIds": segment_ids, "count": kwargs.get("count", 1)},
+            {"roomIds": segment_ids, "count": clean_count},
         )
 
     async def async_locate(self, **kwargs: Any) -> None:
@@ -1655,6 +1688,7 @@ class RoboVacEntity(StateVacuumEntity):
                 self.get_dps_code("BOOST_IQ"): new_value
             })
         elif command in ("roomClean", "room_clean", "app_segment_clean") and params is not None:
+            map_id: Any | None = None
             if isinstance(params, list):
                 # HA may pass params as a list of single-key dicts.
                 if all(isinstance(item, dict) for item in params):
@@ -1664,12 +1698,16 @@ class RoboVacEntity(StateVacuumEntity):
                     params = merged
                     room_ids = params.get("roomIds") or params.get("room_ids", [1])
                     count = params.get("count", 1)
+                    map_id = (
+                        params["mapId"] if "mapId" in params else params.get("map_id")
+                    )
                 else:
                     room_ids = params
                     count = 1
             elif isinstance(params, dict):
                 room_ids = params.get("roomIds") or params.get("room_ids", [1])
                 count = params.get("count", 1)
+                map_id = params["mapId"] if "mapId" in params else params.get("map_id")
             else:
                 _LOGGER.error("roomClean: unexpected params type %s", type(params).__name__)
                 return
@@ -1728,6 +1766,8 @@ class RoboVacEntity(StateVacuumEntity):
                 await self.vacuum.async_set({mode_dps: proto_cmd})
             else:
                 clean_request = {"roomIds": room_ids, "cleanTimes": count}
+                if map_id is not None:
+                    clean_request["mapId"] = map_id
                 method_call = {
                     "method": "selectRoomsClean",
                     "data": clean_request,

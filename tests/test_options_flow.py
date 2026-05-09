@@ -21,7 +21,13 @@ from homeassistant.const import (
 from homeassistant.core import HomeAssistant
 
 from custom_components.robovac.config_flow import OptionsFlowHandler
-from custom_components.robovac.const import DOMAIN, CONF_AUTODISCOVERY, CONF_VACS
+from custom_components.robovac.const import (
+    CONF_AUTODISCOVERY,
+    CONF_ROOM_SEGMENT_MAP_ID,
+    CONF_ROOM_SEGMENTS,
+    CONF_VACS,
+    DOMAIN,
+)
 from custom_components.robovac.robovac import RoboVac
 
 
@@ -115,6 +121,8 @@ async def test_options_flow_edit_default_values(hass: HomeAssistant, mock_config
     # Verify that the form contains the expected fields
     assert CONF_AUTODISCOVERY in result["data_schema"].schema
     assert CONF_IP_ADDRESS in result["data_schema"].schema
+    assert CONF_ROOM_SEGMENT_MAP_ID in result["data_schema"].schema
+    assert CONF_ROOM_SEGMENTS in result["data_schema"].schema
 
 
 @pytest.mark.asyncio
@@ -146,6 +154,8 @@ async def test_options_flow_edit_custom_values(hass: HomeAssistant) -> None:
     # Verify that the form contains the expected fields
     assert CONF_AUTODISCOVERY in result["data_schema"].schema
     assert CONF_IP_ADDRESS in result["data_schema"].schema
+    assert CONF_ROOM_SEGMENT_MAP_ID in result["data_schema"].schema
+    assert CONF_ROOM_SEGMENTS in result["data_schema"].schema
 
 
 @pytest.mark.asyncio
@@ -182,6 +192,8 @@ async def test_options_flow_edit_submit_with_ip(hass: HomeAssistant, mock_config
             {
                 CONF_AUTODISCOVERY: False,
                 CONF_IP_ADDRESS: "192.168.1.100",
+                CONF_ROOM_SEGMENT_MAP_ID: 3,
+                CONF_ROOM_SEGMENTS: "1:Kitchen,2:Living Room",
             }
         )
 
@@ -229,6 +241,8 @@ async def test_options_flow_edit_submit_without_ip(
             {
                 CONF_AUTODISCOVERY: True,
                 CONF_IP_ADDRESS: "",
+                CONF_ROOM_SEGMENT_MAP_ID: 1,
+                CONF_ROOM_SEGMENTS: "",
             }
         )
 

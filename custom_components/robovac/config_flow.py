@@ -290,11 +290,15 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     CONF_IP_ADDRESS
                 ]
             updated_vacuums[self.selected_vacuum][CONF_ROOM_SEGMENT_MAP_ID] = (
-                user_input[CONF_ROOM_SEGMENT_MAP_ID]
+                user_input.get(
+                    CONF_ROOM_SEGMENT_MAP_ID,
+                    vacuums[self.selected_vacuum].get(CONF_ROOM_SEGMENT_MAP_ID, 1),
+                )
             )
-            updated_vacuums[self.selected_vacuum][CONF_ROOM_SEGMENTS] = user_input[
-                CONF_ROOM_SEGMENTS
-            ]
+            updated_vacuums[self.selected_vacuum][CONF_ROOM_SEGMENTS] = user_input.get(
+                CONF_ROOM_SEGMENTS,
+                vacuums[self.selected_vacuum].get(CONF_ROOM_SEGMENTS, ""),
+            )
 
             self.hass.config_entries.async_update_entry(
                 self.config_entry,
