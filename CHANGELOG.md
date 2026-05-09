@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.0-beta.1](https://github.com/damacus/robovac/compare/v2.3.0-beta.1...v2.4.0-beta.1) (2026-05-05)
+
+
+### Features
+
+* **L60 SES:** Move from hard coded DPS mapping to protobuf decoding ([#432](https://github.com/damacus/robovac/issues/432)) ([7ccb545](https://github.com/damacus/robovac/commit/7ccb5455673e02c629cb5634e01ecafd6091afd5))
+
 ## [2.3.0-beta.1](https://github.com/damacus/robovac/compare/v2.2.1-beta.1...v2.3.0-beta.1) (2026-03-24)
 
 
