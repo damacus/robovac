@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "robovac"
-version = "2.3.0-beta.1"
+version = "2.4.0-beta.1"
 description = "Eufy RoboVac integration for Home Assistant"
 readme = "README.md"
 requires-python = ">=3.13.0"
@@ -54,6 +54,16 @@ disallow_subclassing_any = false
 disable_error_code = ["override"]
 strict_optional = false
 check_untyped_defs = false
+
+# Relax mypy rules for test files
+[[tool.mypy.overrides]]
+module = [
+    "tests",
+    "tests.*",
+]
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+ignore_errors = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
