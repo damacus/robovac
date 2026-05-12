@@ -23,3 +23,7 @@
 ## 2026-03-03 - [TuyaCipher Decryption Overhead]
 **Learning:** `get_prefix_size_and_validate` in `TuyaCipher` was attempting to decode the first 3 bytes of every incoming encrypted packet as UTF-8. For raw encrypted payloads without a version prefix, this threw a `UnicodeDecodeError` that was caught and ignored. Exception handling on the hot path (every incoming message) is very slow.
 **Action:** Pre-calculate the expected version bytes (`self._version_bytes`) and use a simple `encrypted_data.startswith(self._version_bytes)` check to bypass expensive decoding and exception handling entirely.
+
+## 2026-03-03 - [String Formatting Overhead in Crypto Path]
+**Learning:** `TuyaCipher` was reconstructing its version string `".".join(map(str, self.version))` and `.encode("utf8")` on *every* call to `encrypt` and `hash`. This adds significant string allocation overhead to the hot path of sending Tuya protocol messages.
+**Action:** Pre-calculate constant strings and byte-encodings (`self._version_string`, `self._version_bytes`) inside `__init__` and reuse them, especially for objects involved in high-frequency network or cryptographic operations.
