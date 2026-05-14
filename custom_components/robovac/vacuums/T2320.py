@@ -173,11 +173,30 @@ class T2320(RobovacModelDetails):
         82: "Clean station wash tray",
         83: "Waste water tank full",
     }
+    # T2320 PromptCodeList labels adapted from `error_code_list_t2320.proto`
+    # in martijnpoppen/eufy-clean, copyright (c) Martijn Poppen:
+    # https://github.com/martijnpoppen/eufy-clean
+    #
+    # Eufy-Clean License, Version 1.0 - 2024-09-01, permits use, copy,
+    # modification, merge, publication, distribution, sublicensing, and sale
+    # with attribution. These enum names/comments were translated into
+    # robovac's human-readable message style.
     _PROMPT_CODES = {
-        7: "Route unavailable, returning to dock",
-        10: "Prompt 10",
-        12: "Prompt 12",
-        17: "Prompt 17",
+        1: "Start scheduled cleaning",
+        3: "Low battery, returning to base station immediately",
+        4: "Positioning failed, rebuilding map and starting new cleaning",
+        5: "Positioning failed, mission ended, returning to base station",
+        6: "Some areas were not cleaned because they are unreachable",
+        7: "Path planning failed, cannot reach the designated area",
+        9: "Base station exploration failed, robot returned to starting point",
+        10: "Positioning successful",
+        11: "Task finished, returning to base station",
+        12: "Cannot start task while on station",
+        13: "Scheduled cleaning failed because robot is working",
+        14: "Map data updating, try again later",
+        15: "Finished washing mop, resuming task",
+        16: "Low battery, charge and try again",
+        17: "Mop cleaning completed",
     }
 
     @classmethod

@@ -145,14 +145,14 @@ class TestT2320CommandMappings:
     def test_decode_route_unavailable_prompt(self):
         """Test observed X9 room-clean failure prompt from DPS 178."""
         assert T2320.decode_dps("178", "CwjczIPu6YlJEgEH") == (
-            "Route unavailable, returning to dock"
+            "Path planning failed, cannot reach the designated area"
         )
 
     @pytest.mark.parametrize(
         ("raw", "expected"),
         [
-            ("CwiY+IOJrO9JEgEK", "Prompt 10"),
-            ("Cwj6iLDX8uxJEgEM", "Prompt 12"),
+            ("CwiY+IOJrO9JEgEK", "Positioning successful"),
+            ("Cwj6iLDX8uxJEgEM", "Cannot start task while on station"),
         ],
     )
     def test_decode_observed_x9_prompt_codes(self, raw, expected):
@@ -162,4 +162,4 @@ class TestT2320CommandMappings:
     def test_decode_observed_x9_prompt_17(self):
         """Test observed X9 prompt 17 avoids a raw prompt_N state."""
         raw = base64.b64encode(bytes([3, 0x12, 0x01, 17])).decode()
-        assert T2320.decode_dps("178", raw) == "Prompt 17"
+        assert T2320.decode_dps("178", raw) == "Mop cleaning completed"
