@@ -151,36 +151,74 @@ class T2320(RobovacModelDetails):
     }
 
     # ── DPS 177 error/warning codes ───────────────────────────────────
-    _ERROR_CODES = {
-        1: "Wheel stuck",
-        2: "Brush stuck",
-        3: "Side brush stuck",
-        4: "Dust box missing",
-        5: "Lidar cover blocked",
-        6: "Stuck on obstacle",
-        7: "Drop sensor dirty",
-        8: "Mop pad stuck",
-        9: "Waterbox missing",
-        11: "Clean station error",
-        12: "Clean station water shortage",
-        13: "Clean station wastewater full",
-        14: "Clean station wash tray",
-        49: "No path available",
-        50: "Map generation failed",
-        51: "Cannot reach target",
-        73: "Dirty water tank full",
-        74: "Clean water tank empty",
-        82: "Clean station wash tray",
-        83: "Waste water tank full",
-    }
-    # T2320 PromptCodeList labels adapted from `error_code_list_t2320.proto`
-    # in martijnpoppen/eufy-clean, copyright (c) Martijn Poppen:
+    # T2320 ErrorCodeList/PromptCodeList labels adapted from
+    # `error_code_list_t2320.proto` in martijnpoppen/eufy-clean,
+    # copyright (c) Martijn Poppen:
     # https://github.com/martijnpoppen/eufy-clean
+    #
+    # The same file was reviewed through the jeppesens/eufy-clean fork
+    # history and the GijsKruize/eufy-clean renamed path:
+    # custom_components/robovac_mqtt/proto/cloud/error_code_list_t2320.proto
     #
     # Eufy-Clean License, Version 1.0 - 2024-09-01, permits use, copy,
     # modification, merge, publication, distribution, sublicensing, and sale
     # with attribution. These enum names/comments were translated into
     # robovac's human-readable message style.
+    _ERROR_CODES = {
+        1: "Crash buffer stuck",
+        2: "Wheel stuck",
+        3: "Side brush stuck",
+        4: "Rolling brush stuck",
+        5: "Robot trapped, clear surrounding obstacles",
+        6: "Robot trapped, move it near the starting point",
+        7: "Wheel overhanging",
+        8: "Power too low, shutting down",
+        13: "Robot tilted",
+        14: "Dust box or filter missing",
+        17: "Forbidden area detected",
+        18: "Laser cover stuck",
+        19: "Laser sensor stuck or tangled",
+        20: "Laser sensor may be blocked",
+        21: "Docking failed",
+        26: "Low battery, scheduled cleaning failed",
+        31: "Foreign object stuck in suction port",
+        32: "Mop holder rotation motor stuck",
+        33: "Mop holder lift motor stuck",
+        39: "Positioning failed, ending cleaning",
+        40: "Mop cloth dislodged",
+        41: "Air-drying heater abnormal",
+        50: "Robot mistakenly on carpet",
+        51: "Camera blocked",
+        52: "Unable to leave station",
+        55: "Base station exploration failed",
+        70: "Clean dust box and filter",
+        71: "Wall sensor abnormal",
+        72: "Robot water tank low",
+        73: "Dirty water tank full",
+        74: "Clean water tank low",
+        75: "Water tank missing",
+        76: "Camera abnormal",
+        77: "3D ToF sensor abnormal",
+        78: "Ultrasonic sensor abnormal",
+        79: "Clean tray not installed",
+        80: "Robot and station communication abnormal",
+        81: "Sewage tank air leak",
+        82: "Clean tray needs cleaning",
+        83: "Poor charging contact",
+        101: "Battery abnormal",
+        102: "Wheel module abnormal",
+        103: "Side brush module abnormal",
+        104: "Fan abnormal",
+        105: "Rolling brush motor abnormal",
+        106: "Robot water pump abnormal",
+        107: "Laser sensor abnormal",
+        111: "Rotation motor abnormal",
+        112: "Lift motor abnormal",
+        113: "Water spraying device abnormal",
+        114: "Water pumping device abnormal",
+        117: "Ultrasonic sensor abnormal",
+        119: "Wi-Fi or Bluetooth abnormal",
+    }
     _PROMPT_CODES = {
         1: "Start scheduled cleaning",
         3: "Low battery, returning to base station immediately",

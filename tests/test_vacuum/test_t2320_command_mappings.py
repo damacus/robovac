@@ -130,7 +130,20 @@ class TestT2320CommandMappings:
     def test_decode_warning_dps_from_live_payload(self):
         """Test observed X9 warning payload exposes non-fatal warnings."""
         assert T2320.decode_warning_dps("Dwj22eCIkfFEGgFSIgBSAA==") == [
-            {"code": 82, "message": "Clean station wash tray"}
+            {"code": 82, "message": "Clean tray needs cleaning"}
+        ]
+
+    def test_decode_t2320_active_error_from_dps177_field_2(self):
+        """Test active errors still decode from DPS 177 field 2."""
+        raw = base64.b64encode(bytes([3, 0x12, 0x01, 52])).decode()
+        assert T2320.decode_dps("177", raw) == "Unable to leave station"
+
+    def test_decode_t2320_warning_from_dps177_field_3_only(self):
+        """Test warning-only DPS 177 field 3 does not become an active error."""
+        raw = base64.b64encode(bytes([3, 0x1A, 0x01, 79])).decode()
+        assert T2320.decode_dps("177", raw) == "no_error"
+        assert T2320.decode_warning_dps(raw) == [
+            {"code": 79, "message": "Clean tray not installed"}
         ]
 
     def test_decode_return_progress_payloads(self):
