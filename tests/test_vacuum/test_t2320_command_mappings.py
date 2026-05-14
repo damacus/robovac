@@ -79,6 +79,7 @@ class TestT2320CommandMappings:
         assert dps_codes.get("FAN_SPEED") == "158"
         assert dps_codes.get("BATTERY_LEVEL") == "163"
         assert dps_codes.get("ERROR_CODE") == "177"
+        assert "ROOM_CLEAN" not in dps_codes
 
     def test_status_command_exists(self, t2320_robovac):
         """Test STATUS command is defined for state polling."""
