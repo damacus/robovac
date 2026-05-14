@@ -82,8 +82,7 @@ class RobovacEdgeHuggingMopSwitch(SwitchEntity):
             return
         self._attr_available = True
         val = vacuum_entity.edge_hugging_mopping
-        # Bit not in protobuf yet: show off until decode; switch stays usable.
-        self._attr_is_on = bool(val) if val is not None else False
+        self._attr_is_on = val
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         vacuum_entity = self._vacuum()

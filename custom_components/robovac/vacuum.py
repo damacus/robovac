@@ -829,8 +829,6 @@ class RoboVacEntity(StateVacuumEntity):
 
         raw = self.tuyastatus.get(self.get_dps_code("CLEAN_PARAM"))
         if raw is None or raw == "":
-            raw = getattr(self.vacuum.model_details, "default_clean_param_dps154", None)
-        if raw is None or raw == "":
             return
 
         try:

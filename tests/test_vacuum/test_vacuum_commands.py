@@ -225,8 +225,8 @@ async def test_async_set_clean_param_uses_model_default_before_dps154_read() -> 
 
 
 @pytest.mark.asyncio
-async def test_update_entity_values_uses_model_clean_param_default_before_dps154_read() -> None:
-    """Test T2320 clean-param display values are populated before DPS 154 is read."""
+async def test_update_entity_values_does_not_display_default_before_dps154_read() -> None:
+    """Test T2320 clean-param display values wait for a real DPS 154 read."""
     data = {
         CONF_NAME: "Test X9",
         CONF_ID: "test_x9_id",
@@ -251,9 +251,9 @@ async def test_update_entity_values_uses_model_clean_param_default_before_dps154
 
     entity.update_entity_values()
 
-    assert entity.clean_type == "sweep_and_mop"
-    assert entity.mop_level == "high"
-    assert entity.edge_hugging_mopping is False
+    assert entity.clean_type is None
+    assert entity.mop_level is None
+    assert entity.edge_hugging_mopping is None
 
 
 @pytest.mark.asyncio
