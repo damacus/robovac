@@ -1201,6 +1201,8 @@ class TuyaDevice:
             # the device sends after SET commands.  So just stay connected.
             await self.async_connect()
             return
+        if self._backoff is True:
+            return
         payload_dict = {"gwId": self.gateway_id, "devId": self.device_id}
         payload_bytes = json.dumps(payload_dict).encode("utf-8")
         encrypt = False if self.version < (3, 3) else True
