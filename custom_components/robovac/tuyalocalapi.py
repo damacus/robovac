@@ -1207,6 +1207,7 @@ class TuyaDevice:
         message = Message(
             Message.GET_COMMAND, payload_bytes, encrypt=encrypt, device=self
         )
+        await self.async_connect()
         self._queue.append(message)
         response = await self.async_receive(message)
         if response is not None:

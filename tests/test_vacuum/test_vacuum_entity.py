@@ -169,6 +169,93 @@ async def test_update_entity_values(mock_robovac, mock_vacuum_data) -> None:
 
 
 @pytest.mark.asyncio
+async def test_partial_startup_dps_sets_idle(mock_robovac, mock_vacuum_data) -> None:
+    """Test partial startup DPS without status recovers HA from unknown."""
+    mock_robovac._dps = {
+        "151": True,
+        "156": True,
+        "158": "Standard",
+        "159": True,
+        "160": False,
+        "161": 80,
+        "163": 61,
+    }
+    mock_robovac.getDpsCodes.return_value = {
+        "MODE": "152",
+        "STATUS": "173",
+        "RETURN_HOME": "153",
+        "FAN_SPEED": "154",
+        "LOCATE": "153",
+        "BATTERY_LEVEL": "172",
+        "ERROR_CODE": "169",
+    }
+
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
+        entity = RoboVacEntity(mock_vacuum_data)
+
+        entity.update_entity_values()
+
+        assert entity.activity == VacuumActivity.IDLE
+
+
+@pytest.mark.asyncio
+async def test_partial_startup_dps_keeps_explicit_status(
+    mock_robovac, mock_vacuum_data
+) -> None:
+    """Test partial-DPS fallback does not override explicit status."""
+    mock_robovac._dps = {
+        "151": True,
+        "156": True,
+        "158": "Standard",
+        "159": True,
+        "160": False,
+        "161": 80,
+        "163": 61,
+        "173": "Charging",
+    }
+    mock_robovac.getDpsCodes.return_value = {
+        "MODE": "152",
+        "STATUS": "173",
+        "RETURN_HOME": "153",
+        "FAN_SPEED": "154",
+        "LOCATE": "153",
+        "BATTERY_LEVEL": "172",
+        "ERROR_CODE": "169",
+    }
+
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
+        entity = RoboVacEntity(mock_vacuum_data)
+
+        entity.update_entity_values()
+
+        assert entity.tuya_state == "Charging"
+
+
+@pytest.mark.asyncio
+async def test_battery_only_dps_does_not_set_idle(
+    mock_robovac, mock_vacuum_data
+) -> None:
+    """Test battery-only updates are not enough to infer idle."""
+    mock_robovac._dps = {"163": 74}
+    mock_robovac.getDpsCodes.return_value = {
+        "MODE": "152",
+        "STATUS": "173",
+        "RETURN_HOME": "153",
+        "FAN_SPEED": "154",
+        "LOCATE": "153",
+        "BATTERY_LEVEL": "172",
+        "ERROR_CODE": "169",
+    }
+
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
+        entity = RoboVacEntity(mock_vacuum_data)
+
+        entity.update_entity_values()
+
+        assert entity.activity is None
+
+
+@pytest.mark.asyncio
 async def test_fan_speed_formatting(mock_robovac, mock_vacuum_data) -> None:
     """Test fan speed formatting in update_entity_values."""
     # Arrange
