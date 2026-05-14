@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
@@ -135,6 +135,7 @@ class RobovacCleanTypeSelect(_RobovacSelectEntity):
             self._attr_available = False
             self._attr_current_option = None
             return
+        vacuum_entity = cast("RoboVacEntity", vacuum_entity)
         self._attr_available = True
         ct = vacuum_entity.clean_type
         if ct is None:
@@ -188,6 +189,7 @@ class RobovacMopLevelSelect(_RobovacSelectEntity):
             self._attr_available = False
             self._attr_current_option = None
             return
+        vacuum_entity = cast("RoboVacEntity", vacuum_entity)
         self._attr_available = True
         ml = vacuum_entity.mop_level
         if ml is None:
@@ -227,7 +229,7 @@ class RobovacFanSpeedSelect(_RobovacSelectEntity):
         self._attr_device_info = _device_info(item)
         model_prefix = (item.get(CONF_MODEL) or "")[:5]
         model_class = ROBOVAC_MODELS.get(model_prefix)
-        values = {}
+        values: dict[str, str] = {}
         if model_class is not None:
             command = getattr(model_class, "commands", {}).get(RobovacCommand.FAN_SPEED, {})
             values = command.get("values", {}) if isinstance(command, dict) else {}
@@ -247,6 +249,7 @@ class RobovacFanSpeedSelect(_RobovacSelectEntity):
             self._attr_available = False
             self._attr_current_option = None
             return
+        vacuum_entity = cast("RoboVacEntity", vacuum_entity)
         opts = list(vacuum_entity.fan_speed_list or self._attr_options)
         if not opts:
             self._attr_available = False

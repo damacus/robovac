@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, cast
 
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
@@ -85,14 +85,14 @@ class RobovacEdgeHuggingMopSwitch(SwitchEntity):
         # Bit not in protobuf yet: show off until decode; switch stays usable.
         self._attr_is_on = bool(val) if val is not None else False
 
-    async def async_turn_on(self, **kwargs) -> None:
+    async def async_turn_on(self, **kwargs: Any) -> None:
         vacuum_entity = self._vacuum()
         if vacuum_entity:
             await vacuum_entity.async_set_clean_param(edge_hugging_mopping=True)
             await self.async_update()
             self.async_write_ha_state()
 
-    async def async_turn_off(self, **kwargs) -> None:
+    async def async_turn_off(self, **kwargs: Any) -> None:
         vacuum_entity = self._vacuum()
         if vacuum_entity:
             await vacuum_entity.async_set_clean_param(edge_hugging_mopping=False)
@@ -101,6 +101,9 @@ class RobovacEdgeHuggingMopSwitch(SwitchEntity):
 
     def _vacuum(self) -> RoboVacEntity | None:
         try:
-            return self.hass.data[DOMAIN][CONF_VACS].get(self.robovac_id)
+            return cast(
+                "RoboVacEntity | None",
+                self.hass.data[DOMAIN][CONF_VACS].get(self.robovac_id),
+            )
         except KeyError:
             return None

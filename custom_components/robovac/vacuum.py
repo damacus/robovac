@@ -580,11 +580,11 @@ class RoboVacEntity(StateVacuumEntity):
         # Initialize additional attributes
         self._attr_mode = None
         self._attr_consumables = None
-        self._attr_clean_type = None
-        self._attr_clean_type_label = None
-        self._attr_mop_level = None
-        self._attr_edge_hugging_mopping = None
-        self._attr_clean_carpet = None
+        self._attr_clean_type: str | None = None
+        self._attr_clean_type_label: str | None = None
+        self._attr_mop_level: str | None = None
+        self._attr_edge_hugging_mopping: bool | None = None
+        self._attr_clean_carpet: str | None = None
 
         # Set up device info for Home Assistant device registry
         self._attr_device_info = DeviceInfo(

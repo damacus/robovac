@@ -4,6 +4,7 @@ Model-specific DPS codes, activity mapping for station states, and decode_dps
 for base64/protobuf payloads on this hardware variant.
 """
 import base64
+from typing import Any
 
 from homeassistant.components.vacuum import VacuumActivity, VacuumEntityFeature
 from .base import RoboVacEntityFeature, RobovacCommand, RobovacModelDetails
@@ -170,7 +171,7 @@ class T2320(RobovacModelDetails):
             fields = _parse_proto(_strip_length_prefix(raw_value))
             codes: set[int] = set()
 
-            def collect(field_value):
+            def collect(field_value: Any) -> None:
                 if field_value is None:
                     return
                 if isinstance(field_value, list):
@@ -269,7 +270,12 @@ class T2320(RobovacModelDetails):
                 station_bytes = fields.get(5)
                 if isinstance(station_bytes, bytes):
                     station_fields = _parse_proto(station_bytes)
-                    station_label = cls._STATION_CODES.get(station_fields.get(1))
+                    station_code = station_fields.get(1)
+                    station_label = (
+                        cls._STATION_CODES.get(station_code)
+                        if isinstance(station_code, int)
+                        else None
+                    )
                     if station_label:
                         return station_label
             except Exception:
@@ -291,7 +297,7 @@ class T2320(RobovacModelDetails):
                 fields = _parse_proto(_strip_length_prefix(raw_value))
                 codes: set[int] = set()
 
-                def collect(field_value):
+                def collect(field_value: Any) -> None:
                     if field_value is None:
                         return
                     if isinstance(field_value, list):
