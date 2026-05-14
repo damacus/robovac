@@ -816,15 +816,14 @@ class RoboVacEntity(StateVacuumEntity):
 
     def _update_clean_param_attributes(self) -> None:
         """Decode DPS 154 (clean params) for vacuum card / automations."""
-        self._attr_clean_type = None
-        self._attr_clean_type_label = None
-        self._attr_mop_level = None
-        self._attr_edge_hugging_mopping = None
-        self._attr_clean_carpet = None
-
         if self.tuyastatus is None or self.vacuum is None:
             return
         if RobovacCommand.CLEAN_PARAM not in self.vacuum.getSupportedCommands():
+            self._attr_clean_type = None
+            self._attr_clean_type_label = None
+            self._attr_mop_level = None
+            self._attr_edge_hugging_mopping = None
+            self._attr_clean_carpet = None
             return
 
         raw = self.tuyastatus.get(self.get_dps_code("CLEAN_PARAM"))

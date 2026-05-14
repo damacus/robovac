@@ -257,6 +257,37 @@ async def test_update_entity_values_does_not_display_default_before_dps154_read(
 
 
 @pytest.mark.asyncio
+async def test_update_entity_values_preserves_clean_params_on_partial_update() -> None:
+    """Test battery-only updates do not clear the last real DPS 154 decode."""
+    data = {
+        CONF_NAME: "Test X9",
+        CONF_ID: "test_x9_id",
+        CONF_MODEL: "T2320",
+        CONF_IP_ADDRESS: "192.168.1.100",
+        CONF_ACCESS_TOKEN: "test_key",
+        CONF_DESCRIPTION: "X9 Pro",
+        CONF_MAC: "aa:bb:cc:dd:ee:99",
+    }
+    with patch("custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None):
+        entity = RoboVacEntity(data)
+    assert entity.vacuum is not None
+    entity.vacuum._dps = {
+        "154": "JgoOCgIIAhIAGgAiAggCKgASABoAIhAKAggCGgAiAggCKgAyAggB",
+        "163": 29,
+    }
+
+    entity.update_entity_values()
+    assert entity.clean_type == "sweep_and_mop"
+    assert entity.edge_hugging_mopping is False
+
+    entity.vacuum._dps = {"163": 30}
+    entity.update_entity_values()
+
+    assert entity.clean_type == "sweep_and_mop"
+    assert entity.edge_hugging_mopping is False
+
+
+@pytest.mark.asyncio
 async def test_async_pause(mock_robovac, mock_vacuum_data) -> None:
     """Test the async_pause method."""
     # Arrange
