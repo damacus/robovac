@@ -187,6 +187,10 @@ class RoboVac(TuyaDevice):
         }
 
         codes = {}
+        model_dps_codes = getattr(self.model_details, "dps_codes", {})
+        if isinstance(model_dps_codes, dict):
+            codes.update({str(key): str(value) for key, value in model_dps_codes.items()})
+
         # Extract codes from commands dictionary
         for key, value in self.model_details.commands.items():
             # Get the DPS name from the mapping, or use the command name if not in mapping

@@ -82,7 +82,7 @@ async def async_setup_entry(
         # Notification sensor — prompt/notification codes (DPS 178)
         if RobovacCommand.ACTIVE_ERRORS in commands:
             dps = str(commands[RobovacCommand.ACTIVE_ERRORS]["code"])
-            entities.append(RobovacNotificationSensor(item, dps))
+            entities.append(RobovacNotificationSensor(item, dps, model_class))
 
         # Warning sensor — non-fatal maintenance/station warnings.
         warning_dps = getattr(model_class, "warning_dps_code", None)
@@ -330,9 +330,10 @@ class RobovacNotificationSensor(SensorEntity):
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_icon = "mdi:bell-outline"
 
-    def __init__(self, item: dict, dps_code: str) -> None:
+    def __init__(self, item: dict, dps_code: str, model_class: type | None = None) -> None:
         self.robovac_id = item[CONF_ID]
         self._dps_code = dps_code
+        self._model_class = model_class
         self._attr_unique_id = f"{item[CONF_ID]}_notification"
         self._attr_name = "Notification"
         self._attr_device_info = _device_info(item)
@@ -355,7 +356,10 @@ class RobovacNotificationSensor(SensorEntity):
                 if not self._has_had_data:
                     self._attr_available = False
                 return
-            value = decode_error_code(raw)
+            decoder = getattr(self._model_class, "decode_dps", None)
+            value = decoder(self._dps_code, raw) if decoder else None
+            if value is None:
+                value = decode_error_code(raw)
             self._attr_native_value = None if value == "no_error" else value
             self._attr_available = True
             self._has_had_data = True

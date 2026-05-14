@@ -173,6 +173,112 @@ def _clean_param_b64_with_length_prefix(proto_payload: bytes) -> str:
     return base64.b64encode(bytes([len(proto_payload)]) + proto_payload).decode("ascii")
 
 
+def _with_varint_length_prefix(proto_payload: bytes) -> str:
+    """Wrap payload with a protobuf varint length prefix and base64 encode it."""
+    return base64.b64encode(_encode_varint(len(proto_payload)) + proto_payload).decode("ascii")
+
+
+def _strip_varint_length_prefix(data: bytes) -> bytes:
+    """Remove a leading protobuf varint length prefix when it matches payload size."""
+    if not data:
+        return data
+    try:
+        length, offset = _parse_varint(data, 0)
+    except Exception:
+        return data
+    if length == len(data) - offset:
+        return data[offset:]
+    return data
+
+
+def _field_varint(field_num: int, value: int) -> bytes:
+    return _encode_varint(field_num << 3) + _encode_varint(value)
+
+
+def _field_bytes(field_num: int, value: bytes) -> bytes:
+    return _encode_varint((field_num << 3) | 2) + _encode_varint(len(value)) + value
+
+
+def decode_t2320_room_meta(raw_b64: str) -> dict[str, Any]:
+    """Decode T2320/X9 Pro DPS 165 room metadata.
+
+    Real X9 Pro payload shape:
+      length_prefix
+      field_1 bytes:
+        field_1 uint32 map_id
+        repeated field_2 bytes:
+          field_1 uint32 room_id
+          field_2 string room_label
+    """
+    if not raw_b64:
+        return {"map_id": None, "rooms": []}
+
+    raw = _strip_varint_length_prefix(base64.b64decode(raw_b64))
+    outer = _parse_proto(raw)
+    inner_raw = outer.get(1)
+    if isinstance(inner_raw, list):
+        inner_raw = next((item for item in inner_raw if isinstance(item, bytes)), None)
+    if not isinstance(inner_raw, bytes):
+        return {"map_id": None, "rooms": []}
+
+    inner = _parse_proto(inner_raw)
+    rooms: list[dict[str, Any]] = []
+    entries = inner.get(2, [])
+    if isinstance(entries, bytes):
+        entries = [entries]
+    if not isinstance(entries, list):
+        entries = []
+
+    for entry_raw in entries:
+        if not isinstance(entry_raw, bytes):
+            continue
+        entry = _parse_proto(entry_raw)
+        room_id = entry.get(1)
+        label_raw = entry.get(2)
+        if not isinstance(room_id, int):
+            continue
+        label = str(room_id)
+        if isinstance(label_raw, bytes):
+            try:
+                decoded = label_raw.decode("utf-8").strip()
+                if decoded:
+                    label = decoded
+            except UnicodeDecodeError:
+                pass
+        rooms.append({"id": room_id, "label": label})
+
+    return {
+        "map_id": inner.get(1) if isinstance(inner.get(1), int) else None,
+        "rooms": rooms,
+    }
+
+
+def build_t2320_room_clean_mode(
+    room_ids: list[int],
+    *,
+    map_id: int,
+    clean_times: int = 1,
+) -> str:
+    """Build a DPS 152 ModeCtrlRequest for T2320 selected-room cleaning."""
+    if not room_ids:
+        raise ValueError("room_ids must not be empty")
+    if map_id <= 0:
+        raise ValueError("map_id must be positive")
+    if clean_times <= 0:
+        raise ValueError("clean_times must be positive")
+
+    select_rooms = b""
+    for order, room_id in enumerate(room_ids, start=1):
+        room = _field_varint(1, int(room_id)) + _field_varint(2, order)
+        select_rooms += _field_bytes(1, room)
+    select_rooms += _field_varint(2, int(clean_times))
+    select_rooms += _field_varint(3, int(map_id))
+
+    # ModeCtrlRequest: method=1 START_SELECT_ROOMS_CLEAN, oneof field 4 payload.
+    request = _field_varint(1, 1) + _field_bytes(4, select_rooms)
+    return _with_varint_length_prefix(request)
+
+
 def patch_clean_param_dps154(
     raw_b64: str,
     *,

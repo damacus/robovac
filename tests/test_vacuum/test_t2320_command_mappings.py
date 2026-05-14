@@ -136,6 +136,7 @@ class TestT2320CommandMappings:
     def test_decode_return_progress_payloads(self):
         """Test observed X9 return progress payloads distinguish moving vs docked."""
         assert T2320.decode_dps("153", "CBAFGgA6AhAB") == "returning"
+        assert T2320.decode_dps("153", "CBAHQgByAiIA") == "returning"
         assert T2320.decode_dps("153", "DhAFGgA6AhABcgQaACIA") == "docked"
         assert T2320.decode_dps("153", "EBAFGgA6AhACcgYaAggBIgA=") == "docked"
         assert T2320.decode_dps("153", "FAoAEAUaADICCAE6AhABcgQaACIA") == "docked"

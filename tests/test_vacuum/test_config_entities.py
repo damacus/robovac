@@ -46,6 +46,7 @@ async def test_t2320_exposes_config_entities() -> None:
         "Fan speed",
         "Clean type",
         "Mop level",
+        "Room",
     ]
     assert [entity.name for entity in switch_entities] == ["Edge mopping"]
 
@@ -74,6 +75,7 @@ async def test_t2320_does_not_duplicate_clean_type_as_diagnostic_sensor() -> Non
 
     sensor_names = [entity.name for entity in sensor_entities]
     assert "Clean Type" not in sensor_names
+    assert "Notification" in sensor_names
     assert "Warning" in sensor_names
     assert "Side Brush" in sensor_names
     assert "Rolling Brush" in sensor_names

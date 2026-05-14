@@ -984,3 +984,40 @@ def test_error_code_with_extended_codes() -> None:
     result = decode_error_code("AA==")
     # Should return string or None
     assert result is None or isinstance(result, str)
+
+
+def test_decode_t2320_room_meta_live_payload_shape() -> None:
+    """Decode X9 Pro DPS 165 length-prefixed room metadata."""
+    from custom_components.robovac.proto_decode import decode_t2320_room_meta
+
+    payload = (
+        "fwp9CAsSDAgBEghCYXRocm9vbRIKCAISBlNob3dlchILCAMSB0tpdGNoZW4SCQgEEgVTdHVkeRIQ"
+        "CAUSDE1haW4gYmVkcm9vbRIOCAYSCkd1ZXN0IHJvb20SDwgIEgtMaXZpbmcgcm9vbRIKCAkSBlRv"
+        "aWxldBIICAoSBEhhbGw="
+    )
+    result = decode_t2320_room_meta(
+        payload
+    )
+
+    assert result["map_id"] == 11
+    assert result["rooms"] == [
+        {"id": 1, "label": "Bathroom"},
+        {"id": 2, "label": "Shower"},
+        {"id": 3, "label": "Kitchen"},
+        {"id": 4, "label": "Study"},
+        {"id": 5, "label": "Main bedroom"},
+        {"id": 6, "label": "Guest room"},
+        {"id": 8, "label": "Living room"},
+        {"id": 9, "label": "Toilet"},
+        {"id": 10, "label": "Hall"},
+    ]
+
+
+def test_build_t2320_room_clean_mode_payload() -> None:
+    """Build selected-room ModeCtrlRequest for DPS 152."""
+    from custom_components.robovac.proto_decode import build_t2320_room_clean_mode
+
+    assert build_t2320_room_clean_mode([3], map_id=11) == "DggBIgoKBAgDEAEQARgL"
+    assert build_t2320_room_clean_mode([3, 8], map_id=11, clean_times=2) == (
+        "FAgBIhAKBAgDEAEKBAgIEAIQAhgL"
+    )

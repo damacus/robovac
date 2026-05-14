@@ -16,6 +16,7 @@ class T2320(RobovacModelDetails):
     clean_type_select_keys = ("sweep_only", "mop_only", "sweep_and_mop")
     default_clean_param_dps154 = "JgoOCgIIAhIAGgAiAggCKgASABoAIhAKAggCGgAiAggCKgAyAggB"
     warning_dps_code = 177
+    expose_room_select = True
     consumable_sensor_keys = (
         "side_brush",
         "rolling_brush",
@@ -123,6 +124,9 @@ class T2320(RobovacModelDetails):
         RobovacCommand.ACTIVE_ERRORS: {
             "code": 178,
         },
+    }
+    dps_codes = {
+        "ROOM_META": "165",
     }
 
     # ── DPS 152 base64 mode detection ─────────────────────────────────
@@ -266,6 +270,13 @@ class T2320(RobovacModelDetails):
                         return "returning"
                     if progress == 2:
                         return "docked"
+                state = _as_varint(fields.get(2))
+                if state == 7:
+                    return "returning"
+                if state == 3:
+                    return "docked"
+                if state == 5:
+                    return "cleaning"
                 active_state = fields.get(6)
                 if isinstance(active_state, bytes) and not active_state:
                     return "cleaning"
@@ -375,6 +386,7 @@ class T2320(RobovacModelDetails):
                         prompt_codes.update(_decode_prompt_packed_varints(field_value))
 
                 collect_prompt(fields.get(2))
+
                 prompt_codes.discard(0)
                 if not prompt_codes:
                     return "no_error"

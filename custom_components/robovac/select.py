@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
@@ -28,6 +28,7 @@ _DEFAULT_CLEAN_TYPE_KEYS = tuple(_CLEAN_TYPE_LABELS_ALL.keys())
 
 _MOP_LEVEL_TO_OPTION = {"low": "Low", "middle": "Middle", "high": "High"}
 _OPTION_TO_MOP_LEVEL = {v: k for k, v in _MOP_LEVEL_TO_OPTION.items()}
+_CLEAN_WHOLE_HOUSE_OPTION = "Clean whole house"
 
 
 class _RobovacSelectEntity(SelectEntity):
@@ -98,6 +99,8 @@ async def async_setup_entry(
             )
             entities.append(RobovacCleanTypeSelect(item, dps, clean_keys))
             entities.append(RobovacMopLevelSelect(item, dps))
+        if getattr(model_class, "expose_room_select", False):
+            entities.append(RobovacRoomSelect(item))
 
     async_add_entities(entities)
 
@@ -275,3 +278,84 @@ class RobovacFanSpeedSelect(_RobovacSelectEntity):
         await vacuum_entity.async_set_fan_speed(option)
         await self.async_update()
         self.async_write_ha_state()
+
+
+class RobovacRoomSelect(SelectEntity):
+    """Select a known room target and start selected-room cleaning."""
+
+    _attr_has_entity_name = True
+    _attr_should_poll = True
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_icon = "mdi:floor-plan"
+
+    def __init__(self, item: dict) -> None:
+        self.robovac_id = item[CONF_ID]
+        self._attr_unique_id = f"{item[CONF_ID]}_room_select"
+        self._attr_name = "Room"
+        self._attr_device_info = _device_info(item)
+        self._attr_options = [_CLEAN_WHOLE_HOUSE_OPTION]
+        self._attr_current_option: str | None = None
+        self._room_lookup: dict[str, Any] = {}
+
+    @property
+    def options(self) -> list[str]:
+        return self._attr_options
+
+    @property
+    def current_option(self) -> str | None:
+        return self._attr_current_option
+
+    async def async_update(self) -> None:
+        vacuum_entity = self._vacuum()
+        if not _vacuum_ready(vacuum_entity):
+            self._attr_available = False
+            return
+        vacuum_entity = cast("RoboVacEntity", vacuum_entity)
+        self._attr_available = True
+        if hasattr(vacuum_entity, "async_get_segments"):
+            segments = await vacuum_entity.async_get_segments()
+        else:
+            segments = []
+        options = [_CLEAN_WHOLE_HOUSE_OPTION]
+        lookup: dict[str, Any] = {}
+        for segment in segments:
+            if isinstance(segment, dict):
+                segment_id = segment.get("id")
+                segment_name = segment.get("name")
+            else:
+                segment_id = getattr(segment, "id", None)
+                segment_name = getattr(segment, "name", None)
+            label = str(segment_name or segment_id or "").strip()
+            if not label:
+                continue
+            lookup[label] = segment_id
+            options.append(label)
+        self._room_lookup = lookup
+        self._attr_options = options
+
+    async def async_select_option(self, option: str) -> None:
+        vacuum_entity = self._vacuum()
+        if not vacuum_entity:
+            return
+        if option == _CLEAN_WHOLE_HOUSE_OPTION:
+            await vacuum_entity.async_start()
+        else:
+            room_id = self._room_lookup.get(option)
+            if room_id is None:
+                raise ValueError(f"Invalid room option: {option}")
+            await vacuum_entity.async_send_command(
+                "roomClean",
+                {"roomIds": [room_id], "count": 1},
+            )
+        self._attr_current_option = option
+        await self.async_update()
+        self.async_write_ha_state()
+
+    def _vacuum(self) -> RoboVacEntity | None:
+        try:
+            return cast(
+                "RoboVacEntity | None",
+                self.hass.data[DOMAIN][CONF_VACS].get(self.robovac_id),
+            )
+        except KeyError:
+            return None
