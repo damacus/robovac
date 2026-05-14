@@ -16,6 +16,14 @@ class T2320(RobovacModelDetails):
     clean_type_select_keys = ("sweep_only", "mop_only", "sweep_and_mop")
     default_clean_param_dps154 = "JgoOCgIIAhIAGgAiAggCKgASABoAIhAKAggCGgAiAggCKgAyAggB"
     warning_dps_code = 177
+    consumable_sensor_keys = (
+        "side_brush",
+        "rolling_brush",
+        "filter_mesh",
+        "scrape",
+        "sensor",
+        "mop",
+    )
 
     homeassistant_features = (
         VacuumEntityFeature.FAN_SPEED
@@ -106,8 +114,14 @@ class T2320(RobovacModelDetails):
         RobovacCommand.BATTERY: {
             "code": 163,
         },
+        RobovacCommand.CONSUMABLES: {
+            "code": 168,
+        },
         RobovacCommand.ERROR: {
             "code": 177,
+        },
+        RobovacCommand.ACTIVE_ERRORS: {
+            "code": 178,
         },
     }
 
@@ -154,6 +168,12 @@ class T2320(RobovacModelDetails):
         74: "Clean water tank empty",
         82: "Clean station wash tray",
         83: "Waste water tank full",
+    }
+    _PROMPT_CODES = {
+        7: "Route unavailable, returning to dock",
+        10: "Prompt 10",
+        12: "Prompt 12",
+        17: "Prompt 17",
     }
 
     @classmethod
@@ -239,7 +259,9 @@ class T2320(RobovacModelDetails):
                     dock_fields = _parse_proto(dock_state)
                     progress = _as_varint(dock_fields.get(2))
                     if progress == 1:
-                        if isinstance(fields.get(6), bytes) or isinstance(fields.get(14), bytes):
+                        if isinstance(fields.get(6), bytes) or isinstance(
+                            fields.get(14), bytes
+                        ):
                             return "docked"
                         return "returning"
                     if progress == 2:
@@ -324,6 +346,42 @@ class T2320(RobovacModelDetails):
                 return "; ".join(
                     cls._ERROR_CODES.get(error_code, f"error_{error_code}")
                     for error_code in sorted(codes)
+                )
+            except Exception:
+                pass
+            return raw_value
+
+        # DPS 178 — prompt/notification protobuf
+        if code == "178":
+            try:
+                from custom_components.robovac.proto_decode import (
+                    _decode_packed_varints as _decode_prompt_packed_varints,
+                    _parse_proto,
+                    _strip_length_prefix,
+                )
+
+                fields = _parse_proto(_strip_length_prefix(raw_value))
+                prompt_codes: set[int] = set()
+
+                def collect_prompt(field_value: Any) -> None:
+                    if field_value is None:
+                        return
+                    if isinstance(field_value, list):
+                        for item in field_value:
+                            collect_prompt(item)
+                    elif isinstance(field_value, int):
+                        prompt_codes.add(field_value)
+                    elif isinstance(field_value, bytes):
+                        prompt_codes.update(_decode_prompt_packed_varints(field_value))
+
+                collect_prompt(fields.get(2))
+                prompt_codes.discard(0)
+                if not prompt_codes:
+                    return "no_error"
+
+                return "; ".join(
+                    cls._PROMPT_CODES.get(prompt_code, f"prompt_{prompt_code}")
+                    for prompt_code in sorted(prompt_codes)
                 )
             except Exception:
                 pass

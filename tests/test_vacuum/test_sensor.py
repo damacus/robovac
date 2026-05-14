@@ -313,6 +313,7 @@ async def test_consumable_sensor_init(mock_vacuum_data: Any) -> None:
     assert sensor.robovac_id == mock_vacuum_data[CONF_ID]
     assert sensor._attr_name == "Side Brush"
     assert sensor._attr_icon == "mdi:brush"
+    assert sensor.entity_category == EntityCategory.DIAGNOSTIC
 
 
 @pytest.mark.asyncio

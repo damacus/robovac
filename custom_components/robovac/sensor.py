@@ -34,14 +34,15 @@ SCAN_INTERVAL = timedelta(seconds=REFRESH_RATE)
 
 # Consumables exposed as individual sensors for proto-based models (DPS 168).
 # Tuple: (decode_key, display_name, icon)
-_PROTO_CONSUMABLES = [
-    ("side_brush", "Side Brush", "mdi:brush"),
-    ("rolling_brush", "Rolling Brush", "mdi:brush-variant"),
-    ("filter_mesh", "Filter", "mdi:air-filter"),
-    ("scrape", "Scraper", "mdi:squeegee"),
-    ("sensor", "Sensor", "mdi:motion-sensor"),
-    ("dustbag", "Dust Bag", "mdi:trash-can-outline"),
-]
+_PROTO_CONSUMABLES = {
+    "side_brush": ("Side Brush", "mdi:brush"),
+    "rolling_brush": ("Rolling Brush", "mdi:brush-variant"),
+    "filter_mesh": ("Filter", "mdi:air-filter"),
+    "scrape": ("Scraper", "mdi:squeegee"),
+    "sensor": ("Sensor", "mdi:motion-sensor"),
+    "mop": ("Mop", "mdi:robot-vacuum"),
+    "dustbag": ("Dust Bag", "mdi:trash-can-outline"),
+}
 
 
 def _device_info(item: dict) -> DeviceInfo:
@@ -92,7 +93,9 @@ async def async_setup_entry(
         consumables_cmd = commands.get(RobovacCommand.CONSUMABLES, {})
         if isinstance(consumables_cmd, dict) and consumables_cmd.get("code") == 168:
             dps = str(consumables_cmd["code"])
-            for key, label, icon in _PROTO_CONSUMABLES:
+            keys = getattr(model_class, "consumable_sensor_keys", _PROTO_CONSUMABLES)
+            for key in keys:
+                label, icon = _PROTO_CONSUMABLES[key]
                 entities.append(RobovacConsumableSensor(item, dps, key, label, icon))
 
         # Clean-type sensor — DPS 154. Models that expose first-class config
@@ -428,6 +431,7 @@ class RobovacConsumableSensor(SensorEntity):
 
     _attr_has_entity_name = True
     _attr_should_poll = True
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_native_unit_of_measurement = "h"
 
     def __init__(

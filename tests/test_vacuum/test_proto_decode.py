@@ -643,6 +643,19 @@ class TestDecodeConsumableResponse:
         assert result.get("filter_mesh") == 48
         assert result.get("dustbag") == 1574
 
+    def test_t2320_dps168_sample(self) -> None:
+        """Decode the observed T2320 DPS 168 consumable fields."""
+        payload = "IgogCgIIWRICCFkaAghZIgIIWSoDCLgCMgIIHaAB8fjazwY="
+        result = decode_consumable_response(payload)
+        assert result == {
+            "side_brush": 89,
+            "rolling_brush": 89,
+            "filter_mesh": 89,
+            "scrape": 89,
+            "sensor": 312,
+            "mop": 29,
+        }
+
     def test_empty_payload_returns_empty_dict(self) -> None:
         """Empty payload → empty dict."""
         import base64

@@ -78,6 +78,7 @@ class TestT2320CommandMappings:
         assert dps_codes.get("CLEAN_PARAM") == "154"
         assert dps_codes.get("FAN_SPEED") == "158"
         assert dps_codes.get("BATTERY_LEVEL") == "163"
+        assert dps_codes.get("CONSUMABLES") == "168"
         assert dps_codes.get("ERROR_CODE") == "177"
         assert "ROOM_CLEAN" not in dps_codes
 
@@ -85,6 +86,12 @@ class TestT2320CommandMappings:
         """Test STATUS command is defined for state polling."""
         commands = t2320_robovac.getSupportedCommands()
         assert RobovacCommand.STATUS in commands
+
+    def test_consumables_command_exists(self, t2320_robovac):
+        """Test DPS 168 is exposed as consumables, not room-clean metadata."""
+        commands = t2320_robovac.getSupportedCommands()
+        assert RobovacCommand.CONSUMABLES in commands
+        assert t2320_robovac.model_details.commands[RobovacCommand.CONSUMABLES]["code"] == 168
 
     def test_locate_command_exists(self, t2320_robovac):
         """Test LOCATE command is defined."""
@@ -133,3 +140,25 @@ class TestT2320CommandMappings:
         assert T2320.decode_dps("153", "EBAFGgA6AhACcgYaAggBIgA=") == "docked"
         assert T2320.decode_dps("153", "FAoAEAUaADICCAE6AhABcgQaACIA") == "docked"
         assert T2320.decode_dps("153", "CgoAEAUyAHICIgA=") == "cleaning"
+
+    def test_decode_route_unavailable_prompt(self):
+        """Test observed X9 room-clean failure prompt from DPS 178."""
+        assert T2320.decode_dps("178", "CwjczIPu6YlJEgEH") == (
+            "Route unavailable, returning to dock"
+        )
+
+    @pytest.mark.parametrize(
+        ("raw", "expected"),
+        [
+            ("CwiY+IOJrO9JEgEK", "Prompt 10"),
+            ("Cwj6iLDX8uxJEgEM", "Prompt 12"),
+        ],
+    )
+    def test_decode_observed_x9_prompt_codes(self, raw, expected):
+        """Test observed X9 prompt codes avoid raw prompt_N states."""
+        assert T2320.decode_dps("178", raw) == expected
+
+    def test_decode_observed_x9_prompt_17(self):
+        """Test observed X9 prompt 17 avoids a raw prompt_N state."""
+        raw = base64.b64encode(bytes([3, 0x12, 0x01, 17])).decode()
+        assert T2320.decode_dps("178", raw) == "Prompt 17"
