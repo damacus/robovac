@@ -237,7 +237,12 @@ def patch_clean_param_dps154(
             mop_level_key = mk
 
     new_outer = dict(outer)
-    for field in (1, 3, 4):
+    fields_to_patch = (
+        (1, 4)
+        if edge_hugging_mopping is not None and mop_level is None
+        else (1, 3, 4)
+    )
+    for field in fields_to_patch:
         if field in outer or field == 1:
             new_outer[field] = _patch_layer(outer.get(field))
     new_payload = _serialize_proto(new_outer)

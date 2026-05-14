@@ -614,6 +614,16 @@ class TestPatchCleanParamDps154:
         assert cp["clean_type"] == "mop_only"
         assert cp["clean_extent"] == "narrow"
 
+    def test_patch_edge_hugging_does_not_create_area_layer(self) -> None:
+        """Edge-only writes match app payload shape by not inventing area params."""
+        raw = "JgoOCgIIAhIAGgAiAggCKgASABoAIhAKAggCGgAiAggCKgAyAggB"
+        new = patch_clean_param_dps154(raw, edge_hugging_mopping=True)
+        decoded = decode_clean_param_response(new)
+
+        assert "area_clean_param" not in decoded
+        assert decoded["clean_param"]["edge_hugging_mopping"] is True
+        assert decoded["running_clean_param"]["edge_hugging_mopping"] is True
+
 
 # ============================================================================
 # Tests for decode_consumable_response  (DPS 168)

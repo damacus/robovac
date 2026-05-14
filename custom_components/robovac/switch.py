@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from typing import TYPE_CHECKING, Any, cast
 
 from homeassistant.components.switch import SwitchEntity
@@ -88,15 +89,20 @@ class RobovacEdgeHuggingMopSwitch(SwitchEntity):
         vacuum_entity = self._vacuum()
         if vacuum_entity:
             await vacuum_entity.async_set_clean_param(edge_hugging_mopping=True)
-            await self.async_update()
-            self.async_write_ha_state()
+            await self._refresh_after_write()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         vacuum_entity = self._vacuum()
         if vacuum_entity:
             await vacuum_entity.async_set_clean_param(edge_hugging_mopping=False)
-            await self.async_update()
-            self.async_write_ha_state()
+            await self._refresh_after_write()
+
+    async def _refresh_after_write(self) -> None:
+        await self.async_update()
+        self.async_write_ha_state()
+        await asyncio.sleep(2)
+        await self.async_update()
+        self.async_write_ha_state()
 
     def _vacuum(self) -> RoboVacEntity | None:
         try:
