@@ -72,7 +72,9 @@ async def test_t2320_does_not_duplicate_clean_type_as_diagnostic_sensor() -> Non
 
     await async_setup_sensor_entry(None, entry, sensor_entities.extend)
 
-    assert "Clean Type" not in [entity.name for entity in sensor_entities]
+    sensor_names = [entity.name for entity in sensor_entities]
+    assert "Clean Type" not in sensor_names
+    assert "Warning" in sensor_names
 
 
 @pytest.mark.asyncio

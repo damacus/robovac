@@ -14,6 +14,7 @@ class T2320(RobovacModelDetails):
     expose_config_entities = True
     clean_type_select_keys = ("sweep_only", "mop_only", "sweep_and_mop")
     default_clean_param_dps154 = "JgoOCgIIAhIAGgAiAggCKgASABoAIhAKAggCGgAiAggCKgAyAggB"
+    warning_dps_code = 177
 
     homeassistant_features = (
         VacuumEntityFeature.FAN_SPEED
@@ -153,6 +154,52 @@ class T2320(RobovacModelDetails):
         82: "Clean station wash tray",
         83: "Waste water tank full",
     }
+
+    @classmethod
+    def decode_warning_dps(cls, raw_value: str) -> list[dict[str, int | str]]:
+        """Decode DPS 177 warning fields into warning code/message pairs."""
+        if not raw_value:
+            return []
+        try:
+            from custom_components.robovac.proto_decode import (
+                _decode_packed_varints,
+                _parse_proto,
+                _strip_length_prefix,
+            )
+
+            fields = _parse_proto(_strip_length_prefix(raw_value))
+            codes: set[int] = set()
+
+            def collect(field_value):
+                if field_value is None:
+                    return
+                if isinstance(field_value, list):
+                    for item in field_value:
+                        collect(item)
+                elif isinstance(field_value, int):
+                    codes.add(field_value)
+                elif isinstance(field_value, bytes):
+                    codes.update(_decode_packed_varints(field_value))
+
+            collect(fields.get(3))
+
+            new_code = fields.get(10)
+            if isinstance(new_code, bytes):
+                new_code_fields = _parse_proto(new_code)
+                collect(new_code_fields.get(2))
+
+            codes.discard(0)
+            return [
+                {
+                    "code": warning_code,
+                    "message": cls._ERROR_CODES.get(
+                        warning_code, f"warning_{warning_code}"
+                    ),
+                }
+                for warning_code in sorted(codes)
+            ]
+        except Exception:
+            return []
 
     # ── Custom DPS decoder ────────────────────────────────────────────
     @classmethod

@@ -119,6 +119,12 @@ class TestT2320CommandMappings:
         """Test observed X9 warning-only station payload does not force error."""
         assert T2320.decode_dps("177", "Dwj22eCIkfFEGgFSIgBSAA==") == "no_error"
 
+    def test_decode_warning_dps_from_live_payload(self):
+        """Test observed X9 warning payload exposes non-fatal warnings."""
+        assert T2320.decode_warning_dps("Dwj22eCIkfFEGgFSIgBSAA==") == [
+            {"code": 82, "message": "Clean station wash tray"}
+        ]
+
     def test_decode_return_progress_payloads(self):
         """Test observed X9 return progress payloads distinguish moving vs docked."""
         assert T2320.decode_dps("153", "CBAFGgA6AhAB") == "returning"

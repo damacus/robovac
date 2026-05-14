@@ -83,6 +83,11 @@ async def async_setup_entry(
             dps = str(commands[RobovacCommand.ACTIVE_ERRORS]["code"])
             entities.append(RobovacNotificationSensor(item, dps))
 
+        # Warning sensor — non-fatal maintenance/station warnings.
+        warning_dps = getattr(model_class, "warning_dps_code", None)
+        if warning_dps is not None:
+            entities.append(RobovacWarningSensor(item, str(warning_dps), model_class))
+
         # Per-consumable sensors — proto models using DPS 168
         consumables_cmd = commands.get(RobovacCommand.CONSUMABLES, {})
         if isinstance(consumables_cmd, dict) and consumables_cmd.get("code") == 168:
@@ -319,6 +324,7 @@ class RobovacNotificationSensor(SensorEntity):
 
     _attr_has_entity_name = True
     _attr_should_poll = True
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_icon = "mdi:bell-outline"
 
     def __init__(self, item: dict, dps_code: str) -> None:
@@ -352,6 +358,59 @@ class RobovacNotificationSensor(SensorEntity):
             self._has_had_data = True
         except Exception as ex:
             _LOGGER.error("Failed to update notification sensor for %s: %s", self.robovac_id, ex)
+            self._attr_available = False
+
+
+class RobovacWarningSensor(SensorEntity):
+    """Non-fatal maintenance/station warnings from model-specific DPS fields."""
+
+    _attr_has_entity_name = True
+    _attr_should_poll = True
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_icon = "mdi:alert-outline"
+
+    def __init__(self, item: dict, dps_code: str, model_class: type) -> None:
+        self.robovac_id = item[CONF_ID]
+        self._dps_code = dps_code
+        self._model_class = model_class
+        self._attr_unique_id = f"{item[CONF_ID]}_warning"
+        self._attr_name = "Warning"
+        self._attr_device_info = _device_info(item)
+        self._attr_native_value = "No warning"
+        self._attr_extra_state_attributes: dict = {"warnings": []}
+        self._attr_available = True
+        self._has_had_data = False
+
+    async def async_update(self) -> None:
+        try:
+            vacuum_entity, tuyastatus = _vacuum_and_status(
+                self.hass, DOMAIN, CONF_VACS, self.robovac_id
+            )
+            if vacuum_entity is None:
+                self._attr_available = False
+                return
+            if not tuyastatus:
+                if not self._has_had_data:
+                    self._attr_native_value = "No warning"
+                    self._attr_extra_state_attributes = {"warnings": []}
+                    self._attr_available = True
+                return
+            raw = tuyastatus.get(self._dps_code)
+            if raw is None:
+                if not self._has_had_data:
+                    self._attr_native_value = "No warning"
+                    self._attr_extra_state_attributes = {"warnings": []}
+                    self._attr_available = True
+                return
+            decoder = getattr(self._model_class, "decode_warning_dps", None)
+            warnings = decoder(raw) if decoder else []
+            messages = [str(warning["message"]) for warning in warnings]
+            self._attr_native_value = "; ".join(messages) if messages else "No warning"
+            self._attr_extra_state_attributes = {"warnings": warnings}
+            self._attr_available = True
+            self._has_had_data = True
+        except Exception as ex:
+            _LOGGER.error("Failed to update warning sensor for %s: %s", self.robovac_id, ex)
             self._attr_available = False
 
 
