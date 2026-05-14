@@ -2,6 +2,7 @@
 
 import pytest
 from unittest.mock import patch
+import base64
 
 from custom_components.robovac.robovac import RoboVac, RobovacCommand
 from custom_components.robovac.vacuums.T2320 import T2320
@@ -45,20 +46,27 @@ class TestT2320CommandMappings:
         assert start_result is True or start_result == "True" or start_result == "true"
 
     def test_mode_command_value(self, t2320_robovac):
-        """Test MODE command returns plain string values as seen in debug logs."""
-        # Debug log shows: "dps": {"152": "auto"}
+        """Test MODE command returns base64 protobuf values observed on X9."""
         result = t2320_robovac.getRoboVacCommandValue(RobovacCommand.MODE, "auto")
-        assert result == "auto"
+        assert result == "BBoCCAE="
 
     def test_fan_speed_command_has_multiple_options(self, t2320_robovac):
         """Test FAN_SPEED command has multiple readable options."""
         fan_speeds = t2320_robovac.getFanSpeeds()
+        assert fan_speeds == ["Standard", "Turbo", "Max", "Quiet"]
         # Should have more than one option and not contain base64-like strings
         assert len(fan_speeds) > 1
         for speed in fan_speeds:
             # Should not be base64-like encoded strings
             assert not speed.startswith("Ag")
             assert len(speed) < 20  # Reasonable length for human-readable names
+
+    def test_fan_speed_command_values(self, t2320_robovac):
+        """Test FAN_SPEED command values match X9 suction levels."""
+        assert t2320_robovac.getRoboVacCommandValue(RobovacCommand.FAN_SPEED, "quiet") == "Quiet"
+        assert t2320_robovac.getRoboVacCommandValue(RobovacCommand.FAN_SPEED, "standard") == "Standard"
+        assert t2320_robovac.getRoboVacCommandValue(RobovacCommand.FAN_SPEED, "turbo") == "Turbo"
+        assert t2320_robovac.getRoboVacCommandValue(RobovacCommand.FAN_SPEED, "max") == "Max"
 
     def test_dps_codes_mapping(self, t2320_robovac):
         """Test DPS codes match debug log expectations."""
@@ -67,7 +75,10 @@ class TestT2320CommandMappings:
         assert dps_codes.get("RETURN_HOME") == "153"
         assert dps_codes.get("START_PAUSE") == "2"
         assert dps_codes.get("MODE") == "152"
-        assert dps_codes.get("FAN_SPEED") == "154"
+        assert dps_codes.get("CLEAN_PARAM") == "154"
+        assert dps_codes.get("FAN_SPEED") == "158"
+        assert dps_codes.get("BATTERY_LEVEL") == "163"
+        assert dps_codes.get("ERROR_CODE") == "177"
 
     def test_status_command_exists(self, t2320_robovac):
         """Test STATUS command is defined for state polling."""
@@ -78,3 +89,40 @@ class TestT2320CommandMappings:
         """Test LOCATE command is defined."""
         commands = t2320_robovac.getSupportedCommands()
         assert RobovacCommand.LOCATE in commands
+
+    def test_clean_param_command_enables_mop_telemetry_sensor(self, t2320_robovac):
+        """CLEAN_PARAM on 154 is required for RobovacCleanTypeSensor (sweep/mop mode)."""
+        commands = t2320_robovac.getSupportedCommands()
+        assert RobovacCommand.CLEAN_PARAM in commands
+        assert t2320_robovac.model_details.commands[RobovacCommand.CLEAN_PARAM]["code"] == 154
+
+    def test_decode_station_status_from_base64_payload(self):
+        """Test station keywords are found after base64 decoding DPS 173."""
+        raw = base64.b64encode(b"\x08\x01 station WASHING active").decode()
+        assert T2320.decode_dps("173", raw) == "washing"
+
+    def test_decode_station_status_from_live_washing_payload(self):
+        """Test observed X9 station status payload maps to washing."""
+        raw = "MgokCgwKBggBGgIIChIAGAESBggBEgIIAjIMCgIIARIGCAEQARgPEgYIARABKAEqAggt"
+        assert T2320.decode_dps("173", raw) == "washing"
+
+    def test_decode_station_status_from_live_drying_payload(self):
+        """Test observed X9 station status payload maps to drying."""
+        raw = "MAokCgwKBggBGgIIChIAGAESBggBEgIIAjIMCgIIARIGCAEQARgPEgQIARACKgIITA=="
+        assert T2320.decode_dps("173", raw) == "drying"
+
+    def test_decode_error_without_active_codes_is_no_error(self):
+        """Test empty/zero DPS 177 protobuf payload does not force an error."""
+        assert T2320.decode_dps("177", "AA==") == "no_error"
+
+    def test_decode_warning_only_station_payload_is_no_error(self):
+        """Test observed X9 warning-only station payload does not force error."""
+        assert T2320.decode_dps("177", "Dwj22eCIkfFEGgFSIgBSAA==") == "no_error"
+
+    def test_decode_return_progress_payloads(self):
+        """Test observed X9 return progress payloads distinguish moving vs docked."""
+        assert T2320.decode_dps("153", "CBAFGgA6AhAB") == "returning"
+        assert T2320.decode_dps("153", "DhAFGgA6AhABcgQaACIA") == "docked"
+        assert T2320.decode_dps("153", "EBAFGgA6AhACcgYaAggBIgA=") == "docked"
+        assert T2320.decode_dps("153", "FAoAEAUaADICCAE6AhABcgQaACIA") == "docked"
+        assert T2320.decode_dps("153", "CgoAEAUyAHICIgA=") == "cleaning"

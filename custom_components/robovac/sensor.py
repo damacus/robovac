@@ -15,6 +15,7 @@ from .vacuums.base import TuyaCodes, RobovacCommand
 from .vacuums import ROBOVAC_MODELS
 from .proto_decode import (
     decode_clean_param_response,
+    merge_clean_param_layers,
     decode_clean_record_list,
     decode_consumable_response,
     decode_device_info,
@@ -89,8 +90,13 @@ async def async_setup_entry(
             for key, label, icon in _PROTO_CONSUMABLES:
                 entities.append(RobovacConsumableSensor(item, dps, key, label, icon))
 
-        # Clean-type sensor — DPS 154
-        if RobovacCommand.CLEAN_PARAM in commands:
+        # Clean-type sensor — DPS 154. Models that expose first-class config
+        # entities already surface these values as selects/switches and vacuum
+        # attributes, so avoid creating a duplicate diagnostic sensor.
+        if (
+            RobovacCommand.CLEAN_PARAM in commands
+            and not getattr(model_class, "expose_config_entities", False)
+        ):
             dps = str(commands[RobovacCommand.CLEAN_PARAM]["code"])
             entities.append(RobovacCleanTypeSensor(item, dps))
 
@@ -264,6 +270,8 @@ class RobovacErrorSensor(SensorEntity):
         self._attr_unique_id = f"{item[CONF_ID]}_error"
         self._attr_name = "Error"
         self._attr_device_info = _device_info(item)
+        self._attr_native_value = "No error"
+        self._attr_available = True
         self._has_had_data = False
 
     async def async_update(self) -> None:
@@ -276,12 +284,14 @@ class RobovacErrorSensor(SensorEntity):
                 return
             if not tuyastatus:
                 if not self._has_had_data:
-                    self._attr_available = False
+                    self._attr_native_value = "No error"
+                    self._attr_available = True
                 return
             raw = tuyastatus.get(self._dps_code)
             if raw is None:
                 if not self._has_had_data:
-                    self._attr_available = False
+                    self._attr_native_value = "No error"
+                    self._attr_available = True
                 return
             if vacuum_entity.vacuum is not None:
                 decoded = vacuum_entity.vacuum.getRoboVacHumanReadableValue(
@@ -289,7 +299,7 @@ class RobovacErrorSensor(SensorEntity):
                 )
             else:
                 decoded = str(raw)
-            self._attr_native_value = None if decoded == "no_error" else decoded
+            self._attr_native_value = "No error" if decoded == "no_error" else decoded
             self._attr_available = True
             self._has_had_data = True
         except Exception as ex:
@@ -456,8 +466,7 @@ class RobovacCleanTypeSensor(SensorEntity):
                 if not self._has_had_data:
                     self._attr_available = False
                 return
-            # Prefer running params (active clean); fall back to global defaults
-            params = d.get("running_clean_param") or d.get("clean_param") or {}
+            params = merge_clean_param_layers(d)
             clean_type = params.get("clean_type")
             if clean_type is None:
                 if not self._has_had_data:
@@ -466,7 +475,13 @@ class RobovacCleanTypeSensor(SensorEntity):
             self._attr_native_value = clean_type
             self._attr_extra_state_attributes = {
                 k: params[k]
-                for k in ("fan", "clean_extent", "mop_level", "clean_times")
+                for k in (
+                    "fan",
+                    "clean_extent",
+                    "mop_level",
+                    "edge_hugging_mopping",
+                    "clean_times",
+                )
                 if k in params
             }
             self._attr_available = True

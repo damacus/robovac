@@ -451,7 +451,8 @@ async def test_error_sensor_update_no_tuyastatus(mock_vacuum_data: Any) -> None:
 
     # First update with no data
     await sensor.async_update()
-    assert sensor._attr_available is False
+    assert sensor._attr_available is True
+    assert sensor._attr_native_value == "No error"
 
 
 @pytest.mark.asyncio
@@ -469,7 +470,8 @@ async def test_error_sensor_update_no_dps_code(mock_vacuum_data: Any) -> None:
     sensor.hass = mock_hass
 
     await sensor.async_update()
-    assert sensor._attr_available is False
+    assert sensor._attr_available is True
+    assert sensor._attr_native_value == "No error"
 
 
 @pytest.mark.asyncio
@@ -618,7 +620,7 @@ async def test_error_sensor_update_successful(mock_vacuum_data: Any) -> None:
 
     await sensor.async_update()
     assert sensor._attr_available is True
-    assert sensor._attr_native_value is None  # no_error returns None
+    assert sensor._attr_native_value == "No error"
 
 
 @pytest.mark.asyncio
@@ -739,7 +741,7 @@ async def test_error_sensor_successful_update_no_error(mock_vacuum_data: Any) ->
     await sensor.async_update()
 
     assert sensor._attr_available is True
-    assert sensor._attr_native_value is None  # no_error becomes None
+    assert sensor._attr_native_value == "No error"
     assert sensor._has_had_data is True
 
 
@@ -809,7 +811,11 @@ async def test_sensor_missing_dps_code(sensor_class: Any, dps_code: Any) -> None
 
     await sensor.async_update()
 
-    assert sensor._attr_available is False
+    if sensor_class == RobovacErrorSensor:
+        assert sensor._attr_available is True
+        assert sensor._attr_native_value == "No error"
+    else:
+        assert sensor._attr_available is False
 
 # ============================================================================
 # Malformed Data Error Handling Tests (Scenario #5.3)

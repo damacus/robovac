@@ -1,9 +1,20 @@
-"""Eufy Robot Vacuum and Mop X9 Pro with Auto-Clean Station (T2320)"""
-from homeassistant.components.vacuum import VacuumEntityFeature
+"""Eufy Robot Vacuum and Mop X9 Pro with Auto-Clean Station (T2320).
+
+Model-specific DPS codes, activity mapping for station states, and decode_dps
+for base64/protobuf payloads on this hardware variant.
+"""
+import base64
+
+from homeassistant.components.vacuum import VacuumActivity, VacuumEntityFeature
 from .base import RoboVacEntityFeature, RobovacCommand, RobovacModelDetails
 
 
 class T2320(RobovacModelDetails):
+    # X9 Pro firmware maps unsupported "sweep_then_mop" to "sweep_and_mop"; expose only real modes.
+    expose_config_entities = True
+    clean_type_select_keys = ("sweep_only", "mop_only", "sweep_and_mop")
+    default_clean_param_dps154 = "JgoOCgIIAhIAGgAiAggCKgASABoAIhAKAggCGgAiAggCKgAyAggB"
+
     homeassistant_features = (
         VacuumEntityFeature.FAN_SPEED
         | VacuumEntityFeature.LOCATE
@@ -18,22 +29,46 @@ class T2320(RobovacModelDetails):
         RoboVacEntityFeature.DO_NOT_DISTURB
         | RoboVacEntityFeature.BOOST_IQ
     )
+
+    # ── Activity mapping for HA vacuum state ──────────────────────────
+    activity_mapping = {
+        "standby": VacuumActivity.IDLE,
+        "idle": VacuumActivity.IDLE,
+        "auto": VacuumActivity.CLEANING,
+        "cleaning": VacuumActivity.CLEANING,
+        "pause": VacuumActivity.PAUSED,
+        "paused": VacuumActivity.PAUSED,
+        "return": VacuumActivity.RETURNING,
+        "returning": VacuumActivity.RETURNING,
+        "docking": VacuumActivity.RETURNING,
+        "charging": VacuumActivity.DOCKED,
+        "docked": VacuumActivity.DOCKED,
+        "washing": VacuumActivity.DOCKED,
+        "drying": VacuumActivity.DOCKED,
+        "removing scale": VacuumActivity.DOCKED,
+        "error": VacuumActivity.ERROR,
+    }
+
+    # ── Command definitions ───────────────────────────────────────────
     commands = {
         RobovacCommand.START_PAUSE: {
             "code": 2,
             "values": {
                 "start": True,
-                "pause": False
+                "pause": False,
             },
         },
         RobovacCommand.MODE: {
             "code": 152,
             "values": {
-                "auto": "auto",
-                "return": "return",
-                "pause": "pause",
+                "auto": "BBoCCAE=",
+                "return": "AggG",
+                "pause": "AggN",
+                "standby": "AA==",
+                "stop": "AggM",
+                "resume": "AggO",
                 "small_room": "small_room",
-                "single_room": "single_room"
+                "single_room": "single_room",
             },
         },
         RobovacCommand.STATUS: {
@@ -42,28 +77,203 @@ class T2320(RobovacModelDetails):
         RobovacCommand.RETURN_HOME: {
             "code": 153,
             "values": {
-                "return_home": True
-            }
+                "return_home": True,
+                "return": True,
+            },
+        },
+        # DPS 154 — CleanParamResponse (sweep/mop type, mop level, etc.). Separate from
+        # FAN_SPEED on 158; enables RobovacCleanTypeSensor on the sensor platform.
+        RobovacCommand.CLEAN_PARAM: {
+            "code": 154,
         },
         RobovacCommand.FAN_SPEED: {
-            "code": 154,
+            "code": 158,
             "values": {
-                "Standard": "standard",
-                "Boost IQ": "boost_iq",
-                "Max": "max",
-                "Quiet": "Quiet",
+                "standard": "Standard",
+                "turbo": "Turbo",
+                "max": "Max",
+                "quiet": "Quiet",
             },
         },
         RobovacCommand.LOCATE: {
-            "code": 153,
+            "code": 160,
             "values": {
-                "locate": True
-            }
+                "locate": True,
+            },
         },
         RobovacCommand.BATTERY: {
-            "code": 172,
+            "code": 163,
         },
         RobovacCommand.ERROR: {
-            "code": 169,
+            "code": 177,
         },
     }
+
+    # ── DPS 152 base64 mode detection ─────────────────────────────────
+    _MODE_BASE64 = {
+        "AA==": "standby",
+        "AggN": "pause",
+        "AggM": "stop",
+        "AggG": "return",
+        "BBoCCAE=": "auto",
+        "AggO": "auto",  # resume
+    }
+
+    # ── DPS 173 station status detection ──────────────────────────────
+    _STATION_KEYWORDS = {
+        "WASHING": "washing",
+        "DRYING": "drying",
+        "REMOVING_SCALE": "removing scale",
+    }
+    _STATION_CODES = {
+        45: "washing",
+        76: "drying",
+    }
+
+    # ── DPS 177 error/warning codes ───────────────────────────────────
+    _ERROR_CODES = {
+        1: "Wheel stuck",
+        2: "Brush stuck",
+        3: "Side brush stuck",
+        4: "Dust box missing",
+        5: "Lidar cover blocked",
+        6: "Stuck on obstacle",
+        7: "Drop sensor dirty",
+        8: "Mop pad stuck",
+        9: "Waterbox missing",
+        11: "Clean station error",
+        12: "Clean station water shortage",
+        13: "Clean station wastewater full",
+        14: "Clean station wash tray",
+        49: "No path available",
+        50: "Map generation failed",
+        51: "Cannot reach target",
+        73: "Dirty water tank full",
+        74: "Clean water tank empty",
+        82: "Clean station wash tray",
+        83: "Waste water tank full",
+    }
+
+    # ── Custom DPS decoder ────────────────────────────────────────────
+    @classmethod
+    def decode_dps(cls, dps_code: str, raw_value: str) -> str | None:
+        """Decode base64/protobuf DPS payloads into human-readable strings."""
+        if not raw_value:
+            return None
+
+        code = str(dps_code)
+
+        # DPS 152 — mode/activity (base64 encoded)
+        if code == "152":
+            decoded = cls._MODE_BASE64.get(raw_value)
+            if decoded:
+                return decoded
+            try:
+                base64.b64decode(raw_value, validate=True)
+                return f"mode:{raw_value}"
+            except Exception:
+                return raw_value
+
+        # DPS 153 — return/dock progress. X9 leaves DPS 152 as "return" after it
+        # reaches the dock, so this payload is needed to distinguish returning
+        # from already docked.
+        if code == "153":
+            try:
+                from custom_components.robovac.proto_decode import (
+                    _as_varint,
+                    _parse_proto,
+                    _strip_length_prefix,
+                )
+
+                fields = _parse_proto(_strip_length_prefix(raw_value))
+                dock_state = fields.get(7)
+                if isinstance(dock_state, bytes):
+                    dock_fields = _parse_proto(dock_state)
+                    progress = _as_varint(dock_fields.get(2))
+                    if progress == 1:
+                        if isinstance(fields.get(6), bytes) or isinstance(fields.get(14), bytes):
+                            return "docked"
+                        return "returning"
+                    if progress == 2:
+                        return "docked"
+                active_state = fields.get(6)
+                if isinstance(active_state, bytes) and not active_state:
+                    return "cleaning"
+            except Exception:
+                pass
+            return None
+
+        # DPS 173 — station status
+        if code == "173":
+            raw_bytes = b""
+            try:
+                from custom_components.robovac.proto_decode import (
+                    _parse_proto,
+                    _strip_length_prefix,
+                )
+
+                raw_bytes = base64.b64decode(raw_value, validate=True)
+                upper = raw_bytes.decode("utf-8", errors="ignore").upper()
+                for keyword, label in cls._STATION_KEYWORDS.items():
+                    if keyword in upper:
+                        return label
+
+                fields = _parse_proto(_strip_length_prefix(raw_value))
+                station_bytes = fields.get(5)
+                if isinstance(station_bytes, bytes):
+                    station_fields = _parse_proto(station_bytes)
+                    station_label = cls._STATION_CODES.get(station_fields.get(1))
+                    if station_label:
+                        return station_label
+            except Exception:
+                upper = raw_bytes.decode("utf-8", errors="ignore").upper()
+                for keyword, label in cls._STATION_KEYWORDS.items():
+                    if keyword in upper:
+                        return label
+            return "idle"
+
+        # DPS 177 — error/warning protobuf
+        if code == "177":
+            try:
+                from custom_components.robovac.proto_decode import (
+                    _decode_packed_varints,
+                    _parse_proto,
+                    _strip_length_prefix,
+                )
+
+                fields = _parse_proto(_strip_length_prefix(raw_value))
+                codes: set[int] = set()
+
+                def collect(field_value):
+                    if field_value is None:
+                        return
+                    if isinstance(field_value, list):
+                        for item in field_value:
+                            collect(item)
+                    elif isinstance(field_value, int):
+                        codes.add(field_value)
+                    elif isinstance(field_value, bytes):
+                        codes.update(_decode_packed_varints(field_value))
+
+                # Only field 2 is an active error list. Field 3 carries warnings,
+                # and on the X9 mop-wash station notifications are warning-only.
+                collect(fields.get(2))
+
+                new_code = fields.get(10)
+                if isinstance(new_code, bytes):
+                    new_code_fields = _parse_proto(new_code)
+                    collect(new_code_fields.get(1))
+
+                codes.discard(0)
+                if not codes:
+                    return "no_error"
+
+                return "; ".join(
+                    cls._ERROR_CODES.get(error_code, f"error_{error_code}")
+                    for error_code in sorted(codes)
+                )
+            except Exception:
+                pass
+            return raw_value
+
+        return None

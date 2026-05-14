@@ -125,6 +125,125 @@ def _parse_proto(data: bytes) -> dict[int, Any]:
     return fields
 
 
+def _encode_varint(v: int) -> bytes:
+    """Encode a non-negative integer as protobuf varint bytes."""
+    if v < 0:
+        raise ValueError("varint must be non-negative")
+    buf = bytearray()
+    while True:
+        piece = v & 0x7F
+        v >>= 7
+        if v:
+            buf.append(piece | 0x80)
+        else:
+            buf.append(piece)
+            break
+    return bytes(buf)
+
+
+def _serialize_proto(fields: dict[int, Any]) -> bytes:
+    """Serialize a protobuf message from field_num -> int | bytes | dict (nested submessage).
+
+    Wire types: int → varint (type 0), bytes/dict → length-delimited (type 2).
+    Dict values are serialized as nested sub-messages.
+    """
+    chunks: list[bytes] = []
+    for field_num in sorted(fields.keys()):
+        val = fields[field_num]
+        tag = field_num << 3
+        if isinstance(val, int):
+            chunks.append(_encode_varint(tag))
+            chunks.append(_encode_varint(val))
+        elif isinstance(val, bytes):
+            chunks.append(_encode_varint(tag | 2))
+            chunks.append(_encode_varint(len(val)))
+            chunks.append(val)
+        elif isinstance(val, dict):
+            nested = _serialize_proto(val)
+            chunks.append(_encode_varint(tag | 2))
+            chunks.append(_encode_varint(len(nested)))
+            chunks.append(nested)
+        else:
+            raise TypeError(f"Unsupported protobuf field value type: {type(val)!r}")
+    return b"".join(chunks)
+
+
+def _clean_param_b64_with_length_prefix(proto_payload: bytes) -> str:
+    """Wrap payload with single-byte length prefix and return base64 (DPS 154 on-wire)."""
+    return base64.b64encode(bytes([len(proto_payload)]) + proto_payload).decode("ascii")
+
+
+def patch_clean_param_dps154(
+    raw_b64: str,
+    *,
+    clean_type: str | None = None,
+    mop_level: str | None = None,
+    edge_hugging_mopping: bool | None = None,
+) -> str:
+    """Patch decoded CleanParamResponse params and re-encode for DPS 154 SET.
+
+    Preserves other outer fields and inner fields (carpet, extent, etc.) when possible.
+    """
+    body = base64.b64decode(raw_b64)
+    if not body:
+        raise ValueError("empty clean param base64")
+    # Match decode_clean_param_response / _strip_length_prefix: byte 0 is length, protobuf starts at 1
+    payload = body[1:] if len(body) > 1 else b""
+
+    outer = _parse_proto(payload)
+
+    clean_type_names = ["sweep_only", "mop_only", "sweep_and_mop", "sweep_then_mop"]
+    mop_level_names = ["low", "middle", "high"]
+
+    def _patch_layer(inner_raw: Any) -> bytes:
+        if not isinstance(inner_raw, bytes):
+            inner_raw = b""
+        inner: dict[int, Any] = dict(_parse_proto(inner_raw))
+
+        if clean_type_key is not None:
+            inner[1] = _serialize_proto({1: clean_type_names.index(clean_type_key)})
+
+        if mop_level is not None or edge_hugging_mopping is not None:
+            prev_m = inner.get(4)
+            midx: int | None = None
+            edge = 0
+            if isinstance(prev_m, bytes):
+                mf = _parse_proto(prev_m)
+                midx = _as_varint(mf.get(1))
+                edge = int(mf.get(2) or 0)
+            if mop_level_key is not None:
+                midx = mop_level_names.index(mop_level_key)
+            if midx is None:
+                midx = 0
+            if edge_hugging_mopping is not None:
+                edge = 1 if edge_hugging_mopping else 0
+            inner[4] = _serialize_proto({1: midx, 2: edge})
+
+        return _serialize_proto(inner)
+
+    clean_type_key = None
+    if clean_type is not None:
+        key = clean_type.lower().replace(" ", "_").replace("-", "_")
+        if key not in clean_type_names:
+            raise ValueError(f"Unknown clean_type {clean_type!r}")
+        clean_type_key = key
+
+    mop_level_key = None
+    if mop_level is not None or edge_hugging_mopping is not None:
+        if mop_level is not None:
+            mk = mop_level.lower().replace(" ", "_")
+            if mk not in mop_level_names:
+                raise ValueError(f"Unknown mop_level {mop_level!r}")
+            mop_level_key = mk
+
+    new_outer = dict(outer)
+    for field in (1, 3, 4):
+        if field in outer or field == 1:
+            new_outer[field] = _patch_layer(outer.get(field))
+    new_payload = _serialize_proto(new_outer)
+    return _clean_param_b64_with_length_prefix(new_payload)
+
+
 def _strip_length_prefix(raw_b64: str) -> bytes:
     """Decode base64 and strip the length prefix byte."""
     return base64.b64decode(raw_b64)[1:]
@@ -511,8 +630,10 @@ def decode_clean_param_response(raw_b64: str) -> dict[str, Any]:
             v = _enum_val(f[3])
             result["clean_extent"] = EXTENT_NAMES[v] if v < len(EXTENT_NAMES) else f"extent_{v}"
         if 4 in f:
+            mop_fields = _parse_proto(f[4]) if isinstance(f[4], bytes) else {}
             v = _enum_val(f[4])
             result["mop_level"] = MOP_LEVEL_NAMES[v] if v < len(MOP_LEVEL_NAMES) else f"mop_{v}"
+            result["edge_hugging_mopping"] = mop_fields.get(2) == 1
         if 6 in f:
             v = _enum_val(f[6])
             result["fan"] = FAN_NAMES[v] if v < len(FAN_NAMES) else f"fan_{v}"
@@ -534,6 +655,24 @@ def decode_clean_param_response(raw_b64: str) -> dict[str, Any]:
     if rcp:
         result["running_clean_param"] = rcp
     return result
+
+
+def merge_clean_param_layers(decoded: dict[str, Any]) -> dict[str, Any]:
+    """Merge clean_param / area_clean_param / running_clean_param for display.
+
+    During an active job, ``running_clean_param`` often includes fan and mop
+    fields but omits ``clean_type``; that value still lives on the global
+    ``clean_param``. Later layers override earlier ones for keys present in both.
+    """
+    merged: dict[str, Any] = {}
+    for layer in (
+        decoded.get("clean_param"),
+        decoded.get("area_clean_param"),
+        decoded.get("running_clean_param"),
+    ):
+        if isinstance(layer, dict):
+            merged.update(layer)
+    return merged
 
 
 def decode_consumable_response(raw_b64: str) -> dict[str, int]:

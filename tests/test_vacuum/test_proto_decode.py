@@ -13,6 +13,8 @@ from custom_components.robovac.proto_decode import (
     decode_work_status_v2,
     decode_error_code,
     decode_clean_param_response,
+    merge_clean_param_layers,
+    patch_clean_param_dps154,
     decode_consumable_response,
     decode_device_info,
     decode_unisetting_response,
@@ -558,6 +560,59 @@ class TestDecodeCleanParamResponse:
         raw = base64.b64encode(bytes([0x00])).decode()
         result = decode_clean_param_response(raw)
         assert result == {}
+
+    def test_merge_clean_param_layers_keeps_clean_type_when_running_omits_it(self) -> None:
+        """Running job payload may omit clean_type; inherit from global clean_param."""
+        decoded = {
+            "clean_param": {"clean_type": "mop_only", "mop_level": "low"},
+            "running_clean_param": {"fan": "standard", "mop_level": "high"},
+        }
+        merged = merge_clean_param_layers(decoded)
+        assert merged["clean_type"] == "mop_only"
+        assert merged["fan"] == "standard"
+        assert merged["mop_level"] == "high"
+
+    def test_dps154_edge_hugging_mopping_on(self) -> None:
+        """Decode observed X9 edge-hugging mopping enabled payload."""
+        result = decode_clean_param_response(
+            "KgoQCgIIAhIAGgAiBAgCEAEqABIAGgAiEgoCCAIaACIECAIQASoAMgIIAQ=="
+        )
+
+        params = result["running_clean_param"]
+        assert params["clean_type"] == "sweep_and_mop"
+        assert params["mop_level"] == "high"
+        assert params["fan"] == "standard"
+        assert params["edge_hugging_mopping"] is True
+
+    def test_dps154_edge_hugging_mopping_off(self) -> None:
+        """Decode observed X9 edge-hugging mopping disabled payload."""
+        result = decode_clean_param_response(
+            "JgoOCgIIAhIAGgAiAggCKgASABoAIhAKAggCGgAiAggCKgAyAggB"
+        )
+
+        params = result["running_clean_param"]
+        assert params["clean_type"] == "sweep_and_mop"
+        assert params["mop_level"] == "high"
+        assert params["fan"] == "standard"
+        assert params["edge_hugging_mopping"] is False
+
+
+class TestPatchCleanParamDps154:
+    """Encode/patch tests for DPS 154."""
+
+    def test_patch_mop_level_preserves_clean_type(self) -> None:
+        raw = "DgoKCgAaAggBIgIIARIA"
+        new = patch_clean_param_dps154(raw, mop_level="high")
+        cp = decode_clean_param_response(new)["clean_param"]
+        assert cp["clean_type"] == "sweep_only"
+        assert cp["mop_level"] == "high"
+
+    def test_patch_clean_type_preserves_extent(self) -> None:
+        raw = "DgoKCgAaAggBIgIIARIA"
+        new = patch_clean_param_dps154(raw, clean_type="mop_only")
+        cp = decode_clean_param_response(new)["clean_param"]
+        assert cp["clean_type"] == "mop_only"
+        assert cp["clean_extent"] == "narrow"
 
 
 # ============================================================================
