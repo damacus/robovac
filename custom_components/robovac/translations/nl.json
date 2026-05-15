@@ -38,11 +38,15 @@
                 "title": "Stofzuiger bewerken",
                 "data": {
                     "autodiscovery": "Automatische detectie inschakelen",
-                    "ip_address": "IP-adres"
+                    "ip_address": "IP-adres",
+                    "room_segment_map_id": "Room segment map ID",
+                    "room_segments": "Room segments"
                 },
                 "data_description": {
                     "autodiscovery": "Vind de stofzuiger automatisch op het netwerk.",
-                    "ip_address": "Het statische IP-adres van uw stofzuiger op uw lokale netwerk (optioneel als automatische detectie is ingeschakeld)."
+                    "ip_address": "Het statische IP-adres van uw stofzuiger op uw lokale netwerk (optioneel als automatische detectie is ingeschakeld).",
+                    "room_segment_map_id": "The map ID used when cleaning configured room segments.",
+                    "room_segments": "Comma-separated room segments in id:name format, for example 1:Kitchen,2:Living Room."
                 },
                 "description": "Automatische detectie zal het IP-adres automatisch bijwerken"
             }

@@ -38,11 +38,15 @@
                 "title": "Staubsauger bearbeiten",
                 "data": {
                     "autodiscovery": "Autodiscovery aktivieren",
-                    "ip_address": "IP-Adresse"
+                    "ip_address": "IP-Adresse",
+                    "room_segment_map_id": "Room segment map ID",
+                    "room_segments": "Room segments"
                 },
                 "data_description": {
                     "autodiscovery": "Den Staubsauger automatisch im Netzwerk finden.",
-                    "ip_address": "Die statische IP-Adresse Ihres Staubsaugers in Ihrem lokalen Netzwerk (optional, wenn Autodiscovery aktiviert ist)."
+                    "ip_address": "Die statische IP-Adresse Ihres Staubsaugers in Ihrem lokalen Netzwerk (optional, wenn Autodiscovery aktiviert ist).",
+                    "room_segment_map_id": "The map ID used when cleaning configured room segments.",
+                    "room_segments": "Comma-separated room segments in id:name format, for example 1:Kitchen,2:Living Room."
                 },
                 "description": "Autodiscovery aktualisiert die IP-Adresse automatisch"
             }

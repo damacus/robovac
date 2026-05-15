@@ -38,11 +38,15 @@
                 "title": "Modifica aspirapolvere",
                 "data": {
                     "autodiscovery": "Abilita rilevamento automatico",
-                    "ip_address": "Indirizzo IP"
+                    "ip_address": "Indirizzo IP",
+                    "room_segment_map_id": "Room segment map ID",
+                    "room_segments": "Room segments"
                 },
                 "data_description": {
                     "autodiscovery": "Trova automaticamente l'aspirapolvere sulla rete.",
-                    "ip_address": "L'indirizzo IP statico del tuo aspirapolvere sulla tua rete locale (opzionale se il rilevamento automatico è abilitato)."
+                    "ip_address": "L'indirizzo IP statico del tuo aspirapolvere sulla tua rete locale (opzionale se il rilevamento automatico è abilitato).",
+                    "room_segment_map_id": "The map ID used when cleaning configured room segments.",
+                    "room_segments": "Comma-separated room segments in id:name format, for example 1:Kitchen,2:Living Room."
                 },
                 "description": "Il rilevamento automatico aggiornerà automaticamente l'indirizzo IP"
             }

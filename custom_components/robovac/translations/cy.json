@@ -38,11 +38,15 @@
                 "title": "Golygu sugnwr llwch",
                 "data": {
                     "autodiscovery": "Galluogi awto-ddarganfod",
-                    "ip_address": "Cyfeiriad IP"
+                    "ip_address": "Cyfeiriad IP",
+                    "room_segment_map_id": "Room segment map ID",
+                    "room_segments": "Room segments"
                 },
                 "data_description": {
                     "autodiscovery": "Dod o hyd i'r sugnwr llwch yn awtomatig ar y rhwydwaith.",
-                    "ip_address": "Cyfeiriad IP statig eich sugnwr llwch ar eich rhwydwaith lleol (dewisol os yw awto-ddarganfod wedi'i alluogi)."
+                    "ip_address": "Cyfeiriad IP statig eich sugnwr llwch ar eich rhwydwaith lleol (dewisol os yw awto-ddarganfod wedi'i alluogi).",
+                    "room_segment_map_id": "The map ID used when cleaning configured room segments.",
+                    "room_segments": "Comma-separated room segments in id:name format, for example 1:Kitchen,2:Living Room."
                 },
                 "description": "Bydd awto-ddarganfod yn diweddaru'r cyfeiriad IP yn awtomatig"
             }
