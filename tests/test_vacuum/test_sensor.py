@@ -679,9 +679,9 @@ async def test_warning_sensor_update_successful(mock_vacuum_data: Any) -> None:
     await sensor.async_update()
 
     assert sensor._attr_available is True
-    assert sensor._attr_native_value == "Clean station wash tray"
+    assert sensor._attr_native_value == "Clean tray needs cleaning"
     assert sensor._attr_extra_state_attributes == {
-        "warnings": [{"code": 82, "message": "Clean station wash tray"}]
+        "warnings": [{"code": 82, "message": "Clean tray needs cleaning"}]
     }
 
 
@@ -799,6 +799,26 @@ async def test_notification_sensor_successful_update(mock_hass_with_valid_vacuum
     assert sensor._attr_available is True
     assert sensor._attr_native_value == "Task finished"
     assert sensor._has_had_data is True
+
+
+@pytest.mark.asyncio
+async def test_t2320_notification_sensor_decodes_prompt_code_10(mock_vacuum_data: Any) -> None:
+    """Test T2320 notification sensor uses the model prompt table."""
+
+    sensor = RobovacNotificationSensor(mock_vacuum_data, "178", T2320)
+
+    mock_vacuum = MagicMock()
+    mock_vacuum.tuyastatus = {"178": "CwiY+IOJrO9JEgEK"}
+
+    mock_hass = MagicMock()
+    mock_hass.data = {"robovac": {"vacuums": {mock_vacuum_data[CONF_ID]: mock_vacuum}}}
+    sensor.hass = mock_hass
+
+    await sensor.async_update()
+
+    assert sensor._attr_available is True
+    assert sensor._attr_native_value == "Positioning successful"
+    assert sensor._attr_native_value != "Prompt 10"
 
 
 @pytest.mark.asyncio
