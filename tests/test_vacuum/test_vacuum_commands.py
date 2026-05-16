@@ -4,6 +4,17 @@ import pytest
 from typing import Any
 from unittest.mock import patch, MagicMock, AsyncMock, call
 
+from homeassistant.const import (
+    CONF_ACCESS_TOKEN,
+    CONF_DESCRIPTION,
+    CONF_ID,
+    CONF_IP_ADDRESS,
+    CONF_MAC,
+    CONF_MODEL,
+    CONF_NAME,
+)
+
+from custom_components.robovac.proto_decode import decode_clean_param_response
 from custom_components.robovac.robovac import RoboVac
 from custom_components.robovac.vacuum import RoboVacEntity
 
@@ -136,6 +147,144 @@ async def test_async_pause_sends_boolean_for_toggle_models(
         await entity.async_pause()
 
         robovac.async_set.assert_called_once_with({"2": False})
+
+
+@pytest.mark.asyncio
+async def test_async_pause_sends_mode_payload_when_model_requires_it(
+    mock_vacuum_data,
+) -> None:
+    """Test async_pause sends model-specific mode payloads with boolean pause."""
+    with patch("custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None):
+        robovac = RoboVac(
+            model_code="T2320",
+            device_id="test_id",
+            host="192.168.1.100",
+            local_key="test_key",
+        )
+    robovac.async_set = AsyncMock(return_value=True)
+
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=robovac):
+        entity = RoboVacEntity(mock_vacuum_data)
+        await entity.async_pause()
+
+        robovac.async_set.assert_called_once_with({"2": False, "152": "AggN"})
+
+
+@pytest.mark.asyncio
+async def test_async_return_to_base_sends_mode_payload_when_model_requires_it(
+    mock_vacuum_data,
+) -> None:
+    """Test return-to-base updates mode DPS for models with encoded mode payloads."""
+    with patch("custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None):
+        robovac = RoboVac(
+            model_code="T2320",
+            device_id="test_id",
+            host="192.168.1.100",
+            local_key="test_key",
+        )
+    robovac.async_set = AsyncMock(return_value=True)
+
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=robovac):
+        entity = RoboVacEntity(mock_vacuum_data)
+        await entity.async_return_to_base()
+
+        robovac.async_set.assert_called_once_with({"153": True, "152": "AggG", "2": True})
+
+
+@pytest.mark.asyncio
+async def test_async_set_clean_param_uses_model_default_before_dps154_read() -> None:
+    """Test T2320 clean-param settings can be changed before DPS 154 is read."""
+    data = {
+        CONF_NAME: "Test X9",
+        CONF_ID: "test_x9_id",
+        CONF_MODEL: "T2320",
+        CONF_IP_ADDRESS: "192.168.1.100",
+        CONF_ACCESS_TOKEN: "test_key",
+        CONF_DESCRIPTION: "X9 Pro",
+        CONF_MAC: "aa:bb:cc:dd:ee:99",
+    }
+    with patch("custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None):
+        entity = RoboVacEntity(data)
+    assert entity.vacuum is not None
+    entity.vacuum._dps = {}
+    entity.tuyastatus = {}
+    entity.vacuum.async_set = AsyncMock(return_value=True)
+
+    await entity.async_set_clean_param(clean_type="mop_only", mop_level="low")
+
+    entity.vacuum.async_set.assert_called_once()
+    payload = entity.vacuum.async_set.call_args.args[0]
+    assert list(payload) == ["154"]
+    clean_param = decode_clean_param_response(payload["154"])["clean_param"]
+    assert clean_param["clean_type"] == "mop_only"
+    assert clean_param["mop_level"] == "low"
+    assert entity.tuyastatus["154"] == payload["154"]
+    assert entity.vacuum._dps["154"] == payload["154"]
+    assert entity.clean_type == "mop_only"
+    assert entity.mop_level == "low"
+
+
+@pytest.mark.asyncio
+async def test_update_entity_values_does_not_display_default_before_dps154_read() -> None:
+    """Test T2320 clean-param display values wait for a real DPS 154 read."""
+    data = {
+        CONF_NAME: "Test X9",
+        CONF_ID: "test_x9_id",
+        CONF_MODEL: "T2320",
+        CONF_IP_ADDRESS: "192.168.1.100",
+        CONF_ACCESS_TOKEN: "test_key",
+        CONF_DESCRIPTION: "X9 Pro",
+        CONF_MAC: "aa:bb:cc:dd:ee:99",
+    }
+    with patch("custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None):
+        entity = RoboVacEntity(data)
+    assert entity.vacuum is not None
+    entity.vacuum._dps = {
+        "151": True,
+        "156": True,
+        "158": "Standard",
+        "159": True,
+        "160": False,
+        "161": 80,
+        "163": 29,
+    }
+
+    entity.update_entity_values()
+
+    assert entity.clean_type is None
+    assert entity.mop_level is None
+    assert entity.edge_hugging_mopping is None
+
+
+@pytest.mark.asyncio
+async def test_update_entity_values_preserves_clean_params_on_partial_update() -> None:
+    """Test battery-only updates do not clear the last real DPS 154 decode."""
+    data = {
+        CONF_NAME: "Test X9",
+        CONF_ID: "test_x9_id",
+        CONF_MODEL: "T2320",
+        CONF_IP_ADDRESS: "192.168.1.100",
+        CONF_ACCESS_TOKEN: "test_key",
+        CONF_DESCRIPTION: "X9 Pro",
+        CONF_MAC: "aa:bb:cc:dd:ee:99",
+    }
+    with patch("custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None):
+        entity = RoboVacEntity(data)
+    assert entity.vacuum is not None
+    entity.vacuum._dps = {
+        "154": "JgoOCgIIAhIAGgAiAggCKgASABoAIhAKAggCGgAiAggCKgAyAggB",
+        "163": 29,
+    }
+
+    entity.update_entity_values()
+    assert entity.clean_type == "sweep_and_mop"
+    assert entity.edge_hugging_mopping is False
+
+    entity.vacuum._dps = {"163": 30}
+    entity.update_entity_values()
+
+    assert entity.clean_type == "sweep_and_mop"
+    assert entity.edge_hugging_mopping is False
 
 
 @pytest.mark.asyncio

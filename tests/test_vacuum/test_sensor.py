@@ -4,13 +4,14 @@ from typing import Any
 import pytest
 from unittest.mock import patch, MagicMock
 
-from homeassistant.const import PERCENTAGE, CONF_ID
+from homeassistant.const import PERCENTAGE, CONF_ID, EntityCategory
 from homeassistant.components.sensor import SensorDeviceClass
 
 from custom_components.robovac.sensor import (
     RobovacBatterySensor,
     RobovacErrorSensor,
     RobovacNotificationSensor,
+    RobovacWarningSensor,
     RobovacConsumableSensor,
     RobovacCleanTypeSensor,
     RobovacLastCleanRecordSensor,
@@ -27,6 +28,7 @@ from custom_components.robovac.sensor import (
     RobovacChildrenLockSensor,
 )
 from custom_components.robovac.vacuums.base import TuyaCodes
+from custom_components.robovac.vacuums.T2320 import T2320
 
 # ============================================================================
 # Fixtures for common test scenarios
@@ -287,6 +289,17 @@ async def test_notification_sensor_init(mock_vacuum_data: Any) -> None:
     sensor = RobovacNotificationSensor(mock_vacuum_data, "178")
     assert sensor is not None
     assert sensor.robovac_id == mock_vacuum_data[CONF_ID]
+    assert sensor.entity_category == EntityCategory.DIAGNOSTIC
+
+
+@pytest.mark.asyncio
+async def test_warning_sensor_init(mock_vacuum_data: Any) -> None:
+    """Test warning sensor initialization."""
+
+    sensor = RobovacWarningSensor(mock_vacuum_data, "177", T2320)
+    assert sensor is not None
+    assert sensor.robovac_id == mock_vacuum_data[CONF_ID]
+    assert sensor.entity_category == EntityCategory.DIAGNOSTIC
 
 
 @pytest.mark.asyncio
@@ -300,6 +313,7 @@ async def test_consumable_sensor_init(mock_vacuum_data: Any) -> None:
     assert sensor.robovac_id == mock_vacuum_data[CONF_ID]
     assert sensor._attr_name == "Side Brush"
     assert sensor._attr_icon == "mdi:brush"
+    assert sensor.entity_category == EntityCategory.DIAGNOSTIC
 
 
 @pytest.mark.asyncio
@@ -451,7 +465,8 @@ async def test_error_sensor_update_no_tuyastatus(mock_vacuum_data: Any) -> None:
 
     # First update with no data
     await sensor.async_update()
-    assert sensor._attr_available is False
+    assert sensor._attr_available is True
+    assert sensor._attr_native_value == "No error"
 
 
 @pytest.mark.asyncio
@@ -469,7 +484,8 @@ async def test_error_sensor_update_no_dps_code(mock_vacuum_data: Any) -> None:
     sensor.hass = mock_hass
 
     await sensor.async_update()
-    assert sensor._attr_available is False
+    assert sensor._attr_available is True
+    assert sensor._attr_native_value == "No error"
 
 
 @pytest.mark.asyncio
@@ -618,7 +634,7 @@ async def test_error_sensor_update_successful(mock_vacuum_data: Any) -> None:
 
     await sensor.async_update()
     assert sensor._attr_available is True
-    assert sensor._attr_native_value is None  # no_error returns None
+    assert sensor._attr_native_value == "No error"
 
 
 @pytest.mark.asyncio
@@ -644,6 +660,29 @@ async def test_notification_sensor_update_successful(mock_vacuum_data: Any) -> N
 
     assert sensor._attr_available is True
     assert sensor._attr_native_value is None  # no_error returns None
+
+
+@pytest.mark.asyncio
+async def test_warning_sensor_update_successful(mock_vacuum_data: Any) -> None:
+    """Test warning sensor decodes non-fatal T2320 warning payloads."""
+
+    mock_data = {CONF_ID: "test_id", "name": "Test"}
+    sensor = RobovacWarningSensor(mock_data, "177", T2320)
+
+    mock_vacuum = MagicMock()
+    mock_vacuum.tuyastatus = {"177": "Dwj22eCIkfFEGgFSIgBSAA=="}
+
+    mock_hass = MagicMock()
+    mock_hass.data = {"robovac": {"vacuums": {"test_id": mock_vacuum}}}
+    sensor.hass = mock_hass
+
+    await sensor.async_update()
+
+    assert sensor._attr_available is True
+    assert sensor._attr_native_value == "Clean tray needs cleaning"
+    assert sensor._attr_extra_state_attributes == {
+        "warnings": [{"code": 82, "message": "Clean tray needs cleaning"}]
+    }
 
 
 @pytest.mark.asyncio
@@ -739,7 +778,7 @@ async def test_error_sensor_successful_update_no_error(mock_vacuum_data: Any) ->
     await sensor.async_update()
 
     assert sensor._attr_available is True
-    assert sensor._attr_native_value is None  # no_error becomes None
+    assert sensor._attr_native_value == "No error"
     assert sensor._has_had_data is True
 
 
@@ -760,6 +799,26 @@ async def test_notification_sensor_successful_update(mock_hass_with_valid_vacuum
     assert sensor._attr_available is True
     assert sensor._attr_native_value == "Task finished"
     assert sensor._has_had_data is True
+
+
+@pytest.mark.asyncio
+async def test_t2320_notification_sensor_decodes_prompt_code_10(mock_vacuum_data: Any) -> None:
+    """Test T2320 notification sensor uses the model prompt table."""
+
+    sensor = RobovacNotificationSensor(mock_vacuum_data, "178", T2320)
+
+    mock_vacuum = MagicMock()
+    mock_vacuum.tuyastatus = {"178": "CwiY+IOJrO9JEgEK"}
+
+    mock_hass = MagicMock()
+    mock_hass.data = {"robovac": {"vacuums": {mock_vacuum_data[CONF_ID]: mock_vacuum}}}
+    sensor.hass = mock_hass
+
+    await sensor.async_update()
+
+    assert sensor._attr_available is True
+    assert sensor._attr_native_value == "Positioning successful"
+    assert sensor._attr_native_value != "Prompt 10"
 
 
 @pytest.mark.asyncio
@@ -809,7 +868,11 @@ async def test_sensor_missing_dps_code(sensor_class: Any, dps_code: Any) -> None
 
     await sensor.async_update()
 
-    assert sensor._attr_available is False
+    if sensor_class == RobovacErrorSensor:
+        assert sensor._attr_available is True
+        assert sensor._attr_native_value == "No error"
+    else:
+        assert sensor._attr_available is False
 
 # ============================================================================
 # Malformed Data Error Handling Tests (Scenario #5.3)

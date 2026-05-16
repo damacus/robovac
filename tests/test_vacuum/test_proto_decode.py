@@ -13,6 +13,8 @@ from custom_components.robovac.proto_decode import (
     decode_work_status_v2,
     decode_error_code,
     decode_clean_param_response,
+    merge_clean_param_layers,
+    patch_clean_param_dps154,
     decode_consumable_response,
     decode_device_info,
     decode_unisetting_response,
@@ -559,6 +561,69 @@ class TestDecodeCleanParamResponse:
         result = decode_clean_param_response(raw)
         assert result == {}
 
+    def test_merge_clean_param_layers_keeps_clean_type_when_running_omits_it(self) -> None:
+        """Running job payload may omit clean_type; inherit from global clean_param."""
+        decoded = {
+            "clean_param": {"clean_type": "mop_only", "mop_level": "low"},
+            "running_clean_param": {"fan": "standard", "mop_level": "high"},
+        }
+        merged = merge_clean_param_layers(decoded)
+        assert merged["clean_type"] == "mop_only"
+        assert merged["fan"] == "standard"
+        assert merged["mop_level"] == "high"
+
+    def test_dps154_edge_hugging_mopping_on(self) -> None:
+        """Decode observed X9 edge-hugging mopping enabled payload."""
+        result = decode_clean_param_response(
+            "KgoQCgIIAhIAGgAiBAgCEAEqABIAGgAiEgoCCAIaACIECAIQASoAMgIIAQ=="
+        )
+
+        params = result["running_clean_param"]
+        assert params["clean_type"] == "sweep_and_mop"
+        assert params["mop_level"] == "high"
+        assert params["fan"] == "standard"
+        assert params["edge_hugging_mopping"] is True
+
+    def test_dps154_edge_hugging_mopping_off(self) -> None:
+        """Decode observed X9 edge-hugging mopping disabled payload."""
+        result = decode_clean_param_response(
+            "JgoOCgIIAhIAGgAiAggCKgASABoAIhAKAggCGgAiAggCKgAyAggB"
+        )
+
+        params = result["running_clean_param"]
+        assert params["clean_type"] == "sweep_and_mop"
+        assert params["mop_level"] == "high"
+        assert params["fan"] == "standard"
+        assert params["edge_hugging_mopping"] is False
+
+
+class TestPatchCleanParamDps154:
+    """Encode/patch tests for DPS 154."""
+
+    def test_patch_mop_level_preserves_clean_type(self) -> None:
+        raw = "DgoKCgAaAggBIgIIARIA"
+        new = patch_clean_param_dps154(raw, mop_level="high")
+        cp = decode_clean_param_response(new)["clean_param"]
+        assert cp["clean_type"] == "sweep_only"
+        assert cp["mop_level"] == "high"
+
+    def test_patch_clean_type_preserves_extent(self) -> None:
+        raw = "DgoKCgAaAggBIgIIARIA"
+        new = patch_clean_param_dps154(raw, clean_type="mop_only")
+        cp = decode_clean_param_response(new)["clean_param"]
+        assert cp["clean_type"] == "mop_only"
+        assert cp["clean_extent"] == "narrow"
+
+    def test_patch_edge_hugging_does_not_create_area_layer(self) -> None:
+        """Edge-only writes match app payload shape by not inventing area params."""
+        raw = "JgoOCgIIAhIAGgAiAggCKgASABoAIhAKAggCGgAiAggCKgAyAggB"
+        new = patch_clean_param_dps154(raw, edge_hugging_mopping=True)
+        decoded = decode_clean_param_response(new)
+
+        assert "area_clean_param" not in decoded
+        assert decoded["clean_param"]["edge_hugging_mopping"] is True
+        assert decoded["running_clean_param"]["edge_hugging_mopping"] is True
+
 
 # ============================================================================
 # Tests for decode_consumable_response  (DPS 168)
@@ -577,6 +642,19 @@ class TestDecodeConsumableResponse:
         assert result.get("rolling_brush") == 350
         assert result.get("filter_mesh") == 48
         assert result.get("dustbag") == 1574
+
+    def test_t2320_dps168_sample(self) -> None:
+        """Decode the observed T2320 DPS 168 consumable fields."""
+        payload = "IgogCgIIWRICCFkaAghZIgIIWSoDCLgCMgIIHaAB8fjazwY="
+        result = decode_consumable_response(payload)
+        assert result == {
+            "side_brush": 89,
+            "rolling_brush": 89,
+            "filter_mesh": 89,
+            "scrape": 89,
+            "sensor": 312,
+            "mop": 29,
+        }
 
     def test_empty_payload_returns_empty_dict(self) -> None:
         """Empty payload → empty dict."""
@@ -906,3 +984,40 @@ def test_error_code_with_extended_codes() -> None:
     result = decode_error_code("AA==")
     # Should return string or None
     assert result is None or isinstance(result, str)
+
+
+def test_decode_t2320_room_meta_live_payload_shape() -> None:
+    """Decode X9 Pro DPS 165 length-prefixed room metadata."""
+    from custom_components.robovac.proto_decode import decode_t2320_room_meta
+
+    payload = (
+        "fwp9CAsSDAgBEghCYXRocm9vbRIKCAISBlNob3dlchILCAMSB0tpdGNoZW4SCQgEEgVTdHVkeRIQ"
+        "CAUSDE1haW4gYmVkcm9vbRIOCAYSCkd1ZXN0IHJvb20SDwgIEgtMaXZpbmcgcm9vbRIKCAkSBlRv"
+        "aWxldBIICAoSBEhhbGw="
+    )
+    result = decode_t2320_room_meta(
+        payload
+    )
+
+    assert result["map_id"] == 11
+    assert result["rooms"] == [
+        {"id": 1, "label": "Bathroom"},
+        {"id": 2, "label": "Shower"},
+        {"id": 3, "label": "Kitchen"},
+        {"id": 4, "label": "Study"},
+        {"id": 5, "label": "Main bedroom"},
+        {"id": 6, "label": "Guest room"},
+        {"id": 8, "label": "Living room"},
+        {"id": 9, "label": "Toilet"},
+        {"id": 10, "label": "Hall"},
+    ]
+
+
+def test_build_t2320_room_clean_mode_payload() -> None:
+    """Build selected-room ModeCtrlRequest for DPS 152."""
+    from custom_components.robovac.proto_decode import build_t2320_room_clean_mode
+
+    assert build_t2320_room_clean_mode([3], map_id=11) == "DggBIgoKBAgDEAEQARgL"
+    assert build_t2320_room_clean_mode([3, 8], map_id=11, clean_times=2) == (
+        "FAgBIhAKBAgDEAEKBAgIEAIQAhgL"
+    )

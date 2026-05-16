@@ -27,6 +27,7 @@ import time
 from typing import Any, cast
 
 from homeassistant.components.vacuum import (
+    Segment,
     StateVacuumEntity,
     VacuumActivity,
     VacuumEntityFeature,
@@ -34,23 +35,39 @@ from homeassistant.components.vacuum import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     CONF_ACCESS_TOKEN,
+    CONF_CLIENT_ID,
+    CONF_COUNTRY_CODE,
     CONF_DESCRIPTION,
     CONF_ID,
     CONF_IP_ADDRESS,
     CONF_MAC,
     CONF_MODEL,
     CONF_NAME,
+    CONF_PASSWORD,
+    CONF_REGION,
+    CONF_TIME_ZONE,
+    CONF_USERNAME,
 )
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import CONF_VACS, DOMAIN, PING_RATE, REFRESH_RATE, TIMEOUT
+from .eufywebapi import EufyLogon
 from .errors import getErrorMessage
+from .proto_decode import (
+    build_t2320_room_clean_mode,
+    decode_clean_param_response,
+    decode_t2320_room_meta,
+    merge_clean_param_layers,
+    patch_clean_param_dps154,
+)
 from .vacuums.base import RobovacCommand, RoboVacEntityFeature, TuyaCodes, TUYA_CONSUMABLES_CODES
 from .robovac import ModelNotSupportedException, RoboVac
 from .tuyalocalapi import TuyaException
+from .tuyawebapi import TuyaAPISession
 
 ATTR_BATTERY_ICON = "battery_icon"
 ATTR_ERROR = "error"
@@ -66,6 +83,74 @@ ATTR_DO_NOT_DISTURB = "do_not_disturb"
 ATTR_BOOST_IQ = "boost_iq"
 ATTR_CONSUMABLES = "consumables"
 ATTR_MODE = "mode"
+ATTR_CLEAN_TYPE = "clean_type"
+ATTR_CLEAN_TYPE_LABEL = "clean_type_label"
+ATTR_MOP_LEVEL = "mop_level"
+ATTR_EDGE_HUGGING_MOPPING = "edge_hugging_mopping"
+ATTR_CLEAN_CARPET = "clean_carpet"
+ATTR_ROOM_NAMES = "room_names"
+ATTR_ROOMS = "rooms"
+ATTR_SEGMENTS = "segments"
+
+_CLEAN_TYPE_LABELS = {
+    "sweep_only": "Sweep only",
+    "mop_only": "Mop only",
+    "sweep_and_mop": "Vacuum and mop",
+    "sweep_then_mop": "Vacuum then mop",
+}
+
+
+def _clean_type_label(clean_type: str | None) -> str | None:
+    if not clean_type:
+        return None
+    if clean_type in _CLEAN_TYPE_LABELS:
+        return _CLEAN_TYPE_LABELS[clean_type]
+    return clean_type.replace("_", " ").title()
+
+
+def _lookup_activity(
+    mapping: dict[str, VacuumActivity], state: Any
+) -> VacuumActivity | None:
+    """Map Tuya human-readable status to VacuumActivity; keys may differ by case."""
+    s = str(state)
+    if s in mapping:
+        return mapping[s]
+    folded = s.casefold()
+    for key, activity in mapping.items():
+        if str(key).casefold() == folded:
+            return activity
+    return None
+
+
+def _activity_from_mode(mode: str | None) -> VacuumActivity | None:
+    """Map decoded mode DPS to VacuumActivity when status DPS is idle/station-only."""
+    if not mode:
+        return None
+    normalized = str(mode).casefold()
+    if normalized in {"auto", "cleaning"}:
+        return VacuumActivity.CLEANING
+    if normalized in {"pause", "paused"}:
+        return VacuumActivity.PAUSED
+    if normalized in {"return", "returning", "docking"}:
+        return VacuumActivity.RETURNING
+    if normalized in {"standby", "stop", "idle"}:
+        return VacuumActivity.IDLE
+    return None
+
+
+def _activity_from_return_progress(progress: str | None) -> VacuumActivity | None:
+    """Map decoded return/dock progress to VacuumActivity."""
+    if not progress:
+        return None
+    normalized = str(progress).casefold()
+    if normalized in {"docked", "charging"}:
+        return VacuumActivity.DOCKED
+    if normalized in {"cleaning", "auto"}:
+        return VacuumActivity.CLEANING
+    if normalized in {"returning", "return"}:
+        return VacuumActivity.RETURNING
+    return None
+
 
 _LOGGER = logging.getLogger(__name__)
 SCAN_INTERVAL = timedelta(seconds=REFRESH_RATE)
@@ -84,7 +169,17 @@ async def async_setup_entry(
     """Initialize my test integration 2 config entry."""
     vacuums = config_entry.data[CONF_VACS]
     for item in vacuums:
-        item = vacuums[item]
+        item = dict(vacuums[item])
+        for key in (
+            CONF_USERNAME,
+            CONF_PASSWORD,
+            CONF_CLIENT_ID,
+            CONF_REGION,
+            CONF_COUNTRY_CODE,
+            CONF_TIME_ZONE,
+        ):
+            if key in config_entry.data:
+                item[key] = config_entry.data[key]
         entity = RoboVacEntity(item)
         hass.data[DOMAIN][CONF_VACS][item[CONF_ID]] = entity
         async_add_entities([entity])
@@ -118,6 +213,8 @@ class RoboVacEntity(StateVacuumEntity):
     _attr_activity_mapping: dict[str, VacuumActivity] | None = None
     _attr_error_code: int | str | None = None
     _attr_tuya_state: int | str | None = None
+    _attr_room_names: dict[str, dict[str, Any]] | None = None
+    _attr_room_map_id: int | None = None
 
     @property
     def robovac_supported(self) -> int | None:
@@ -254,7 +351,27 @@ class RoboVacEntity(StateVacuumEntity):
         As of Home Assistant Core 2025.1, this property should be used instead of directly
         setting the state property.
         """
+        mode_activity = _activity_from_mode(self._attr_mode)
+        return_progress_activity = self._return_progress_activity()
+        if (
+            return_progress_activity == VacuumActivity.RETURNING
+            and mode_activity not in (None, VacuumActivity.RETURNING)
+        ):
+            return_progress_activity = None
+        if return_progress_activity == VacuumActivity.DOCKED:
+            return return_progress_activity
         if self._attr_tuya_state is None or self._attr_tuya_state == 0:
+            if return_progress_activity is not None:
+                _LOGGER.debug(
+                    "Using return progress activity %s without status state",
+                    return_progress_activity,
+                )
+                return return_progress_activity
+            if mode_activity is not None:
+                _LOGGER.debug("Using mode activity %s without status state", mode_activity)
+                return mode_activity
+            if self.tuyastatus:
+                return VacuumActivity.IDLE
             # 0 is a default set when we don't have a state
             return None
         elif (
@@ -268,13 +385,44 @@ class RoboVacEntity(StateVacuumEntity):
             )
             return VacuumActivity.ERROR
         elif self._attr_tuya_state in VACUUM_ACTIVITY_VALUES:
+            if return_progress_activity is not None:
+                _LOGGER.debug(
+                    "Using return progress activity %s over activity state %s",
+                    return_progress_activity,
+                    self._attr_tuya_state,
+                )
+                return return_progress_activity
+            if self._attr_tuya_state == VacuumActivity.IDLE and mode_activity not in (
+                None,
+                VacuumActivity.IDLE,
+            ):
+                _LOGGER.debug(
+                    "Using mode activity %s over idle activity state",
+                    mode_activity,
+                )
+                return mode_activity
             # Particularly at system startup, the state may be set to a
             # VacuumActivity value directly, so we can return it as is.
             return cast(VacuumActivity, self._attr_tuya_state)
         elif self.activity_mapping is not None:
             # Use the activity mapping from the model details
-            activity = self.activity_mapping.get(str(self._attr_tuya_state))
+            activity = _lookup_activity(self.activity_mapping, self._attr_tuya_state)
+            mode_activity = _activity_from_mode(self._attr_mode)
 
+            if return_progress_activity is not None:
+                _LOGGER.debug(
+                    "Using return progress activity %s over status %s",
+                    return_progress_activity,
+                    self._attr_tuya_state,
+                )
+                return return_progress_activity
+            if activity == VacuumActivity.IDLE and mode_activity not in (None, VacuumActivity.IDLE):
+                _LOGGER.debug(
+                    "Using mode activity %s over idle status %s",
+                    mode_activity,
+                    self._attr_tuya_state,
+                )
+                return mode_activity
             if activity is not None:
                 _LOGGER.debug(
                     "Used activity mapping, changing status %s to activity %s",
@@ -302,6 +450,16 @@ class RoboVacEntity(StateVacuumEntity):
                 self._attr_tuya_state
             )
             return VacuumActivity.CLEANING
+
+    def _return_progress_activity(self) -> VacuumActivity | None:
+        """Return activity from models that expose return/dock progress on RETURN_HOME DPS."""
+        if self.tuyastatus is None or self.vacuum is None:
+            return None
+        raw = self.tuyastatus.get(self.get_dps_code("RETURN_HOME"))
+        if raw is None or isinstance(raw, bool):
+            return None
+        progress = self.vacuum.getRoboVacHumanReadableValue(RobovacCommand.RETURN_HOME, raw)
+        return _activity_from_return_progress(progress)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -348,6 +506,29 @@ class RoboVacEntity(StateVacuumEntity):
             data[ATTR_CONSUMABLES] = self.consumables
         if self.mode:
             data[ATTR_MODE] = self.mode
+        if self._attr_clean_type is not None:
+            data[ATTR_CLEAN_TYPE] = self._attr_clean_type
+        if self._attr_clean_type_label is not None:
+            data[ATTR_CLEAN_TYPE_LABEL] = self._attr_clean_type_label
+        if self._attr_mop_level is not None:
+            data[ATTR_MOP_LEVEL] = self._attr_mop_level
+        if self._attr_edge_hugging_mopping is not None:
+            data[ATTR_EDGE_HUGGING_MOPPING] = self._attr_edge_hugging_mopping
+        if self._attr_clean_carpet is not None:
+            data[ATTR_CLEAN_CARPET] = self._attr_clean_carpet
+        if self._attr_room_names:
+            data[ATTR_ROOM_NAMES] = self._attr_room_names
+            data[ATTR_ROOMS] = {
+                key: value["label"]
+                for key, value in self._attr_room_names.items()
+                if isinstance(value.get("label"), str)
+            }
+            data[ATTR_SEGMENTS] = [
+                {"id": value.get("id", key), "name": value.get("label", key)}
+                for key, value in self._attr_room_names.items()
+            ]
+            if self._attr_room_map_id is not None:
+                data["room_map_id"] = self._attr_room_map_id
         return data
 
     def __init__(self, item: dict[str, Any]) -> None:
@@ -381,6 +562,14 @@ class RoboVacEntity(StateVacuumEntity):
         self._consumables_codes_cache: list[str] | None = None
         self._dps_codes_memo: dict[str, str] = {}
         self._last_consumable_data: str | None = None
+        self._room_name_registry: dict[str, dict[str, Any]] = {}
+        self._eufy_username: str | None = item.get(CONF_USERNAME)
+        self._eufy_password: str | None = item.get(CONF_PASSWORD)
+        self._eufy_client_id: str | None = item.get(CONF_CLIENT_ID)
+        self._eufy_region: str | None = item.get(CONF_REGION)
+        self._eufy_country_code: str | None = item.get(CONF_COUNTRY_CODE)
+        self._eufy_time_zone: str | None = item.get(CONF_TIME_ZONE)
+        self._cloud_room_lookup_attempted = False
 
         # Initialize the RoboVac connection
         try:
@@ -438,6 +627,13 @@ class RoboVacEntity(StateVacuumEntity):
         # Initialize additional attributes
         self._attr_mode = None
         self._attr_consumables = None
+        self._attr_clean_type: str | None = None
+        self._attr_clean_type_label: str | None = None
+        self._attr_mop_level: str | None = None
+        self._attr_edge_hugging_mopping: bool | None = None
+        self._attr_clean_carpet: str | None = None
+        self._attr_room_names = None
+        self._attr_room_map_id = None
 
         # Set up device info for Home Assistant device registry
         self._attr_device_info = DeviceInfo(
@@ -465,6 +661,9 @@ class RoboVacEntity(StateVacuumEntity):
         if self._attr_error_code == "UNSUPPORTED_MODEL":
             _LOGGER.debug("Skipping update for unsupported model: %s", self._attr_model_code)
             return
+
+        if self._supports_t2320_rooms() and not self._attr_room_names:
+            await self._async_fetch_t2320_rooms_from_cloud_once()
 
         # Skip update if the IP address is not set
         if not self.ip_address:
@@ -548,9 +747,11 @@ class RoboVacEntity(StateVacuumEntity):
         # Update common attributes for all models
         self._update_state_and_error()
         self._update_mode_and_fan_speed()
+        self._update_clean_param_attributes()
 
         # Update model-specific attributes
         self._update_cleaning_stats()
+        self._update_room_names_from_device_payload()
 
     def get_dps_code(self, code_name: str | TuyaCodes) -> str:
         """Get the DPS code for a specific function.
@@ -666,6 +867,40 @@ class RoboVacEntity(StateVacuumEntity):
         else:
             self._attr_error_code = 0
 
+    def _update_clean_param_attributes(self) -> None:
+        """Decode DPS 154 (clean params) for vacuum card / automations."""
+        if self.tuyastatus is None or self.vacuum is None:
+            return
+        if RobovacCommand.CLEAN_PARAM not in self.vacuum.getSupportedCommands():
+            self._attr_clean_type = None
+            self._attr_clean_type_label = None
+            self._attr_mop_level = None
+            self._attr_edge_hugging_mopping = None
+            self._attr_clean_carpet = None
+            return
+
+        raw = self.tuyastatus.get(self.get_dps_code("CLEAN_PARAM"))
+        if raw is None or raw == "":
+            return
+
+        try:
+            raw_str = raw if isinstance(raw, str) else str(raw)
+            decoded = decode_clean_param_response(raw_str)
+            params = merge_clean_param_layers(decoded)
+            clean_type = params.get("clean_type")
+            if clean_type is None:
+                return
+            self._attr_clean_type = str(clean_type)
+            self._attr_clean_type_label = _clean_type_label(str(clean_type))
+            if "mop_level" in params:
+                self._attr_mop_level = str(params["mop_level"])
+            if "edge_hugging_mopping" in params:
+                self._attr_edge_hugging_mopping = bool(params["edge_hugging_mopping"])
+            if "clean_carpet" in params:
+                self._attr_clean_carpet = str(params["clean_carpet"])
+        except Exception as ex:
+            _LOGGER.debug("Clean param decode failed for %s: %s", self.name, ex)
+
     def _update_mode_and_fan_speed(self) -> None:
         """Update the mode and fan speed attributes."""
         if self.tuyastatus is None:
@@ -696,7 +931,9 @@ class RoboVacEntity(StateVacuumEntity):
             elif self.fan_speed == "Boost_IQ":
                 self._attr_fan_speed = "Boost IQ"
             elif self.fan_speed == "Quiet":
-                self._attr_fan_speed = "Pure"
+                self._attr_fan_speed = (
+                    "Pure" if "Pure" in self._attr_fan_speed_list else "Quiet"
+                )
 
     def _update_cleaning_stats(self) -> None:
         """Update cleaning statistics and settings attributes.
@@ -761,6 +998,155 @@ class RoboVacEntity(StateVacuumEntity):
                             except Exception as e:
                                 _LOGGER.warning("Failed to decode consumable data: %s", str(e))
 
+    def _supports_t2320_rooms(self) -> bool:
+        return bool(self.model_code and str(self.model_code).startswith("T2320"))
+
+    def _merge_room_meta(self, meta: dict[str, Any], source: str) -> bool:
+        """Merge decoded T2320 room metadata into exported attributes."""
+        changed = False
+        map_id = meta.get("map_id")
+        if isinstance(map_id, int) and map_id != self._attr_room_map_id:
+            self._attr_room_map_id = map_id
+            changed = True
+
+        rooms = meta.get("rooms")
+        if not isinstance(rooms, list):
+            rooms = []
+        for room in rooms:
+            if not isinstance(room, dict):
+                continue
+            room_id = room.get("id")
+            if room_id is None:
+                continue
+            label = str(room.get("label") or room_id)
+            key = str(room_id)
+            entry = {"id": room_id, "key": key, "label": label, "source": source}
+            if self._room_name_registry.get(key) != entry:
+                self._room_name_registry[key] = entry
+                changed = True
+
+        if changed:
+            self._attr_room_names = {
+                key: self._room_name_registry[key]
+                for key in sorted(self._room_name_registry, key=lambda item: int(item) if item.isdigit() else item)
+            }
+        return changed
+
+    def _update_room_names_from_device_payload(self) -> None:
+        """Update T2320 room names from local DPS 165 when it is present."""
+        if not self._supports_t2320_rooms() or self.tuyastatus is None:
+            return
+        raw = self.tuyastatus.get(self.get_dps_code("ROOM_META"))
+        if not raw:
+            return
+        try:
+            self._merge_room_meta(decode_t2320_room_meta(str(raw)), "device")
+        except Exception as ex:
+            _LOGGER.debug("T2320 room metadata decode failed for %s: %s", self.name, ex)
+
+    def _build_tuya_session_sync(self) -> TuyaAPISession | None:
+        """Authenticate to Tuya cloud using stored Eufy credentials."""
+        if not self._eufy_username or not self._eufy_password:
+            return None
+
+        client_id = self._eufy_client_id
+        region = self._eufy_region or "EU"
+        country_code = self._eufy_country_code or "44"
+        time_zone = self._eufy_time_zone or "Europe/London"
+
+        if not client_id:
+            eufy_session = EufyLogon(self._eufy_username, self._eufy_password)
+            response = eufy_session.get_user_info()
+            if response is None or response.status_code != 200:
+                return None
+            user_response = response.json()
+            if user_response.get("res_code") != 1:
+                return None
+            user_info = user_response.get("user_info", {})
+            client_id = user_info.get("id")
+            region = self._eufy_region or region
+            country_code = user_info.get("phone_code") or country_code
+            time_zone = user_info.get("timezone") or time_zone
+            request_host = user_info.get("request_host")
+            access_token = user_response.get("access_token")
+            if request_host and client_id and access_token:
+                settings_response = eufy_session.get_user_settings(
+                    request_host, client_id, access_token
+                )
+                if settings_response is not None and settings_response.status_code == 200:
+                    settings = settings_response.json()
+                    region = (
+                        settings.get("setting", {})
+                        .get("home_setting", {})
+                        .get("tuya_home", {})
+                        .get("tuya_region_code", region)
+                    )
+
+        if not client_id:
+            return None
+        return TuyaAPISession(
+            username=f"eh-{client_id}",
+            region=region,
+            timezone=time_zone,
+            phone_code=country_code,
+        )
+
+    def _fetch_t2320_dps_from_cloud_sync(self) -> dict[str, Any]:
+        session = self._build_tuya_session_sync()
+        if session is None:
+            return {}
+        try:
+            return session._request(
+                action="tuya.m.device.dp.get",
+                version="1.0",
+                data={"devId": str(self.unique_id)},
+            )
+        except Exception as ex:
+            _LOGGER.debug("T2320 cloud DPS fetch failed for %s: %s", self.name, ex)
+            return {}
+
+    def _fetch_t2320_rooms_from_cloud_sync(self) -> dict[str, Any]:
+        dps = self._fetch_t2320_dps_from_cloud_sync()
+        raw = dps.get(self.get_dps_code("ROOM_META")) or dps.get("165")
+        return decode_t2320_room_meta(str(raw)) if raw else {"map_id": None, "rooms": []}
+
+    async def _async_fetch_t2320_rooms_from_cloud_once(self) -> None:
+        if self._cloud_room_lookup_attempted or self.hass is None:
+            return
+        self._cloud_room_lookup_attempted = True
+        meta = await self.hass.async_add_executor_job(
+            self._fetch_t2320_rooms_from_cloud_sync
+        )
+        if self._merge_room_meta(meta, "cloud"):
+            self.async_write_ha_state()
+
+    def _t2320_room_id_for_label(self, room_label: str) -> int | None:
+        label = room_label.casefold()
+        for entry in self._room_name_registry.values():
+            if str(entry.get("label", "")).casefold() == label:
+                room_id = entry.get("id")
+                room_id_str = str(room_id)
+                return int(room_id_str) if room_id_str.isdigit() else None
+        return None
+
+    async def async_get_segments(self) -> list[Segment]:
+        """Return known T2320 room segments for HA callers that support it."""
+        if not self._attr_room_names:
+            await self._async_fetch_t2320_rooms_from_cloud_once()
+        if not self._attr_room_names:
+            return []
+        return [
+            Segment(id=str(entry["id"]), name=str(entry["label"]))
+            for entry in self._attr_room_names.values()
+        ]
+
+    async def async_clean_segments(self, segment_ids: list[str], **kwargs: Any) -> None:
+        """Clean selected T2320 room segments."""
+        await self.async_send_command(
+            "roomClean",
+            {"roomIds": segment_ids, "count": kwargs.get("count", 1)},
+        )
+
     async def async_locate(self, **kwargs: Any) -> None:
         """Locate the vacuum cleaner.
 
@@ -792,6 +1178,10 @@ class RoboVacEntity(StateVacuumEntity):
         payload: dict[str, Any] = {
             self.get_dps_code("RETURN_HOME"): self.vacuum.getRoboVacCommandValue(RobovacCommand.RETURN_HOME, "return")
         }
+
+        mode_return_value = self.vacuum.getRoboVacCommandValue(RobovacCommand.MODE, "return")
+        if mode_return_value != "return":
+            payload[self.get_dps_code("MODE")] = mode_return_value
 
         # For models with boolean START_PAUSE (e.g. T2128, T2276), DPS 2 is the
         # execution trigger — without it, the device ACKs but doesn't physically act.
@@ -833,9 +1223,15 @@ class RoboVacEntity(StateVacuumEntity):
             _LOGGER.error("Cannot pause vacuum: vacuum not initialized")
             return
 
-        await self.vacuum.async_set({
+        payload: dict[str, Any] = {
             self.get_dps_code("START_PAUSE"): self.vacuum.getRoboVacCommandValue(RobovacCommand.START_PAUSE, "pause")
-        })
+        }
+
+        mode_pause_value = self.vacuum.getRoboVacCommandValue(RobovacCommand.MODE, "pause")
+        if mode_pause_value != "pause":
+            payload[self.get_dps_code("MODE")] = mode_pause_value
+
+        await self.vacuum.async_set(payload)
 
     async def async_stop(self, **kwargs: Any) -> None:
         """Stop the vacuum cleaner.
@@ -881,6 +1277,66 @@ class RoboVacEntity(StateVacuumEntity):
                 RobovacCommand.FAN_SPEED, normalized_fan_speed
             )
         })
+        self.update_entity_values()
+        if self.hass:
+            self.async_write_ha_state()
+
+    @property
+    def clean_type(self) -> str | None:
+        """Decoded global clean type from DPS 154 (snake_case), if available."""
+        return self._attr_clean_type
+
+    @property
+    def mop_level(self) -> str | None:
+        """Decoded mop water level from DPS 154, if available."""
+        return self._attr_mop_level
+
+    @property
+    def edge_hugging_mopping(self) -> bool | None:
+        """Edge-hugging mop mode from DPS 154, if present in the last decode."""
+        return self._attr_edge_hugging_mopping
+
+    async def async_set_clean_param(
+        self,
+        *,
+        clean_type: str | None = None,
+        mop_level: str | None = None,
+        edge_hugging_mopping: bool | None = None,
+    ) -> None:
+        """Write DPS 154 by patching the current protobuf payload."""
+        if self.vacuum is None:
+            raise HomeAssistantError("Vacuum not initialized")
+        if RobovacCommand.CLEAN_PARAM not in self.vacuum.getSupportedCommands():
+            raise HomeAssistantError("Clean parameters are not supported on this model")
+        dps = self.get_dps_code("CLEAN_PARAM")
+        raw = self.tuyastatus.get(dps) if self.tuyastatus else None
+        if raw is None or raw == "":
+            raw = getattr(self.vacuum.model_details, "default_clean_param_dps154", None)
+        if raw is None or raw == "":
+            raise HomeAssistantError("Clean parameter DPS is empty; wait for the next poll")
+        raw_str = raw if isinstance(raw, str) else str(raw)
+        try:
+            new_b64 = patch_clean_param_dps154(
+                raw_str,
+                clean_type=clean_type,
+                mop_level=mop_level,
+                edge_hugging_mopping=edge_hugging_mopping,
+            )
+        except ValueError as err:
+            raise HomeAssistantError(str(err)) from err
+        await self.vacuum.async_set({dps: new_b64})
+        if self.tuyastatus is None:
+            self.tuyastatus = {}
+        self.tuyastatus[dps] = new_b64
+        if hasattr(self.vacuum, "_dps"):
+            self.vacuum._dps[dps] = new_b64
+        self.update_entity_values()
+        if self.hass:
+            self.async_write_ha_state()
+
+    async def async_set_mop_level(self, mop_level: str) -> None:
+        """Set mop water level (low / middle / high) via DPS 154."""
+        await self.async_set_clean_param(mop_level=mop_level)
 
     async def async_send_command(
         self,
@@ -929,9 +1385,58 @@ class RoboVacEntity(StateVacuumEntity):
             await self.vacuum.async_set({
                 self.get_dps_code("BOOST_IQ"): new_value
             })
-        elif command in ("roomClean", "room_clean") and params is not None and isinstance(params, dict):
-            room_ids = params.get("roomIds") or params.get("room_ids", [1])
-            count = params.get("count", 1)
+        elif command in ("roomClean", "room_clean", "app_segment_clean") and params is not None:
+            if isinstance(params, list):
+                room_ids = params
+                count = 1
+            elif isinstance(params, dict):
+                room_ids = params.get("roomIds") or params.get("room_ids", [1])
+                count = params.get("count", 1)
+            else:
+                return
+            if self._supports_t2320_rooms():
+                if not self._attr_room_names:
+                    await self._async_fetch_t2320_rooms_from_cloud_once()
+                normalized_room_ids: list[int] = []
+                for room_id in room_ids:
+                    if isinstance(room_id, str) and not room_id.isdigit():
+                        resolved = self._t2320_room_id_for_label(room_id)
+                        if resolved is None:
+                            raise HomeAssistantError(f"Unknown room {room_id!r}")
+                        normalized_room_ids.append(resolved)
+                    else:
+                        normalized_room_ids.append(int(room_id))
+                try:
+                    clean_times = max(1, int(count))
+                except (TypeError, ValueError):
+                    clean_times = 1
+                map_id = self._attr_room_map_id
+                if map_id is None:
+                    if self.hass is None:
+                        raise HomeAssistantError("T2320 room map ID is unavailable")
+                    dps = await self.hass.async_add_executor_job(
+                        self._fetch_t2320_dps_from_cloud_sync
+                    )
+                    raw = dps.get(self.get_dps_code("ROOM_META")) or dps.get("165")
+                    if raw:
+                        self._merge_room_meta(decode_t2320_room_meta(str(raw)), "cloud")
+                    map_id = self._attr_room_map_id
+                if map_id is None:
+                    raise HomeAssistantError("T2320 room map ID is unavailable")
+                payload = build_t2320_room_clean_mode(
+                    normalized_room_ids,
+                    map_id=map_id,
+                    clean_times=clean_times,
+                )
+                _LOGGER.info(
+                    "T2320 roomClean: rooms=%s map_id=%s payload=%s",
+                    normalized_room_ids,
+                    map_id,
+                    payload,
+                )
+                await self.vacuum.async_set({self.get_dps_code("MODE"): payload})
+                return
+
             clean_request = {"roomIds": room_ids, "cleanTimes": count}
             method_call = {
                 "method": "selectRoomsClean",

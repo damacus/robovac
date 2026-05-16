@@ -127,11 +127,13 @@ def test_getDpsCodes_extraction_method() -> None:
         assert t2320_dps_codes["STATUS"] == "173"  # Non-default code
         assert t2320_dps_codes["STATUS"] != TuyaCodes.STATUS
         assert "BATTERY_LEVEL" in t2320_dps_codes
-        assert t2320_dps_codes["BATTERY_LEVEL"] == "172"  # Non-default code
+        assert t2320_dps_codes["BATTERY_LEVEL"] == "163"  # Non-default code
         assert t2320_dps_codes["BATTERY_LEVEL"] != TuyaCodes.BATTERY_LEVEL
         assert "ERROR_CODE" in t2320_dps_codes
-        assert t2320_dps_codes["ERROR_CODE"] == "169"  # Non-default code
+        assert t2320_dps_codes["ERROR_CODE"] == "177"  # Non-default code
         assert t2320_dps_codes["ERROR_CODE"] != TuyaCodes.ERROR_CODE
+        assert t2320_dps_codes.get("CLEAN_PARAM") == "154"
+        assert t2320_dps_codes.get("FAN_SPEED") == "158"
 
 
 @pytest.mark.asyncio
@@ -173,3 +175,32 @@ async def test_vacuum_update_uses_correct_dps_codes() -> None:
         assert entity._attr_error_code == 0
         assert entity._attr_mode == "auto"
         assert entity._attr_fan_speed == "Standard"
+
+
+@pytest.mark.asyncio
+async def test_quiet_fan_speed_display_stays_quiet_when_model_lists_quiet() -> None:
+    """Test raw Quiet is only renamed to Pure for models that expose Pure."""
+    mock_vacuum_data = {
+        CONF_NAME: "Test Vacuum",
+        CONF_ID: "test_id",
+        CONF_MAC: "test_mac",
+        CONF_MODEL: "T2320",
+        CONF_IP_ADDRESS: "192.168.1.1",
+        CONF_ACCESS_TOKEN: "test_token",
+        CONF_DESCRIPTION: "Test Description",
+    }
+
+    mock_robovac = MagicMock()
+    mock_robovac._dps = {"158": "Quiet"}
+    mock_robovac.getFanSpeeds.return_value = ["Standard", "Turbo", "Max", "Quiet"]
+    mock_robovac.getHomeAssistantFeatures.return_value = 0
+    mock_robovac.getRoboVacFeatures.return_value = 0
+    mock_robovac.getRoboVacActivityMapping.return_value = None
+    mock_robovac.getDpsCodes.return_value = {"FAN_SPEED": "158"}
+    mock_robovac.getRoboVacHumanReadableValue.side_effect = lambda command, value: value
+
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
+        entity = RoboVacEntity(mock_vacuum_data)
+        entity.update_entity_values()
+
+        assert entity._attr_fan_speed == "Quiet"
