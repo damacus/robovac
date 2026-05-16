@@ -140,6 +140,8 @@ class TuyaCipher:
         # ⚡ Bolt optimization: Pre-calculate the version string as bytes to avoid decoding every packet
         self._version_string = ".".join(map(str, self.version))
         self._version_bytes = self._version_string.encode("utf8")
+        # ⚡ Bolt optimization: Pre-calculate hash suffix as bytes to avoid encoding every packet
+        self._hash_suffix_bytes = f"||lpv={self._version_string}||{self.key}".encode("utf8")
 
     def set_session_key(self, session_key: bytes) -> None:
         """Switch cipher to use a negotiated session key.
@@ -365,10 +367,9 @@ class TuyaCipher:
             The hash of the data.
         """
         digest = Hash(MD5(), backend=openssl_backend)
-        to_hash = "data={}||lpv={}||{}".format(
-            data.decode("ascii"), self._version_string, self.key
-        )
-        digest.update(to_hash.encode("utf8"))
+        # ⚡ Bolt optimization: Use pre-calculated bytes and avoid decoding/formatting overhead
+        to_hash = b"data=" + data + self._hash_suffix_bytes
+        digest.update(to_hash)
         intermediate = digest.finalize().hex()
         # Explicitly cast to str to satisfy mypy
         return str(intermediate[8:24])
