@@ -709,7 +709,7 @@ class RoboVacEntity(StateVacuumEntity):
                 self._attr_tuya_state
             )
         else:
-            self._attr_tuya_state = 0
+            self._attr_tuya_state = self._fallback_state_from_partial_dps()
 
         # Update error code attribute
         if error_code is not None and self.vacuum is not None:
@@ -721,6 +721,30 @@ class RoboVacEntity(StateVacuumEntity):
             )
         else:
             self._attr_error_code = 0
+
+    def _fallback_state_from_partial_dps(self) -> VacuumActivity | int:
+        """Infer a usable state from partial model DPS returned after startup."""
+        if self.tuyastatus is None:
+            return 0
+
+        known_state_codes = {
+            self.get_dps_code("STATUS"),
+            self.get_dps_code("MODE"),
+            self.get_dps_code("RETURN_HOME"),
+        }
+        battery_code = self.get_dps_code("BATTERY")
+        informative_dps = {
+            code for code, value in self.tuyastatus.items()
+            if value is not None and code and code != battery_code
+        }
+
+        # Some vacuums return partial availability/config DPS after restart
+        # without an explicit status DPS. Treat that as idle so HA leaves
+        # unknown, but do not infer state from single-field updates.
+        if len(informative_dps) >= 2 and not known_state_codes.intersection(self.tuyastatus):
+            return VacuumActivity.IDLE
+
+        return 0
 
     def _update_mode_and_fan_speed(self) -> None:
         """Update the mode and fan speed attributes."""
