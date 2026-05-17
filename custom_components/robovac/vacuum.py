@@ -246,6 +246,62 @@ class RoboVacEntity(StateVacuumEntity):
             self.get_dps_code("MODE"): self.vacuum.getRoboVacCommandValue(RobovacCommand.MODE, mode)
         }
 
+    # ------------------------------------------------------------------
+    # Lightweight protobuf helpers for models that use binary-encoded
+    # commands on DPS 152 (e.g. T2278).  Only varint (wire-type 0) and
+    # length-delimited (wire-type 2) fields are needed.
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _encode_varint(value: int) -> bytes:
+        """Encode an integer as a protobuf varint."""
+        result = []
+        while value > 0x7F:
+            result.append((value & 0x7F) | 0x80)
+            value >>= 7
+        result.append(value & 0x7F)
+        return bytes(result)
+
+    @classmethod
+    def _pb_field_varint(cls, field_num: int, value: int) -> bytes:
+        """Encode a protobuf varint field (wire type 0)."""
+        return cls._encode_varint((field_num << 3) | 0) + cls._encode_varint(value)
+
+    @classmethod
+    def _pb_field_bytes(cls, field_num: int, data: bytes) -> bytes:
+        """Encode a protobuf length-delimited field (wire type 2)."""
+        return cls._encode_varint((field_num << 3) | 2) + cls._encode_varint(len(data)) + data
+
+    @classmethod
+    def _build_protobuf_room_clean(cls, room_ids: list[int], clean_times: int = 1) -> str:
+        """Build a ModeCtrlRequest protobuf to start room cleaning.
+
+        The schema comes from the eufy-clean project's control.proto.
+        Field 1 selects the method (1 = START_SELECT_ROOMS_CLEAN) and
+        field 4 carries the SelectRoomsClean payload with room IDs.
+        The result is length-prefixed and base64-encoded, matching the
+        convention used by all DPS 152 values on protobuf models.
+
+        Args:
+            room_ids: List of room IDs to clean.
+            clean_times: Number of cleaning passes (default 1).
+
+        Returns:
+            Base64-encoded command string ready to send on DPS 152.
+        """
+        rooms_data = b""
+        for order, rid in enumerate(room_ids):
+            room_msg = cls._pb_field_varint(1, rid) + cls._pb_field_varint(2, order)
+            rooms_data += cls._pb_field_bytes(1, room_msg)
+
+        select_rooms = rooms_data + cls._pb_field_varint(2, clean_times)
+
+        mode_ctrl = cls._pb_field_varint(1, 1)       # START_SELECT_ROOMS_CLEAN
+        mode_ctrl += cls._pb_field_bytes(4, select_rooms)
+
+        msg = cls._encode_varint(len(mode_ctrl)) + mode_ctrl
+        return base64.b64encode(msg).decode("utf8")
+
     @property
     def activity(self) -> VacuumActivity | None:
         """Return the activity of the vacuum cleaner.
@@ -924,6 +980,9 @@ class RoboVacEntity(StateVacuumEntity):
             _LOGGER.error("Cannot send command: vacuum not initialized")
             return
 
+        if params is None and "params" in kwargs:
+            params = kwargs["params"]
+
         # Mode commands
         mode_commands = {
             "edgeClean": "edge",
@@ -953,24 +1012,43 @@ class RoboVacEntity(StateVacuumEntity):
             await self.vacuum.async_set({
                 self.get_dps_code("BOOST_IQ"): new_value
             })
-        elif command in ("roomClean", "room_clean") and params is not None and isinstance(params, dict):
+        elif command in ("roomClean", "room_clean") and params is not None:
+            # HA may pass params as a list of single-key dicts.
+            if isinstance(params, list):
+                merged: dict[str, Any] = {}
+                for item in params:
+                    if isinstance(item, dict):
+                        merged.update(item)
+                params = merged
+            if not isinstance(params, dict):
+                _LOGGER.error("roomClean: unexpected params type %s", type(params).__name__)
+                return
+
             room_ids = params.get("roomIds") or params.get("room_ids", [1])
             count = params.get("count", 1)
-            clean_request = {"roomIds": room_ids, "cleanTimes": count}
-            method_call = {
-                "method": "selectRoomsClean",
-                "data": clean_request,
-                "timestamp": round(time.time() * 1000),
-            }
-            json_str = json.dumps(method_call, separators=(",", ":"))
-            base64_str = base64.b64encode(json_str.encode("utf8")).decode("utf8")
-            _LOGGER.debug("roomClean call %s", json_str)
-            await self.vacuum.async_set({TuyaCodes.ROOM_CLEAN: base64_str})
-            # Wait for the vacuum to ACK DPS 124 before sending the start command.
-            # Without this delay, DPS 2 arrives before the room selection is processed
-            # and the vacuum ignores the start command.
-            await asyncio.sleep(1)
-            await self.vacuum.async_set({TuyaCodes.START_PAUSE: True})
+            mode_dps = self.get_dps_code("MODE")
+            auto_val = self.vacuum.getRoboVacCommandValue(RobovacCommand.MODE, "auto")
+
+            # Protobuf models (e.g. T2278) encode room IDs directly in a
+            # ModeCtrlRequest on the MODE DPS code.  Legacy models use a
+            # JSON payload on DPS 124 followed by a start command on DPS 2.
+            if auto_val not in ("auto", "Auto") and mode_dps != TuyaCodes.ROOM_CLEAN:
+                proto_cmd = self._build_protobuf_room_clean(room_ids, count)
+                _LOGGER.debug("roomClean protobuf: room_ids=%s", room_ids)
+                await self.vacuum.async_set({mode_dps: proto_cmd})
+            else:
+                clean_request = {"roomIds": room_ids, "cleanTimes": count}
+                method_call = {
+                    "method": "selectRoomsClean",
+                    "data": clean_request,
+                    "timestamp": round(time.time() * 1000),
+                }
+                json_str = json.dumps(method_call, separators=(",", ":"))
+                base64_str = base64.b64encode(json_str.encode("utf8")).decode("utf8")
+                _LOGGER.debug("roomClean JSON: %s", json_str)
+                await self.vacuum.async_set({TuyaCodes.ROOM_CLEAN: base64_str})
+                await asyncio.sleep(1)
+                await self.vacuum.async_set({TuyaCodes.START_PAUSE: True})
 
     async def async_will_remove_from_hass(self) -> None:
         """Handle removal from Home Assistant."""
