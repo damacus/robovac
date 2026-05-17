@@ -358,6 +358,13 @@ class RoboVacEntity(StateVacuumEntity):
             and mode_activity not in (None, VacuumActivity.RETURNING)
         ):
             return_progress_activity = None
+        if self.error_code is not None and self.error_code not in [0, "no_error", "No error"]:
+            _LOGGER.debug(
+                "State changed to error. Error message: {}".format(
+                    getErrorMessage(self.error_code)
+                )
+            )
+            return VacuumActivity.ERROR
         if return_progress_activity == VacuumActivity.DOCKED:
             return return_progress_activity
         if self._attr_tuya_state is None or self._attr_tuya_state == 0:
@@ -374,16 +381,6 @@ class RoboVacEntity(StateVacuumEntity):
                 return VacuumActivity.IDLE
             # 0 is a default set when we don't have a state
             return None
-        elif (
-            self.error_code is not None
-            and self.error_code not in [0, "no_error", "No error"]
-        ):
-            _LOGGER.debug(
-                "State changed to error. Error message: {}".format(
-                    getErrorMessage(self.error_code)
-                )
-            )
-            return VacuumActivity.ERROR
         elif self._attr_tuya_state in VACUUM_ACTIVITY_VALUES:
             if return_progress_activity is not None:
                 _LOGGER.debug(
@@ -1105,8 +1102,14 @@ class RoboVacEntity(StateVacuumEntity):
             _LOGGER.debug("T2320 cloud DPS fetch failed for %s: %s", self.name, ex)
             return {}
 
+    @staticmethod
+    def _cloud_dps_map(response: dict[str, Any]) -> dict[str, Any]:
+        """Return a Tuya DPS map from either flat or {'dps': {...}} responses."""
+        nested = response.get("dps")
+        return nested if isinstance(nested, dict) else response
+
     def _fetch_t2320_rooms_from_cloud_sync(self) -> dict[str, Any]:
-        dps = self._fetch_t2320_dps_from_cloud_sync()
+        dps = self._cloud_dps_map(self._fetch_t2320_dps_from_cloud_sync())
         raw = dps.get(self.get_dps_code("ROOM_META")) or dps.get("165")
         return decode_t2320_room_meta(str(raw)) if raw else {"map_id": None, "rooms": []}
 
@@ -1364,6 +1367,10 @@ class RoboVacEntity(StateVacuumEntity):
         }
 
         if command in mode_commands:
+            if command == "smallRoomClean" and self._supports_t2320_rooms():
+                raise HomeAssistantError(
+                    "T2320 selected-room cleaning requires the roomClean command"
+                )
             command_data = self._get_mode_command_data(mode_commands[command])
             if command_data:
                 await self.vacuum.async_set(command_data)
@@ -1414,8 +1421,10 @@ class RoboVacEntity(StateVacuumEntity):
                 if map_id is None:
                     if self.hass is None:
                         raise HomeAssistantError("T2320 room map ID is unavailable")
-                    dps = await self.hass.async_add_executor_job(
-                        self._fetch_t2320_dps_from_cloud_sync
+                    dps = self._cloud_dps_map(
+                        await self.hass.async_add_executor_job(
+                            self._fetch_t2320_dps_from_cloud_sync
+                        )
                     )
                     raw = dps.get(self.get_dps_code("ROOM_META")) or dps.get("165")
                     if raw:

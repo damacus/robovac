@@ -624,6 +624,11 @@ class TestPatchCleanParamDps154:
         assert decoded["clean_param"]["edge_hugging_mopping"] is True
         assert decoded["running_clean_param"]["edge_hugging_mopping"] is True
 
+    def test_patch_clean_param_invalid_base64_raises_value_error(self) -> None:
+        """Malformed DPS 154 payloads surface as ValueError for HA callers."""
+        with pytest.raises(ValueError, match="invalid clean param base64"):
+            patch_clean_param_dps154("not-base64!!", mop_level="high")
+
 
 # ============================================================================
 # Tests for decode_consumable_response  (DPS 168)

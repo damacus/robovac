@@ -17,6 +17,7 @@ Protobuf binary format:
 """
 
 import base64
+import binascii
 from typing import Any
 
 
@@ -290,7 +291,10 @@ def patch_clean_param_dps154(
 
     Preserves other outer fields and inner fields (carpet, extent, etc.) when possible.
     """
-    body = base64.b64decode(raw_b64)
+    try:
+        body = base64.b64decode(raw_b64, validate=True)
+    except (binascii.Error, ValueError) as err:
+        raise ValueError("invalid clean param base64") from err
     if not body:
         raise ValueError("empty clean param base64")
     # Match decode_clean_param_response / _strip_length_prefix: byte 0 is length, protobuf starts at 1

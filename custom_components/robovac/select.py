@@ -8,6 +8,7 @@ from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_ID, CONF_MODEL, CONF_NAME, EntityCategory
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -342,7 +343,7 @@ class RobovacRoomSelect(SelectEntity):
         else:
             room_id = self._room_lookup.get(option)
             if room_id is None:
-                raise ValueError(f"Invalid room option: {option}")
+                raise HomeAssistantError(f"Invalid room option: {option}")
             await vacuum_entity.async_send_command(
                 "roomClean",
                 {"roomIds": [room_id], "count": 1},

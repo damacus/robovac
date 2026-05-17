@@ -78,8 +78,6 @@ class T2320(RobovacModelDetails):
                 "standby": "AA==",
                 "stop": "AggM",
                 "resume": "AggO",
-                "small_room": "small_room",
-                "single_room": "single_room",
             },
         },
         RobovacCommand.STATUS: {

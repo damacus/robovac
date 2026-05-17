@@ -1,5 +1,6 @@
 """Tests for the RoboVac vacuum entity."""
 
+import base64
 import pytest
 from typing import Any
 from unittest.mock import patch, MagicMock
@@ -240,6 +241,40 @@ async def test_activity_property_uses_return_progress_over_stale_return_mode() -
 
 
 @pytest.mark.asyncio
+async def test_activity_property_error_overrides_docked_return_progress() -> None:
+    """Test active errors take precedence over stale docked return-progress payloads."""
+    data = {
+        CONF_NAME: "Test X9",
+        CONF_ID: "test_x9_id",
+        CONF_MODEL: "T2320",
+        CONF_IP_ADDRESS: "192.168.1.100",
+        CONF_ACCESS_TOKEN: "test_key",
+        CONF_DESCRIPTION: "X9 Pro",
+        CONF_MAC: "aa:bb:cc:dd:ee:99",
+    }
+    with patch("custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None):
+        robovac = RoboVac(
+            model_code="T2320",
+            device_id="test_id",
+            host="192.168.1.100",
+            local_key="test_key",
+        )
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=robovac):
+        entity = RoboVacEntity(data)
+        robovac._dps = {
+            "152": "AggG",
+            "153": "DhAFGgA6AhABcgQaACIA",
+            "173": "LgokCgwKBggBGgIIChIAGAESBggBEgIIAjIMCgIIARIGCAEQARgPEgIIASoCCFg=",
+            "177": base64.b64encode(bytes([3, 0x12, 0x01, 52])).decode(),
+        }
+        entity.update_entity_values()
+
+        assert entity._return_progress_activity() == VacuumActivity.DOCKED
+        assert entity.error_code == "Unable to leave station"
+        assert entity.activity == VacuumActivity.ERROR
+
+
+@pytest.mark.asyncio
 async def test_activity_property_uses_return_progress_cleaning_signal() -> None:
     """Test T2320 active cleaning DPS 153 overrides standby/idle status."""
     data = {
@@ -269,6 +304,12 @@ async def test_activity_property_uses_return_progress_cleaning_signal() -> None:
 
         assert entity.mode == "standby"
         assert entity.activity == VacuumActivity.CLEANING
+
+
+def test_cloud_dps_map_accepts_flat_and_nested_responses() -> None:
+    """Tuya cloud may return either a flat DPS map or {'dps': {...}}."""
+    assert RoboVacEntity._cloud_dps_map({"165": "flat"}) == {"165": "flat"}
+    assert RoboVacEntity._cloud_dps_map({"dps": {"165": "nested"}}) == {"165": "nested"}
 
 
 @pytest.mark.asyncio

@@ -50,6 +50,12 @@ class TestT2320CommandMappings:
         result = t2320_robovac.getRoboVacCommandValue(RobovacCommand.MODE, "auto")
         assert result == "BBoCCAE="
 
+    def test_mode_command_does_not_expose_legacy_room_literals(self):
+        """T2320 room cleaning uses roomClean payloads, not literal DPS 152 modes."""
+        values = T2320.commands[RobovacCommand.MODE]["values"]
+        assert "small_room" not in values
+        assert "single_room" not in values
+
     def test_fan_speed_command_has_multiple_options(self, t2320_robovac):
         """Test FAN_SPEED command has multiple readable options."""
         fan_speeds = t2320_robovac.getFanSpeeds()

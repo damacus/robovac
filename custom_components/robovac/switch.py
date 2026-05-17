@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 from typing import TYPE_CHECKING, Any, cast
 
 from homeassistant.components.switch import SwitchEntity
@@ -11,6 +10,7 @@ from homeassistant.const import CONF_ID, CONF_MODEL, CONF_NAME, EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.event import async_call_later
 
 from .const import CONF_VACS, DOMAIN
 from .vacuums import ROBOVAC_MODELS
@@ -89,18 +89,22 @@ class RobovacEdgeHuggingMopSwitch(SwitchEntity):
         vacuum_entity = self._vacuum()
         if vacuum_entity:
             await vacuum_entity.async_set_clean_param(edge_hugging_mopping=True)
-            await self._refresh_after_write()
+            await self._refresh_after_write(True)
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         vacuum_entity = self._vacuum()
         if vacuum_entity:
             await vacuum_entity.async_set_clean_param(edge_hugging_mopping=False)
-            await self._refresh_after_write()
+            await self._refresh_after_write(False)
 
-    async def _refresh_after_write(self) -> None:
-        await self.async_update()
+    async def _refresh_after_write(self, expected_state: bool) -> None:
+        self._attr_available = True
+        self._attr_is_on = expected_state
         self.async_write_ha_state()
-        await asyncio.sleep(2)
+        async_call_later(self.hass, 2, self._delayed_refresh_after_write)
+
+    async def _delayed_refresh_after_write(self, _: Any) -> None:
+        """Refresh again after the device has had time to echo patched DPS 154."""
         await self.async_update()
         self.async_write_ha_state()
 
