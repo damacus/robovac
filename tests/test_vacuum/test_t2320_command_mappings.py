@@ -28,7 +28,7 @@ class TestT2320CommandMappings:
         """Test RETURN_HOME command returns boolean true as seen in debug logs."""
         # Debug log shows: "dps": {"153": true}
         result = t2320_robovac.getRoboVacCommandValue(RobovacCommand.RETURN_HOME, "return_home")
-        assert result is True or result == "True" or result == "true"
+        assert result is True
 
     def test_start_pause_command_exists(self, t2320_robovac):
         """Test START_PAUSE command is defined for T2320."""
@@ -40,10 +40,10 @@ class TestT2320CommandMappings:
         """Test START_PAUSE command returns boolean values."""
         # Debug log shows: "dps": {"2": false}
         pause_result = t2320_robovac.getRoboVacCommandValue(RobovacCommand.START_PAUSE, "pause")
-        assert pause_result is False or pause_result == "False" or pause_result == "false"
+        assert pause_result is False
 
         start_result = t2320_robovac.getRoboVacCommandValue(RobovacCommand.START_PAUSE, "start")
-        assert start_result is True or start_result == "True" or start_result == "true"
+        assert start_result is True
 
     def test_mode_command_value(self, t2320_robovac):
         """Test MODE command returns base64 protobuf values observed on X9."""
