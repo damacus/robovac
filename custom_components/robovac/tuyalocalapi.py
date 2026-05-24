@@ -793,6 +793,9 @@ class Message:
                 # - 4-byte retcode + 15-byte version header (gratuitous
                 #   updates: retcode + "3.5" + 12 bytes + JSON)
                 # Find the first '{' to locate where JSON starts.
+                # Keep original for binary fallback — the HMAC in SESS_KEY_NEG_RESP
+                # may contain 0x7b ('{'), so we must not strip binary payloads.
+                original_payload_data = payload_data
                 if payload_data and payload_data[0:1] != b"{":
                     json_start = payload_data.find(b"{")
                     if json_start > 0:
@@ -801,8 +804,9 @@ class Message:
                     payload_text = payload_data.decode("utf8")
                     payload = json.loads(payload_text)
                 except (UnicodeDecodeError, json.JSONDecodeError):
-                    # Binary payload (e.g. session key negotiation)
-                    payload = payload_data
+                    # Binary payload (e.g. session key negotiation) — use the
+                    # original unstripped bytes so HMAC fields aren't truncated.
+                    payload = original_payload_data
             except Exception as e:
                 device._LOGGER.debug(f"v3.5 decryption failed: {e}")
                 raise InvalidMessage("GCM decryption/verification failed") from e
