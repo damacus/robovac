@@ -115,6 +115,54 @@ async def test_async_start_sends_start_pause_for_boolean_models(
 
 
 @pytest.mark.asyncio
+async def test_async_return_to_base_does_not_overwrite_shared_dps_code(
+    mock_vacuum_data,
+) -> None:
+    """When RETURN_HOME and START_PAUSE share a DPS code, keep return payload.
+
+    T2277 uses DPS 152 for both RETURN_HOME and START_PAUSE. Sending START_PAUSE
+    in the same payload overwrites return_home and causes resume instead.
+    """
+    with patch("custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None):
+        robovac = RoboVac(
+            model_code="T2277",
+            device_id="test_id",
+            host="192.168.1.100",
+            local_key="test_key",
+        )
+    robovac.async_set = AsyncMock(return_value=True)
+
+    model_data = {**mock_vacuum_data, "model": "T2277"}
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=robovac):
+        entity = RoboVacEntity(model_data)
+        await entity.async_return_to_base()
+
+        robovac.async_set.assert_called_once_with({"152": "AggG"})
+
+
+@pytest.mark.asyncio
+async def test_async_start_does_not_overwrite_shared_dps_code(
+    mock_vacuum_data,
+) -> None:
+    """When MODE and START_PAUSE share a DPS code, keep mode payload for start."""
+    with patch("custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None):
+        robovac = RoboVac(
+            model_code="T2277",
+            device_id="test_id",
+            host="192.168.1.100",
+            local_key="test_key",
+        )
+    robovac.async_set = AsyncMock(return_value=True)
+
+    model_data = {**mock_vacuum_data, "model": "T2277"}
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=robovac):
+        entity = RoboVacEntity(model_data)
+        await entity.async_start()
+
+        robovac.async_set.assert_called_once_with({"152": "BBoCCAE="})
+
+
+@pytest.mark.asyncio
 async def test_async_pause_sends_boolean_for_toggle_models(
     mock_vacuum_data,
 ) -> None:
