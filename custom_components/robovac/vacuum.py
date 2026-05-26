@@ -875,9 +875,11 @@ class RoboVacEntity(StateVacuumEntity):
 
         # For models with boolean START_PAUSE (e.g. T2128, T2276), DPS 2 is the
         # execution trigger — without it, the device ACKs but doesn't physically act.
+        return_home_code = self.get_dps_code("RETURN_HOME")
+        start_pause_code = self.get_dps_code("START_PAUSE")
         start_value = self.vacuum.getRoboVacCommandValue(RobovacCommand.START_PAUSE, "start")
-        if start_value != "start":
-            payload[self.get_dps_code("START_PAUSE")] = start_value
+        if start_value != "start" and start_pause_code != return_home_code:
+            payload[start_pause_code] = start_value
 
         await self.vacuum.async_set(payload)
 
@@ -897,9 +899,11 @@ class RoboVacEntity(StateVacuumEntity):
         }
 
         # For models with boolean START_PAUSE (e.g. T2118, T2128), also toggle start
+        mode_code = self.get_dps_code("MODE")
+        start_pause_code = self.get_dps_code("START_PAUSE")
         start_value = self.vacuum.getRoboVacCommandValue(RobovacCommand.START_PAUSE, "start")
-        if start_value != "start":
-            payload[self.get_dps_code("START_PAUSE")] = start_value
+        if start_value != "start" and start_pause_code != mode_code:
+            payload[start_pause_code] = start_value
 
         await self.vacuum.async_set(payload)
 
