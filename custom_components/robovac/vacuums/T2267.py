@@ -1,5 +1,6 @@
 """RoboVac L60 (T2267)"""
-from homeassistant.components.vacuum import VacuumEntityFeature
+import base64
+from homeassistant.components.vacuum import VacuumActivity, VacuumEntityFeature
 from .base import RoboVacEntityFeature, RobovacCommand, RobovacModelDetails
 
 
@@ -18,6 +19,41 @@ class T2267(RobovacModelDetails):
         RoboVacEntityFeature.DO_NOT_DISTURB
         | RoboVacEntityFeature.BOOST_IQ
     )
+    activity_mapping = {
+        "BgoAEAUyAA==":     VacuumActivity.CLEANING,
+        "BgoAEAVSAA==":     VacuumActivity.CLEANING,
+        "CAoAEAUyAggB":     VacuumActivity.CLEANING,
+        "CAoCCAEQBTIA":     VacuumActivity.CLEANING,
+        "CAoCCAEQBVIA":     VacuumActivity.CLEANING,
+        "CgoCCAEQBTICCAE=": VacuumActivity.CLEANING,
+        "CAoCCAIQBTIA":     VacuumActivity.CLEANING,
+        "CAoCCAIQBVIA":     VacuumActivity.CLEANING,
+        "CgoCCAIQBTICCAE=": VacuumActivity.CLEANING,
+        "BAoAEAY=":         VacuumActivity.RETURNING,
+        "BBAHQgA=":         VacuumActivity.RETURNING,
+        "BBADGgA=":         VacuumActivity.DOCKED,
+        "BhADGgIIAQ==":     VacuumActivity.DOCKED,
+        "AA==":             VacuumActivity.IDLE,
+        "AhAB":             VacuumActivity.IDLE,
+    }
+
+
+    @staticmethod
+    def decode_dps(dps_code: int, value: str) -> str | None:
+        """Decode binary protobuf DPS values for the L60 (T2267).
+        DPS 177 (error): last byte is the error code. 0x00 = no error.
+        All other DPS codes fall through to standard handling.
+        """
+        if dps_code == 177:
+            try:
+                data = base64.b64decode(value)
+                if len(data) > 0 and data[-1] == 0:
+                    return "no_error"
+                return str(data[-1]) if len(data) > 0 else "no_error"
+            except Exception:
+                return "no_error"
+        return None
+
     commands = {
         RobovacCommand.MODE: {
             "code": 152,
@@ -32,8 +68,8 @@ class T2267(RobovacModelDetails):
         RobovacCommand.STATUS: {
             "code": 153,
             "values": [
-                "BgoAEAUyAA===",
-                "BgoAEAVSAA===",
+                "BgoAEAUyAA==",
+                "BgoAEAVSAA==",
                 "CAoAEAUyAggB",
                 "CAoCCAEQBTIA",
                 "CAoCCAEQBVIA",
@@ -92,5 +128,5 @@ class T2267(RobovacModelDetails):
         },
         RobovacCommand.ERROR: {
             "code": 177,
-        }
+        },
     }
