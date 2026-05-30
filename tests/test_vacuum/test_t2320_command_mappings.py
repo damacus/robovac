@@ -115,10 +115,10 @@ class TestT2320CommandMappings:
         raw = base64.b64encode(b"\x08\x01 station WASHING active").decode()
         assert T2320.decode_dps("173", raw) == "washing"
 
-    def test_decode_station_status_from_live_washing_payload(self):
-        """Test observed X9 station status payload maps to washing."""
+    def test_decode_station_status_from_live_waste_water_recycling_payload(self):
+        """Test observed X9 station status payload maps to the active operation."""
         raw = "MgokCgwKBggBGgIIChIAGAESBggBEgIIAjIMCgIIARIGCAEQARgPEgYIARABKAEqAggt"
-        assert T2320.decode_dps("173", raw) == "washing"
+        assert T2320.decode_dps("173", raw) == "recycling waste water"
 
     def test_decode_station_status_from_live_drying_payload(self):
         """Test observed X9 station status payload maps to drying."""
@@ -134,6 +134,20 @@ class TestT2320CommandMappings:
         """StationResponse field 5 is clean-water percentage, not station state."""
         assert T2320.decode_dps("173", "ChIECAEQAioCCAU=") == "drying"
         assert T2320.decode_dps("173", "ChIECAEQASoCCEw=") == "washing"
+
+    @pytest.mark.parametrize(
+        ("raw", "expected"),
+        [
+            ("CBIGCAEQABgB", "emptying dust"),
+            ("CBIGCAEQASAB", "adding clean water"),
+            ("CBIGCAEQASgB", "recycling waste water"),
+            ("CBIGCAEQADAB", "making disinfectant"),
+            ("CBIGCAEQADgB", "cutting hair"),
+        ],
+    )
+    def test_decode_station_status_operation_flags(self, raw, expected):
+        """Test StationResponse operation flags from DPS 173."""
+        assert T2320.decode_dps("173", raw) == expected
 
     def test_decode_error_without_active_codes_is_no_error(self):
         """Test empty/zero DPS 177 protobuf payload does not force an error."""

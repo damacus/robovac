@@ -57,6 +57,11 @@ class T2320(RobovacModelDetails):
         "washing": VacuumActivity.DOCKED,
         "drying": VacuumActivity.DOCKED,
         "removing scale": VacuumActivity.DOCKED,
+        "emptying dust": VacuumActivity.DOCKED,
+        "adding clean water": VacuumActivity.DOCKED,
+        "recycling waste water": VacuumActivity.DOCKED,
+        "making disinfectant": VacuumActivity.DOCKED,
+        "cutting hair": VacuumActivity.DOCKED,
         "error": VacuumActivity.ERROR,
     }
 
@@ -143,9 +148,17 @@ class T2320(RobovacModelDetails):
         "DRYING": "drying",
         "REMOVING_SCALE": "removing scale",
     }
-    # DPS 173 follows StationResponse from jeppesens/eufy-clean:
+    # DPS 173 follows StationResponse from jeppesens/eufy-clean.
+    # Copyright (c) Martijn Poppen, Eufy-Clean License v1.0 (2024-09-01).
     # https://github.com/jeppesens/eufy-clean/blob/b1f5aadb84275c3afc2a361c9fa463c0dfc05f36/custom_components/robovac_mqtt/proto/cloud/station.proto  # noqa: E501
-    # Field 2 is StationStatus.state; field 5 is clean_water.
+    # Modified here to map only T2320 status labels; field 5 is clean_water.
+    _STATION_FLAGS = (
+        (3, "emptying dust"),
+        (4, "adding clean water"),
+        (5, "recycling waste water"),
+        (6, "making disinfectant"),
+        (7, "cutting hair"),
+    )
     _STATION_STATES = {
         1: "washing",
         2: "drying",
@@ -362,6 +375,9 @@ class T2320(RobovacModelDetails):
                 status_bytes = fields.get(2)
                 if isinstance(status_bytes, bytes):
                     status_fields = _parse_proto(status_bytes)
+                    for flag, label in cls._STATION_FLAGS:
+                        if status_fields.get(flag):
+                            return label
                     station_state = status_fields.get(2)
                     station_label = (
                         cls._STATION_STATES.get(station_state)
