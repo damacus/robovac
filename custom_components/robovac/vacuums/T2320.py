@@ -143,9 +143,13 @@ class T2320(RobovacModelDetails):
         "DRYING": "drying",
         "REMOVING_SCALE": "removing scale",
     }
-    _STATION_CODES = {
-        45: "washing",
-        76: "drying",
+    # DPS 173 follows StationResponse from jeppesens/eufy-clean:
+    # https://github.com/jeppesens/eufy-clean/blob/b1f5aadb84275c3afc2a361c9fa463c0dfc05f36/custom_components/robovac_mqtt/proto/cloud/station.proto  # noqa: E501
+    # Field 2 is StationStatus.state; field 5 is clean_water.
+    _STATION_STATES = {
+        1: "washing",
+        2: "drying",
+        3: "removing scale",
     }
 
     # ── DPS 177 error/warning codes ───────────────────────────────────
@@ -355,13 +359,13 @@ class T2320(RobovacModelDetails):
                         return label
 
                 fields = _parse_proto(_strip_length_prefix(raw_value))
-                station_bytes = fields.get(5)
-                if isinstance(station_bytes, bytes):
-                    station_fields = _parse_proto(station_bytes)
-                    station_code = station_fields.get(1)
+                status_bytes = fields.get(2)
+                if isinstance(status_bytes, bytes):
+                    status_fields = _parse_proto(status_bytes)
+                    station_state = status_fields.get(2)
                     station_label = (
-                        cls._STATION_CODES.get(station_code)
-                        if isinstance(station_code, int)
+                        cls._STATION_STATES.get(station_state)
+                        if isinstance(station_state, int)
                         else None
                     )
                     if station_label:

@@ -125,6 +125,16 @@ class TestT2320CommandMappings:
         raw = "MAokCgwKBggBGgIIChIAGAESBggBEgIIAjIMCgIIARIGCAEQARgPEgQIARACKgIITA=="
         assert T2320.decode_dps("173", raw) == "drying"
 
+    def test_decode_station_status_from_live_drying_sleeping_payload(self):
+        """Test observed X9 station drying payload with sleeping work status maps to drying."""
+        raw = "MAokCgwKBggBGgIIChIAGAESBggBEgIIAjIMCgIIARIGCAEQARgPEgQIARACKgIIQQ=="
+        assert T2320.decode_dps("173", raw) == "drying"
+
+    def test_decode_station_status_uses_station_state_not_clean_water_value(self):
+        """StationResponse field 5 is clean-water percentage, not station state."""
+        assert T2320.decode_dps("173", "ChIECAEQAioCCAU=") == "drying"
+        assert T2320.decode_dps("173", "ChIECAEQASoCCEw=") == "washing"
+
     def test_decode_error_without_active_codes_is_no_error(self):
         """Test empty/zero DPS 177 protobuf payload does not force an error."""
         assert T2320.decode_dps("177", "AA==") == "no_error"
