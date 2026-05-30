@@ -140,6 +140,8 @@ class TuyaCipher:
         # ⚡ Bolt optimization: Pre-calculate the version string as bytes to avoid decoding every packet
         self._version_string = ".".join(map(str, self.version))
         self._version_bytes = self._version_string.encode("utf8")
+        # ⚡ Bolt optimization: Pre-calculate hash suffix as bytes to avoid encoding every packet
+        self._hash_suffix_bytes = f"||lpv={self._version_string}||{self.key}".encode("utf8")
 
     def set_session_key(self, session_key: bytes) -> None:
         """Switch cipher to use a negotiated session key.
@@ -365,10 +367,9 @@ class TuyaCipher:
             The hash of the data.
         """
         digest = Hash(MD5(), backend=openssl_backend)
-        to_hash = "data={}||lpv={}||{}".format(
-            data.decode("ascii"), self._version_string, self.key
-        )
-        digest.update(to_hash.encode("utf8"))
+        # ⚡ Bolt optimization: Use pre-calculated bytes and avoid decoding/formatting overhead
+        to_hash = b"data=" + data + self._hash_suffix_bytes
+        digest.update(to_hash)
         intermediate = digest.finalize().hex()
         # Explicitly cast to str to satisfy mypy
         return str(intermediate[8:24])
@@ -792,6 +793,9 @@ class Message:
                 # - 4-byte retcode + 15-byte version header (gratuitous
                 #   updates: retcode + "3.5" + 12 bytes + JSON)
                 # Find the first '{' to locate where JSON starts.
+                # Keep original for binary fallback — the HMAC in SESS_KEY_NEG_RESP
+                # may contain 0x7b ('{'), so we must not strip binary payloads.
+                original_payload_data = payload_data
                 if payload_data and payload_data[0:1] != b"{":
                     json_start = payload_data.find(b"{")
                     if json_start > 0:
@@ -800,8 +804,9 @@ class Message:
                     payload_text = payload_data.decode("utf8")
                     payload = json.loads(payload_text)
                 except (UnicodeDecodeError, json.JSONDecodeError):
-                    # Binary payload (e.g. session key negotiation)
-                    payload = payload_data
+                    # Binary payload (e.g. session key negotiation) — use the
+                    # original unstripped bytes so HMAC fields aren't truncated.
+                    payload = original_payload_data
             except Exception as e:
                 device._LOGGER.debug(f"v3.5 decryption failed: {e}")
                 raise InvalidMessage("GCM decryption/verification failed") from e
@@ -1201,12 +1206,15 @@ class TuyaDevice:
             # the device sends after SET commands.  So just stay connected.
             await self.async_connect()
             return
+        if self._backoff is True:
+            return
         payload_dict = {"gwId": self.gateway_id, "devId": self.device_id}
         payload_bytes = json.dumps(payload_dict).encode("utf-8")
         encrypt = False if self.version < (3, 3) else True
         message = Message(
             Message.GET_COMMAND, payload_bytes, encrypt=encrypt, device=self
         )
+        await self.async_connect()
         self._queue.append(message)
         response = await self.async_receive(message)
         if response is not None:
