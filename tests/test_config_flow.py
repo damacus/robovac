@@ -193,6 +193,10 @@ async def test_user_form_success(
             "custom_components.robovac.config_flow.TuyaAPISession",
             return_value=MagicMock(get_device=MagicMock(return_value=mock_tuya_device)),
         ),
+        patch(
+            "custom_components.robovac.TuyaLocalDiscovery",
+            return_value=MagicMock(start=AsyncMock(), close=MagicMock()),
+        ),
     ):
         result = await hass.config_entries.flow.async_init(
             DOMAIN,
