@@ -171,7 +171,10 @@ class TestT2320CommandMappings:
         ("raw", "expected"),
         [
             ("CwiY+IOJrO9JEgEK", "Positioning successful"),
-            ("Cwj6iLDX8uxJEgEM", "Cannot start task while on station"),
+            (
+                "Cwj6iLDX8uxJEgEM",
+                "Unable to perform task at the station or dock, move robot away and try again",
+            ),
         ],
     )
     def test_decode_observed_x9_prompt_codes(self, raw, expected):

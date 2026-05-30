@@ -227,7 +227,7 @@ class T2320(RobovacModelDetails):
         9: "Base station exploration failed, robot returned to starting point",
         10: "Positioning successful",
         11: "Task finished, returning to base station",
-        12: "Cannot start task while on station",
+        12: "Unable to perform task at the station or dock, move robot away and try again",
         13: "Scheduled cleaning failed because robot is working",
         14: "Map data updating, try again later",
         15: "Finished washing mop, resuming task",
