@@ -123,6 +123,40 @@ def test_get_robovac_features() -> None:
         assert robovac_l70.getRoboVacFeatures() == expected_l_features
 
 
+def test_t2320_consumables_dps_code() -> None:
+    """T2320 exposes DPS 168 as consumables, not room-clean metadata."""
+    with patch(
+        "custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None
+    ):
+        robovac = RoboVac(
+            model_code="T2320",
+            device_id="test_id",
+            host="192.168.1.100",
+            local_key="test_key",
+        )
+
+    dps_codes = robovac.getDpsCodes()
+    assert dps_codes["CONSUMABLES"] == "168"
+    assert "ROOM_CLEAN" not in dps_codes
+
+
+def test_get_dps_codes_includes_model_extra_codes() -> None:
+    """Model-level dps_codes are exposed alongside command DPS codes."""
+    with patch(
+        "custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None
+    ):
+        robovac = RoboVac(
+            model_code="T2320",
+            device_id="test_id",
+            host="192.168.1.100",
+            local_key="test_key",
+        )
+
+    dps_codes = robovac.getDpsCodes()
+    assert dps_codes["ROOM_META"] == "165"
+    assert "ROOM_CLEAN" not in dps_codes
+
+
 def test_get_fan_speeds() -> None:
     """Test getFanSpeeds returns correct fan speeds for different series.
 

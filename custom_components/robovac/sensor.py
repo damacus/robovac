@@ -15,6 +15,7 @@ from .vacuums.base import TuyaCodes, RobovacCommand
 from .vacuums import ROBOVAC_MODELS
 from .proto_decode import (
     decode_clean_param_response,
+    merge_clean_param_layers,
     decode_clean_record_list,
     decode_consumable_response,
     decode_device_info,
@@ -33,14 +34,15 @@ SCAN_INTERVAL = timedelta(seconds=REFRESH_RATE)
 
 # Consumables exposed as individual sensors for proto-based models (DPS 168).
 # Tuple: (decode_key, display_name, icon)
-_PROTO_CONSUMABLES = [
-    ("side_brush", "Side Brush", "mdi:brush"),
-    ("rolling_brush", "Rolling Brush", "mdi:brush-variant"),
-    ("filter_mesh", "Filter", "mdi:air-filter"),
-    ("scrape", "Scraper", "mdi:squeegee"),
-    ("sensor", "Sensor", "mdi:motion-sensor"),
-    ("dustbag", "Dust Bag", "mdi:trash-can-outline"),
-]
+_PROTO_CONSUMABLES = {
+    "side_brush": ("Side Brush", "mdi:brush"),
+    "rolling_brush": ("Rolling Brush", "mdi:brush-variant"),
+    "filter_mesh": ("Filter", "mdi:air-filter"),
+    "scrape": ("Scraper", "mdi:squeegee"),
+    "sensor": ("Sensor", "mdi:motion-sensor"),
+    "mop": ("Mop", "mdi:robot-vacuum"),
+    "dustbag": ("Dust Bag", "mdi:trash-can-outline"),
+}
 
 
 def _device_info(item: dict) -> DeviceInfo:
@@ -80,17 +82,29 @@ async def async_setup_entry(
         # Notification sensor — prompt/notification codes (DPS 178)
         if RobovacCommand.ACTIVE_ERRORS in commands:
             dps = str(commands[RobovacCommand.ACTIVE_ERRORS]["code"])
-            entities.append(RobovacNotificationSensor(item, dps))
+            entities.append(RobovacNotificationSensor(item, dps, model_class))
+
+        # Warning sensor — non-fatal maintenance/station warnings.
+        warning_dps = getattr(model_class, "warning_dps_code", None)
+        if warning_dps is not None:
+            entities.append(RobovacWarningSensor(item, str(warning_dps), model_class))
 
         # Per-consumable sensors — proto models using DPS 168
         consumables_cmd = commands.get(RobovacCommand.CONSUMABLES, {})
         if isinstance(consumables_cmd, dict) and consumables_cmd.get("code") == 168:
             dps = str(consumables_cmd["code"])
-            for key, label, icon in _PROTO_CONSUMABLES:
+            keys = getattr(model_class, "consumable_sensor_keys", _PROTO_CONSUMABLES)
+            for key in keys:
+                label, icon = _PROTO_CONSUMABLES[key]
                 entities.append(RobovacConsumableSensor(item, dps, key, label, icon))
 
-        # Clean-type sensor — DPS 154
-        if RobovacCommand.CLEAN_PARAM in commands:
+        # Clean-type sensor — DPS 154. Models that expose first-class config
+        # entities already surface these values as selects/switches and vacuum
+        # attributes, so avoid creating a duplicate diagnostic sensor.
+        if (
+            RobovacCommand.CLEAN_PARAM in commands
+            and not getattr(model_class, "expose_config_entities", False)
+        ):
             dps = str(commands[RobovacCommand.CLEAN_PARAM]["code"])
             entities.append(RobovacCleanTypeSensor(item, dps))
 
@@ -264,6 +278,8 @@ class RobovacErrorSensor(SensorEntity):
         self._attr_unique_id = f"{item[CONF_ID]}_error"
         self._attr_name = "Error"
         self._attr_device_info = _device_info(item)
+        self._attr_native_value = "No error"
+        self._attr_available = True
         self._has_had_data = False
 
     async def async_update(self) -> None:
@@ -276,12 +292,14 @@ class RobovacErrorSensor(SensorEntity):
                 return
             if not tuyastatus:
                 if not self._has_had_data:
-                    self._attr_available = False
+                    self._attr_native_value = "No error"
+                    self._attr_available = True
                 return
             raw = tuyastatus.get(self._dps_code)
             if raw is None:
                 if not self._has_had_data:
-                    self._attr_available = False
+                    self._attr_native_value = "No error"
+                    self._attr_available = True
                 return
             if vacuum_entity.vacuum is not None:
                 decoded = vacuum_entity.vacuum.getRoboVacHumanReadableValue(
@@ -289,7 +307,7 @@ class RobovacErrorSensor(SensorEntity):
                 )
             else:
                 decoded = str(raw)
-            self._attr_native_value = None if decoded == "no_error" else decoded
+            self._attr_native_value = "No error" if decoded == "no_error" else decoded
             self._attr_available = True
             self._has_had_data = True
         except Exception as ex:
@@ -309,11 +327,13 @@ class RobovacNotificationSensor(SensorEntity):
 
     _attr_has_entity_name = True
     _attr_should_poll = True
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_icon = "mdi:bell-outline"
 
-    def __init__(self, item: dict, dps_code: str) -> None:
+    def __init__(self, item: dict, dps_code: str, model_class: type | None = None) -> None:
         self.robovac_id = item[CONF_ID]
         self._dps_code = dps_code
+        self._model_class = model_class
         self._attr_unique_id = f"{item[CONF_ID]}_notification"
         self._attr_name = "Notification"
         self._attr_device_info = _device_info(item)
@@ -336,12 +356,68 @@ class RobovacNotificationSensor(SensorEntity):
                 if not self._has_had_data:
                     self._attr_available = False
                 return
-            value = decode_error_code(raw)
+            decoder = getattr(self._model_class, "decode_dps", None)
+            value = decoder(self._dps_code, raw) if decoder else None
+            if value is None:
+                value = decode_error_code(raw)
             self._attr_native_value = None if value == "no_error" else value
             self._attr_available = True
             self._has_had_data = True
         except Exception as ex:
             _LOGGER.error("Failed to update notification sensor for %s: %s", self.robovac_id, ex)
+            self._attr_available = False
+
+
+class RobovacWarningSensor(SensorEntity):
+    """Non-fatal maintenance/station warnings from model-specific DPS fields."""
+
+    _attr_has_entity_name = True
+    _attr_should_poll = True
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_icon = "mdi:alert-outline"
+
+    def __init__(self, item: dict, dps_code: str, model_class: type) -> None:
+        self.robovac_id = item[CONF_ID]
+        self._dps_code = dps_code
+        self._model_class = model_class
+        self._attr_unique_id = f"{item[CONF_ID]}_warning"
+        self._attr_name = "Warning"
+        self._attr_device_info = _device_info(item)
+        self._attr_native_value = "No warning"
+        self._attr_extra_state_attributes: dict = {"warnings": []}
+        self._attr_available = True
+        self._has_had_data = False
+
+    async def async_update(self) -> None:
+        try:
+            vacuum_entity, tuyastatus = _vacuum_and_status(
+                self.hass, DOMAIN, CONF_VACS, self.robovac_id
+            )
+            if vacuum_entity is None:
+                self._attr_available = False
+                return
+            if not tuyastatus:
+                if not self._has_had_data:
+                    self._attr_native_value = "No warning"
+                    self._attr_extra_state_attributes = {"warnings": []}
+                    self._attr_available = True
+                return
+            raw = tuyastatus.get(self._dps_code)
+            if raw is None:
+                if not self._has_had_data:
+                    self._attr_native_value = "No warning"
+                    self._attr_extra_state_attributes = {"warnings": []}
+                    self._attr_available = True
+                return
+            decoder = getattr(self._model_class, "decode_warning_dps", None)
+            warnings = decoder(raw) if decoder else []
+            messages = [str(warning["message"]) for warning in warnings]
+            self._attr_native_value = "; ".join(messages) if messages else "No warning"
+            self._attr_extra_state_attributes = {"warnings": warnings}
+            self._attr_available = True
+            self._has_had_data = True
+        except Exception as ex:
+            _LOGGER.error("Failed to update warning sensor for %s: %s", self.robovac_id, ex)
             self._attr_available = False
 
 
@@ -359,6 +435,7 @@ class RobovacConsumableSensor(SensorEntity):
 
     _attr_has_entity_name = True
     _attr_should_poll = True
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_native_unit_of_measurement = "h"
 
     def __init__(
@@ -456,8 +533,7 @@ class RobovacCleanTypeSensor(SensorEntity):
                 if not self._has_had_data:
                     self._attr_available = False
                 return
-            # Prefer running params (active clean); fall back to global defaults
-            params = d.get("running_clean_param") or d.get("clean_param") or {}
+            params = merge_clean_param_layers(d)
             clean_type = params.get("clean_type")
             if clean_type is None:
                 if not self._has_had_data:
@@ -466,7 +542,13 @@ class RobovacCleanTypeSensor(SensorEntity):
             self._attr_native_value = clean_type
             self._attr_extra_state_attributes = {
                 k: params[k]
-                for k in ("fan", "clean_extent", "mop_level", "clean_times")
+                for k in (
+                    "fan",
+                    "clean_extent",
+                    "mop_level",
+                    "edge_hugging_mopping",
+                    "clean_times",
+                )
                 if k in params
             }
             self._attr_available = True
