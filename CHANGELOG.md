@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.3-beta.1](https://github.com/damacus/robovac/compare/v2.4.2-beta.1...v2.4.3-beta.1) (2026-05-30)
+
+
+### Bug Fixes
+
+* **T2320:** add X9 Pro mop controls and state decoding ([#467](https://github.com/damacus/robovac/issues/467)) ([413701e](https://github.com/damacus/robovac/commit/413701e4f15e4855aa97badfde66d1d2654bc07b))
+
 ## [2.4.2-beta.1](https://github.com/damacus/robovac/compare/v2.4.1-beta.1...v2.4.2-beta.1) (2026-05-30)
 
 
