@@ -4,10 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "robovac"
-version = "2.4.1-beta.1"
+version = "2.4.2-beta.1"
 description = "Eufy RoboVac integration for Home Assistant"
 readme = "README.md"
-requires-python = ">=3.13.0"
+requires-python = ">=3.14.2"
 license = {text = "Apache-2.0"}
 authors = [
     {name = "Dan Webb", email = "dan.webb@damacus.io"}
@@ -17,13 +17,13 @@ classifiers = [
     "Intended Audience :: Developers",
     "License :: OSI Approved :: Apache Software License",
     "Operating System :: OS Independent",
-    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Home Automation",
 ]
 
 [tool.black]
 line-length = 88
-target-version = ["py313"]
+target-version = ["py314"]
 include = '\.pyi?$'
 
 [tool.isort]
@@ -31,7 +31,7 @@ profile = "black"
 line_length = 88
 
 [tool.mypy]
-python_version = "3.13"
+python_version = "3.14"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true

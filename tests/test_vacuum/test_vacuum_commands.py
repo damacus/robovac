@@ -188,7 +188,7 @@ async def test_async_return_to_base_sends_mode_payload_when_model_requires_it(
         entity = RoboVacEntity(mock_vacuum_data)
         await entity.async_return_to_base()
 
-        robovac.async_set.assert_called_once_with({"153": True, "152": "AggG", "2": True})
+        robovac.async_set.assert_called_once_with({"153": True, "152": "AggG"})
 
 
 @pytest.mark.asyncio

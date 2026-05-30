@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.2-beta.1](https://github.com/damacus/robovac/compare/v2.4.1-beta.1...v2.4.2-beta.1) (2026-05-30)
+
+
+### Bug Fixes
+
+* **ci:** Install Chome for LinkSpector ([3c3b1b3](https://github.com/damacus/robovac/commit/3c3b1b3bb21444b1d82911c6fad65f91d4eee35f))
+* preserve original bytes for binary v3.5 payloads ([#477](https://github.com/damacus/robovac/issues/477)) ([ec5586a](https://github.com/damacus/robovac/commit/ec5586a8b9ffd85d73ca8d46dd4426637c88a163))
+
+
+### Documentation
+
+* correct T2320 supported model entry ([#485](https://github.com/damacus/robovac/issues/485)) ([2a32be2](https://github.com/damacus/robovac/commit/2a32be283c8bcdfc869375dc77099cc4f69f7c28))
+
 ## [2.4.1-beta.1](https://github.com/damacus/robovac/compare/v2.4.0-beta.1...v2.4.1-beta.1) (2026-05-17)
 
 

@@ -5,7 +5,7 @@ inputs:
   python-version:
     description: 'Python version to set up'
     required: false
-    default: '3.13'
+    default: '3.14'
   dev-dependencies:
     description: 'Install dev dependencies'
     required: false
