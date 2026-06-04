@@ -28,6 +28,7 @@ This page lists all currently supported Eufy RoboVac models.
 | T2252      | RoboVac G30 Verge    | 3.3      |
 | T2253      | RoboVac G30 Hybrid   | 3.3      |
 | T2254      | RoboVac G20 Hybrid   | 3.3      |
+| T2258      | RoboVac G20 Hybrid   | 3.3      |
 | T2255      | RoboVac G35+         | 3.3      |
 | T2259      | RoboVac G40+         | 3.3      |
 | T2261      | RoboVac X8           | 3.3      |
