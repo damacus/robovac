@@ -20,6 +20,8 @@ ERROR_MESSAGES = {
     19: "Laser sensor stuck",
     20: "Laser sensor blocked",
     21: "Base blocked",
+    39: "Low battery, robot is shutting down",
+    54: "Return failed. Clear the area around the station",
     "S1": "Battery",
     "S2": "Wheel Module",
     "S3": "Side Brush",
@@ -87,6 +89,19 @@ TROUBLESHOOTING_CONTEXT = {
             "Protective film not removed",
             "Dust or debris on sensor",
             "Physical damage to sensor cover",
+        ],
+    },
+    54: {
+        "troubleshooting": [
+            "Clear any obstacles within 1.5m in front of the charging station",
+            "Ensure the charging station is against a wall with clear space either side",
+            "Check the dock's infrared sensors are clean",
+            "Manually place robot on the dock to charge",
+        ],
+        "common_causes": [
+            "Furniture or cables blocking the dock approach path",
+            "Dock moved since last successful return",
+            "Infrared dock sensors dirty or obstructed",
         ],
     },
 }
