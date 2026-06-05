@@ -1,4 +1,5 @@
 """RoboVac L60 (T2267)"""
+
 import base64
 from homeassistant.components.vacuum import VacuumActivity, VacuumEntityFeature
 from .base import RoboVacEntityFeature, RobovacCommand, RobovacModelDetails
@@ -16,27 +17,25 @@ class T2267(RobovacModelDetails):
         | VacuumEntityFeature.STOP
     )
     robovac_features = (
-        RoboVacEntityFeature.DO_NOT_DISTURB
-        | RoboVacEntityFeature.BOOST_IQ
+        RoboVacEntityFeature.DO_NOT_DISTURB | RoboVacEntityFeature.BOOST_IQ
     )
     activity_mapping = {
-        "BgoAEAUyAA==":     VacuumActivity.CLEANING,
-        "BgoAEAVSAA==":     VacuumActivity.CLEANING,
-        "CAoAEAUyAggB":     VacuumActivity.CLEANING,
-        "CAoCCAEQBTIA":     VacuumActivity.CLEANING,
-        "CAoCCAEQBVIA":     VacuumActivity.CLEANING,
+        "BgoAEAUyAA==": VacuumActivity.CLEANING,
+        "BgoAEAVSAA==": VacuumActivity.CLEANING,
+        "CAoAEAUyAggB": VacuumActivity.CLEANING,
+        "CAoCCAEQBTIA": VacuumActivity.CLEANING,
+        "CAoCCAEQBVIA": VacuumActivity.CLEANING,
         "CgoCCAEQBTICCAE=": VacuumActivity.CLEANING,
-        "CAoCCAIQBTIA":     VacuumActivity.CLEANING,
-        "CAoCCAIQBVIA":     VacuumActivity.CLEANING,
+        "CAoCCAIQBTIA": VacuumActivity.CLEANING,
+        "CAoCCAIQBVIA": VacuumActivity.CLEANING,
         "CgoCCAIQBTICCAE=": VacuumActivity.CLEANING,
-        "BAoAEAY=":         VacuumActivity.RETURNING,
-        "BBAHQgA=":         VacuumActivity.RETURNING,
-        "BBADGgA=":         VacuumActivity.DOCKED,
-        "BhADGgIIAQ==":     VacuumActivity.DOCKED,
-        "AA==":             VacuumActivity.IDLE,
-        "AhAB":             VacuumActivity.IDLE,
+        "BAoAEAY=": VacuumActivity.RETURNING,
+        "BBAHQgA=": VacuumActivity.RETURNING,
+        "BBADGgA=": VacuumActivity.DOCKED,
+        "BhADGgIIAQ==": VacuumActivity.DOCKED,
+        "AA==": VacuumActivity.IDLE,
+        "AhAB": VacuumActivity.IDLE,
     }
-
 
     @staticmethod
     def decode_dps(dps_code: int, value: str) -> str | None:
