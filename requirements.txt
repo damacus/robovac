@@ -1,5 +1,1 @@
-cryptography==48.0.0
 homeassistant==2026.6.1
-requests==2.34.2
-setuptools==82.0.1
-voluptuous==0.16.0
