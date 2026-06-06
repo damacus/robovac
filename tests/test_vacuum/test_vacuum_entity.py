@@ -2,8 +2,7 @@
 
 import base64
 import pytest
-from typing import Any
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 from homeassistant.components.vacuum import VacuumActivity
 from homeassistant.const import (

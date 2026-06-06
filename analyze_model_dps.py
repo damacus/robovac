@@ -7,7 +7,7 @@ This script helps identify models that need custom DPS code mapping.
 import sys
 import os
 from typing import Any, Dict
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 # Add the project directory to the Python path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))

@@ -1,6 +1,5 @@
 """Tests for countries module."""
 
-import pytest
 from custom_components.robovac.countries import (
     get_region_by_country_code,
     get_region_by_phone_code,

@@ -1,6 +1,5 @@
 """Tests for model validator library with series detection."""
 
-import pytest
 
 from custom_components.robovac.model_validator import (
     detect_series,
