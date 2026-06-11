@@ -4,14 +4,13 @@ import os
 import sys
 import pytest
 from typing import Any
-from unittest.mock import MagicMock, patch, AsyncMock
+from unittest.mock import MagicMock, AsyncMock
 
 # Add the project root directory to the Python path
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
 # Import from pytest_homeassistant_custom_component instead of directly from homeassistant
-from pytest_homeassistant_custom_component.common import MockConfigEntry
 from homeassistant.components.vacuum import VacuumEntityFeature
 from homeassistant.const import (
     CONF_ACCESS_TOKEN,

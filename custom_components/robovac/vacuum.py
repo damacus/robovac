@@ -20,7 +20,6 @@ from __future__ import annotations
 import asyncio
 import base64
 from datetime import timedelta
-from enum import StrEnum
 import json
 import logging
 import time
@@ -966,16 +965,21 @@ class RoboVacEntity(StateVacuumEntity):
             self.get_dps_code("RETURN_HOME"),
         }
         battery_code = self.get_dps_code("BATTERY")
-        informative_dps = {
-            code for code, value in self.tuyastatus.items()
-            if value is not None and code and code != battery_code
-        }
 
-        # Some vacuums return partial availability/config DPS after restart
-        # without an explicit status DPS. Treat that as idle so HA leaves
-        # unknown, but do not infer state from single-field updates.
-        if len(informative_dps) >= 2 and not known_state_codes.intersection(self.tuyastatus):
-            return VacuumActivity.IDLE
+        # ⚡ Bolt optimization: Avoid allocating a new set using intersection()
+        if not known_state_codes.isdisjoint(self.tuyastatus):
+            return 0
+
+        # ⚡ Bolt optimization: Replace O(N) inline set comprehension with short-circuiting loop
+        informative_count = 0
+        for code, value in self.tuyastatus.items():
+            if value is not None and code and code != battery_code:
+                informative_count += 1
+                if informative_count >= 2:
+                    # Some vacuums return partial availability/config DPS after restart
+                    # without an explicit status DPS. Treat that as idle so HA leaves
+                    # unknown, but do not infer state from single-field updates.
+                    return VacuumActivity.IDLE
 
         return 0
 

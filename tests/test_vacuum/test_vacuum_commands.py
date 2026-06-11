@@ -2,7 +2,7 @@
 
 import pytest
 from typing import Any
-from unittest.mock import patch, MagicMock, AsyncMock, call
+from unittest.mock import patch, AsyncMock
 
 from homeassistant.const import (
     CONF_ACCESS_TOKEN,
