@@ -238,6 +238,17 @@ class RoboVac(TuyaDevice):
                     return mapped
                 return str(mapped)
 
+            # Backward-compatible fallback for legacy models where START_PAUSE
+            # exposes only code=2 and omits explicit boolean values.
+            if cmd == RobovacCommand.START_PAUSE:
+                cmd_entry = self.model_details.commands.get(cmd)
+                if isinstance(cmd_entry, dict) and str(cmd_entry.get("code")) == "2":
+                    normalized = str(value).strip().lower()
+                    if normalized == "start":
+                        return True
+                    if normalized in {"pause", "stop"}:
+                        return False
+
         except (ValueError, KeyError):
             pass
 

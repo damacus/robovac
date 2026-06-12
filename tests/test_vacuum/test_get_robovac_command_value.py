@@ -78,3 +78,25 @@ def test_get_robovac_command_value_error_handling(mock_robovac):
 
     # Should return the original value when an exception occurs
     assert mock_robovac.getRoboVacCommandValue(RobovacCommand.MODE, "auto") == "auto"
+
+
+def test_get_robovac_command_value_start_pause_legacy_fallback(mock_robovac):
+    """Legacy START_PAUSE code=2 without values falls back to bool toggle."""
+    mock_robovac.model_details.commands[RobovacCommand.START_PAUSE] = {
+        "code": 2,
+    }
+
+    assert mock_robovac.getRoboVacCommandValue(RobovacCommand.START_PAUSE, "start") is True
+    assert mock_robovac.getRoboVacCommandValue(RobovacCommand.START_PAUSE, "pause") is False
+
+
+def test_get_robovac_command_value_no_values_non_start_pause_unchanged(mock_robovac):
+    """No-values fallback should not affect non-START_PAUSE commands."""
+    mock_robovac.model_details.commands[RobovacCommand.RETURN_HOME] = {
+        "code": 101,
+    }
+
+    assert (
+        mock_robovac.getRoboVacCommandValue(RobovacCommand.RETURN_HOME, "return")
+        == "return"
+    )

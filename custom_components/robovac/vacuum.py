@@ -505,6 +505,24 @@ class RoboVacEntity(StateVacuumEntity):
             )
             return VacuumActivity.CLEANING
 
+    @property
+    def state(self) -> str | None:
+        """Return state text for Home Assistant cards.
+
+        When an explicit device error is present, expose the detailed error
+        message instead of the generic "Error" label.
+        """
+        if self.activity == VacuumActivity.ERROR:
+            if self._attr_error_code is not None and self._attr_error_code not in [
+                0,
+                "no_error",
+                "No error",
+            ]:
+                detailed_error = getErrorMessage(self._attr_error_code)
+                if detailed_error and str(detailed_error).strip():
+                    return str(detailed_error)
+        return super().state
+
     def _return_progress_activity(self) -> VacuumActivity | None:
         """Return activity from models that expose return/dock progress on RETURN_HOME DPS."""
         if self.tuyastatus is None or self.vacuum is None:
@@ -1007,7 +1025,7 @@ class RoboVacEntity(StateVacuumEntity):
             if self.fan_speed == "No_suction":
                 self._attr_fan_speed = "No Suction"
             elif self.fan_speed == "Boost_IQ":
-                self._attr_fan_speed = "Boost IQ"
+                self._attr_fan_speed = "Boost Iq"
             elif self.fan_speed == "Quiet":
                 self._attr_fan_speed = (
                     "Pure" if "Pure" in self._attr_fan_speed_list else "Quiet"
@@ -1280,12 +1298,29 @@ class RoboVacEntity(StateVacuumEntity):
             _LOGGER.error("Cannot start vacuum: vacuum not initialized")
             return
 
+        if self.model_code and str(self.model_code).startswith("T2253"):
+            await self.vacuum.async_set({
+                "122": "Continue",
+                self.get_dps_code("MODE"): self.vacuum.getRoboVacCommandValue(
+                    RobovacCommand.MODE,
+                    "auto"
+                ),
+            })
+            return
+
         payload: dict[str, Any] = {
-            self.get_dps_code("MODE"): self.vacuum.getRoboVacCommandValue(RobovacCommand.MODE, "auto")
+            self.get_dps_code("MODE"): self.vacuum.getRoboVacCommandValue(
+                RobovacCommand.MODE,
+                "auto"
+            )
         }
 
         # For models with boolean START_PAUSE (e.g. T2118, T2128), also toggle start
-        start_value = self.vacuum.getRoboVacCommandValue(RobovacCommand.START_PAUSE, "start")
+        start_value = self.vacuum.getRoboVacCommandValue(
+            RobovacCommand.START_PAUSE,
+            "start"
+        )
+
         if start_value != "start":
             payload[self.get_dps_code("START_PAUSE")] = start_value
 
@@ -1317,6 +1352,11 @@ class RoboVacEntity(StateVacuumEntity):
         Args:
             **kwargs: Additional arguments passed from Home Assistant.
         """
+        
+        if self.vacuum is None:
+            _LOGGER.error("Cannot stop vacuum: vacuum not initialized")
+            return
+
         await self.async_return_to_base()
 
     async def async_clean_spot(self, **kwargs: Any) -> None:
