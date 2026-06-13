@@ -966,15 +966,21 @@ class RoboVacEntity(StateVacuumEntity):
             self.get_dps_code("RETURN_HOME"),
         }
         battery_code = self.get_dps_code("BATTERY")
-        informative_dps = {
-            code for code, value in self.tuyastatus.items()
-            if value is not None and code and code != battery_code
-        }
+        # ⚡ Bolt optimization: Avoid creating full sets in hot paths.
+        # Replace O(N) set comprehension with an early-exit count loop to
+        # minimize allocations on every property access.
+        informative_count = 0
+        for code, value in self.tuyastatus.items():
+            if value is not None and code and code != battery_code:
+                informative_count += 1
+                if informative_count >= 2:
+                    break
 
         # Some vacuums return partial availability/config DPS after restart
         # without an explicit status DPS. Treat that as idle so HA leaves
         # unknown, but do not infer state from single-field updates.
-        if len(informative_dps) >= 2 and not known_state_codes.intersection(self.tuyastatus):
+        # ⚡ Bolt optimization: Replace expensive intersection (creates new set) with isdisjoint
+        if informative_count >= 2 and known_state_codes.isdisjoint(self.tuyastatus):
             return VacuumActivity.IDLE
 
         return 0
