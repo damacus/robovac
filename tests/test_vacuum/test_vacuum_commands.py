@@ -65,6 +65,35 @@ async def test_async_return_to_base(mock_robovac, mock_vacuum_data) -> None:
 
 
 @pytest.mark.asyncio
+async def test_async_return_to_base_resumes_then_returns_when_paused_for_legacy_models(
+    mock_vacuum_data,
+) -> None:
+    """Test paused legacy models resume before return-to-dock."""
+    data = dict(mock_vacuum_data)
+    data[CONF_MODEL] = "T2273"
+
+    with patch("custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None):
+        robovac = RoboVac(
+            model_code="T2273",
+            device_id="test_id",
+            host="192.168.1.100",
+            local_key="test_key",
+        )
+    robovac.async_set = AsyncMock(return_value=True)
+
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=robovac):
+        entity = RoboVacEntity(data)
+        entity.tuyastatus = {"122": "Pause"}
+
+        await entity.async_return_to_base()
+
+        assert robovac.async_set.call_args_list == [
+            call({"122": "Continue"}),
+            call({"101": "return"}),
+        ]
+
+
+@pytest.mark.asyncio
 async def test_async_start(mock_robovac, mock_vacuum_data) -> None:
     """Test the async_start method."""
     # Arrange
@@ -98,6 +127,54 @@ async def test_async_start_model_specific(mock_robovac, mock_vacuum_data: Any, m
         # Now that we've updated the implementation, L60 should send base64 value "BBoCCAE="
         # instead of "auto" for the MODE command
         mock_l60.async_set.assert_called_once_with({"152": "BBoCCAE="})
+
+
+@pytest.mark.asyncio
+async def test_async_start_sends_continue_for_t2273(
+    mock_vacuum_data,
+) -> None:
+    """Test async_start sends DP122 Continue for T2273 legacy models."""
+    data = dict(mock_vacuum_data)
+    data[CONF_MODEL] = "T2273"
+
+    with patch("custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None):
+        robovac = RoboVac(
+            model_code="T2273",
+            device_id="test_id",
+            host="192.168.1.100",
+            local_key="test_key",
+        )
+    robovac.async_set = AsyncMock(return_value=True)
+
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=robovac):
+        entity = RoboVacEntity(data)
+        await entity.async_start()
+
+        robovac.async_set.assert_called_once_with({"122": "Continue", "5": "Auto"})
+
+
+@pytest.mark.asyncio
+async def test_async_start_adds_continue_for_boolean_start_pause_models(
+    mock_vacuum_data,
+) -> None:
+    """Test async_start keeps START_PAUSE and adds DP122 Continue for legacy boolean models."""
+    data = dict(mock_vacuum_data)
+    data[CONF_MODEL] = "T2262"
+
+    with patch("custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None):
+        robovac = RoboVac(
+            model_code="T2262",
+            device_id="test_id",
+            host="192.168.1.100",
+            local_key="test_key",
+        )
+    robovac.async_set = AsyncMock(return_value=True)
+
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=robovac):
+        entity = RoboVacEntity(data)
+        await entity.async_start()
+
+        robovac.async_set.assert_called_once_with({"122": "Continue", "5": "Auto", "2": True})
 
 
 @pytest.mark.asyncio

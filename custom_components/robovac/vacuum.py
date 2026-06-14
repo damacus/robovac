@@ -216,6 +216,19 @@ class RoboVacEntity(StateVacuumEntity):
     _attr_room_names: dict[str, dict[str, Any]] | None = None
     _attr_room_map_id: int | None = None
 
+    _LEGACY_CONTINUE_MODELS = (
+        "T2250",
+        "T2251",
+        "T2252",
+        "T2253",
+        "T2254",
+        "T2255",
+        "T2259",
+        "T2261",
+        "T2262",
+        "T2273",
+    )
+
     @property
     def robovac_supported(self) -> int | None:
         """Return the supported features of the vacuum cleaner."""
@@ -1140,6 +1153,26 @@ class RoboVacEntity(StateVacuumEntity):
         except Exception as ex:
             _LOGGER.debug("T2320 room metadata decode failed for %s: %s", self.name, ex)
 
+    def _uses_legacy_continue_workaround(self) -> bool:
+        """Return True for legacy simple-auto models that need DP122 Continue."""
+        return bool(self.model_code and str(self.model_code).startswith(self._LEGACY_CONTINUE_MODELS))
+
+    def _has_explicit_start_pause_values(self) -> bool:
+        """Return True when the model defines explicit START_PAUSE values."""
+        if self.vacuum is None:
+            return False
+
+        start_pause = getattr(self.vacuum.model_details, "commands", {}).get(RobovacCommand.START_PAUSE)
+        return isinstance(start_pause, dict) and isinstance(start_pause.get("values"), dict)
+
+    def _is_legacy_paused_state(self) -> bool:
+        """Return True when a legacy model reports the paused state via DP122."""
+        if not self._uses_legacy_continue_workaround() or self.tuyastatus is None:
+            return False
+
+        raw_continue_state = self.tuyastatus.get("122")
+        return isinstance(raw_continue_state, str) and raw_continue_state.casefold() == "pause"
+
     def _build_tuya_session_sync(self) -> TuyaAPISession | None:
         """Authenticate to Tuya cloud using stored Eufy credentials."""
         if not self._eufy_username or not self._eufy_password:
@@ -1277,6 +1310,9 @@ class RoboVacEntity(StateVacuumEntity):
             _LOGGER.error("Cannot return to base: vacuum not initialized")
             return
 
+        if self._is_legacy_paused_state():
+            await self.vacuum.async_set({"122": "Continue"})
+
         payload: dict[str, Any] = {
             self.get_dps_code("RETURN_HOME"): self.vacuum.getRoboVacCommandValue(RobovacCommand.RETURN_HOME, "return")
         }
@@ -1298,7 +1334,7 @@ class RoboVacEntity(StateVacuumEntity):
             _LOGGER.error("Cannot start vacuum: vacuum not initialized")
             return
 
-        if self.model_code and str(self.model_code).startswith("T2253"):
+        if self._uses_legacy_continue_workaround() and not self._has_explicit_start_pause_values():
             await self.vacuum.async_set({
                 "122": "Continue",
                 self.get_dps_code("MODE"): self.vacuum.getRoboVacCommandValue(
@@ -1314,6 +1350,9 @@ class RoboVacEntity(StateVacuumEntity):
                 "auto"
             )
         }
+
+        if self._uses_legacy_continue_workaround():
+            payload["122"] = "Continue"
 
         # For models with boolean START_PAUSE (e.g. T2118, T2128), also toggle start
         start_value = self.vacuum.getRoboVacCommandValue(
