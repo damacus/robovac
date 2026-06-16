@@ -23,3 +23,10 @@
 ## 2026-03-03 - [TuyaCipher Decryption Overhead]
 **Learning:** `get_prefix_size_and_validate` in `TuyaCipher` was attempting to decode the first 3 bytes of every incoming encrypted packet as UTF-8. For raw encrypted payloads without a version prefix, this threw a `UnicodeDecodeError` that was caught and ignored. Exception handling on the hot path (every incoming message) is very slow.
 **Action:** Pre-calculate the expected version bytes (`self._version_bytes`) and use a simple `encrypted_data.startswith(self._version_bytes)` check to bypass expensive decoding and exception handling entirely.
+
+## 2026-03-03 - [String Formatting Overhead in Crypto Path]
+**Learning:** `TuyaCipher` was reconstructing its version string `".".join(map(str, self.version))` and `.encode("utf8")` on *every* call to `encrypt` and `hash`. This adds significant string allocation overhead to the hot path of sending Tuya protocol messages.
+**Action:** Pre-calculate constant strings and byte-encodings (`self._version_string`, `self._version_bytes`) inside `__init__` and reuse them, especially for objects involved in high-frequency network or cryptographic operations.
+## 2026-03-03 - [Cryptography Context (Tuya) in Optimization]
+**Learning:** In `TuyaCipher`, the legacy MD5 `hash` method is only used for older protocols. Attempting to optimize it by pre-caching a hash suffix string using the session key broke device communication on Protocol >= 3.4. Those protocols negotiate a pure binary session key via ECDH. Decoding this binary key to an ASCII string (with `errors="replace"`) to build a string suffix corrupted `self.key` and permanently broke the device connection.
+**Action:** Always carefully inspect how the data is used downstream. Never try to decode arbitrary binary data to a string just to perform string formatting. Keep optimizations focused on eliminating overhead (like avoiding `.decode` and `encode` by using pure byte concatenation) without mutating object state.

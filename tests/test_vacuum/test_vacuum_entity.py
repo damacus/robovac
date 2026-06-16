@@ -1,10 +1,21 @@
 """Tests for the RoboVac vacuum entity."""
 
+import base64
 import pytest
 from typing import Any
 from unittest.mock import patch, MagicMock
 
 from homeassistant.components.vacuum import VacuumActivity
+from homeassistant.const import (
+    CONF_ACCESS_TOKEN,
+    CONF_DESCRIPTION,
+    CONF_ID,
+    CONF_IP_ADDRESS,
+    CONF_MAC,
+    CONF_MODEL,
+    CONF_NAME,
+)
+from custom_components.robovac.robovac import RoboVac
 from custom_components.robovac.vacuum import RoboVacEntity
 from custom_components.robovac.vacuums.base import TuyaCodes
 
@@ -22,6 +33,40 @@ async def test_activity_property_none(mock_robovac, mock_vacuum_data) -> None:
 
         # Assert
         assert result is None
+
+
+@pytest.mark.asyncio
+async def test_activity_property_uses_mode_without_status(
+    mock_robovac, mock_vacuum_data
+) -> None:
+    """Test mode DPS drives activity when no status DPS has been received."""
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
+        entity = RoboVacEntity(mock_vacuum_data)
+        entity.tuya_state = None
+        entity.error_code = "no_error"
+
+        entity._attr_mode = "auto"
+        assert entity.activity == VacuumActivity.CLEANING
+
+        entity._attr_mode = "pause"
+        assert entity.activity == VacuumActivity.PAUSED
+
+        entity._attr_mode = "return"
+        assert entity.activity == VacuumActivity.RETURNING
+
+
+@pytest.mark.asyncio
+async def test_activity_property_idle_when_dps_has_no_status_or_mode(
+    mock_robovac, mock_vacuum_data
+) -> None:
+    """Test a connected vacuum with no active status/mode reports idle."""
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
+        entity = RoboVacEntity(mock_vacuum_data)
+        entity.tuya_state = None
+        entity.error_code = "no_error"
+        entity.tuyastatus = {"158": "Standard", "163": 39}
+
+        assert entity.activity == VacuumActivity.IDLE
 
 
 @pytest.mark.asyncio
@@ -142,6 +187,229 @@ async def test_activity_property_cleaning(mock_robovac, mock_vacuum_data) -> Non
         assert result == VacuumActivity.CLEANING
 
 
+def test_t2320_room_discovery_strategy_uses_local_room_meta(
+    mock_robovac: MagicMock, mock_vacuum_data: dict[str, Any]
+) -> None:
+    """Test T2320 room discovery decodes the configured local DPS payload."""
+    data = dict(mock_vacuum_data)
+    data[CONF_MODEL] = "T2320"
+    mock_robovac.getDpsCodes.return_value = {"ROOM_META": "165"}
+
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
+        entity = RoboVacEntity(data)
+        entity.tuyastatus = {"165": "room-payload"}
+
+        with patch.object(
+            entity,
+            "_decode_t2320_room_meta",
+            return_value={"map_id": 7, "rooms": [{"id": 3, "label": "Kitchen"}]},
+        ) as decode:
+            entity._update_room_names_from_device_payload()
+
+    decode.assert_called_once_with("room-payload")
+    assert entity._attr_room_map_id == 7
+    assert entity._attr_room_names == {
+        "3": {"id": 3, "key": "3", "label": "Kitchen", "source": "device"}
+    }
+
+
+def test_t2320_room_discovery_strategy_falls_back_to_dps_165(
+    mock_robovac: MagicMock, mock_vacuum_data: dict[str, Any]
+) -> None:
+    """Test room discovery uses DPS 165 when model DPS codes do not expose ROOM_META."""
+    data = dict(mock_vacuum_data)
+    data[CONF_MODEL] = "T2320"
+    mock_robovac.getDpsCodes.return_value = {}
+
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
+        entity = RoboVacEntity(data)
+        entity.tuyastatus = {"165": "fallback-payload"}
+
+        with patch.object(
+            entity,
+            "_decode_t2320_room_meta",
+            return_value={"map_id": 8, "rooms": [{"id": 4, "label": "Hall"}]},
+        ) as decode:
+            assert entity._discover_room_meta_from_local_dps() == {
+                "map_id": 8,
+                "rooms": [{"id": 4, "label": "Hall"}],
+            }
+
+    decode.assert_called_once_with("fallback-payload")
+
+
+def test_non_room_discovery_model_ignores_room_meta_strategy(
+    mock_robovac: MagicMock, mock_vacuum_data: dict[str, Any]
+) -> None:
+    """Test models without a strategy do not attempt room metadata discovery."""
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
+        entity = RoboVacEntity(mock_vacuum_data)
+        entity.tuyastatus = {"165": "ignored"}
+
+        assert entity._supports_room_discovery() is False
+        assert entity._discover_room_meta_from_local_dps() == {
+            "map_id": None,
+            "rooms": [],
+        }
+
+
+def test_t2320_room_discovery_strategy_uses_cloud_fetcher(
+    mock_robovac: MagicMock, mock_vacuum_data: dict[str, Any]
+) -> None:
+    """Test cloud room discovery decodes DPS from the configured fetcher."""
+    data = dict(mock_vacuum_data)
+    data[CONF_MODEL] = "T2320"
+    mock_robovac.getDpsCodes.return_value = {"ROOM_META": "165"}
+
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
+        entity = RoboVacEntity(data)
+
+        with (
+            patch.object(
+                entity,
+                "_fetch_t2320_dps_from_cloud_sync",
+                return_value={"dps": {"165": "cloud-payload"}},
+            ) as fetch,
+            patch.object(
+                entity,
+                "_decode_t2320_room_meta",
+                return_value={"map_id": 9, "rooms": [{"id": 5, "label": "Office"}]},
+            ) as decode,
+        ):
+            assert entity._fetch_room_meta_from_cloud_sync() == {
+                "map_id": 9,
+                "rooms": [{"id": 5, "label": "Office"}],
+            }
+
+    fetch.assert_called_once_with()
+    decode.assert_called_once_with("cloud-payload")
+
+
+@pytest.mark.asyncio
+async def test_activity_property_uses_mode_when_status_is_idle(
+    mock_robovac, mock_vacuum_data
+) -> None:
+    """Test active mode DPS overrides station-idle status for T2320-like models."""
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
+        entity = RoboVacEntity(mock_vacuum_data)
+        entity._attr_activity_mapping = {"idle": VacuumActivity.IDLE}
+        entity.tuya_state = "idle"
+        entity.error_code = "no_error"
+
+        entity._attr_mode = "auto"
+        assert entity.activity == VacuumActivity.CLEANING
+
+        entity._attr_mode = "pause"
+        assert entity.activity == VacuumActivity.PAUSED
+
+        entity._attr_mode = "return"
+        assert entity.activity == VacuumActivity.RETURNING
+
+
+@pytest.mark.asyncio
+async def test_activity_property_uses_return_progress_over_stale_return_mode() -> None:
+    """Test T2320 dock progress overrides stale DPS 152 return mode."""
+    data = {
+        CONF_NAME: "Test X9",
+        CONF_ID: "test_x9_id",
+        CONF_MODEL: "T2320",
+        CONF_IP_ADDRESS: "192.168.1.100",
+        CONF_ACCESS_TOKEN: "test_key",
+        CONF_DESCRIPTION: "X9 Pro",
+        CONF_MAC: "aa:bb:cc:dd:ee:99",
+    }
+    with patch("custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None):
+        robovac = RoboVac(
+            model_code="T2320",
+            device_id="test_id",
+            host="192.168.1.100",
+            local_key="test_key",
+        )
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=robovac):
+        entity = RoboVacEntity(data)
+        robovac._dps = {
+            "152": "AggG",
+            "153": "DhAFGgA6AhABcgQaACIA",
+            "173": "LgokCgwKBggBGgIIChIAGAESBggBEgIIAjIMCgIIARIGCAEQARgPEgIIASoCCFg=",
+        }
+        entity.update_entity_values()
+
+        assert entity.mode == "return"
+        assert entity.activity == VacuumActivity.DOCKED
+
+
+@pytest.mark.asyncio
+async def test_activity_property_error_overrides_docked_return_progress() -> None:
+    """Test active errors take precedence over stale docked return-progress payloads."""
+    data = {
+        CONF_NAME: "Test X9",
+        CONF_ID: "test_x9_id",
+        CONF_MODEL: "T2320",
+        CONF_IP_ADDRESS: "192.168.1.100",
+        CONF_ACCESS_TOKEN: "test_key",
+        CONF_DESCRIPTION: "X9 Pro",
+        CONF_MAC: "aa:bb:cc:dd:ee:99",
+    }
+    with patch("custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None):
+        robovac = RoboVac(
+            model_code="T2320",
+            device_id="test_id",
+            host="192.168.1.100",
+            local_key="test_key",
+        )
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=robovac):
+        entity = RoboVacEntity(data)
+        robovac._dps = {
+            "152": "AggG",
+            "153": "DhAFGgA6AhABcgQaACIA",
+            "173": "LgokCgwKBggBGgIIChIAGAESBggBEgIIAjIMCgIIARIGCAEQARgPEgIIASoCCFg=",
+            "177": base64.b64encode(bytes([3, 0x12, 0x01, 52])).decode(),
+        }
+        entity.update_entity_values()
+
+        assert entity._return_progress_activity() == VacuumActivity.DOCKED
+        assert entity.error_code == "Unable to leave station"
+        assert entity.activity == VacuumActivity.ERROR
+
+
+@pytest.mark.asyncio
+async def test_activity_property_uses_return_progress_cleaning_signal() -> None:
+    """Test T2320 active cleaning DPS 153 overrides standby/idle status."""
+    data = {
+        CONF_NAME: "Test X9",
+        CONF_ID: "test_x9_id",
+        CONF_MODEL: "T2320",
+        CONF_IP_ADDRESS: "192.168.1.100",
+        CONF_ACCESS_TOKEN: "test_key",
+        CONF_DESCRIPTION: "X9 Pro",
+        CONF_MAC: "aa:bb:cc:dd:ee:99",
+    }
+    with patch("custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None):
+        robovac = RoboVac(
+            model_code="T2320",
+            device_id="test_id",
+            host="192.168.1.100",
+            local_key="test_key",
+        )
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=robovac):
+        entity = RoboVacEntity(data)
+        robovac._dps = {
+            "152": "AA==",
+            "153": "CgoAEAUyAHICIgA=",
+            "173": "LgokCgwKBggBGgIIChIAGAESBggBEgIIAjIMCgIIARIGCAEQARgPEgIIASoCCFg=",
+        }
+        entity.update_entity_values()
+
+        assert entity.mode == "standby"
+        assert entity.activity == VacuumActivity.CLEANING
+
+
+def test_cloud_dps_map_accepts_flat_and_nested_responses() -> None:
+    """Tuya cloud may return either a flat DPS map or {'dps': {...}}."""
+    assert RoboVacEntity._cloud_dps_map({"165": "flat"}) == {"165": "flat"}
+    assert RoboVacEntity._cloud_dps_map({"dps": {"165": "nested"}}) == {"165": "nested"}
+
+
 @pytest.mark.asyncio
 async def test_update_entity_values(mock_robovac, mock_vacuum_data) -> None:
     """Test update_entity_values correctly sets entity attributes."""
@@ -169,13 +437,100 @@ async def test_update_entity_values(mock_robovac, mock_vacuum_data) -> None:
 
 
 @pytest.mark.asyncio
+async def test_partial_startup_dps_sets_idle(mock_robovac, mock_vacuum_data) -> None:
+    """Test partial startup DPS without status recovers HA from unknown."""
+    mock_robovac._dps = {
+        "151": True,
+        "156": True,
+        "158": "Standard",
+        "159": True,
+        "160": False,
+        "161": 80,
+        "163": 61,
+    }
+    mock_robovac.getDpsCodes.return_value = {
+        "MODE": "152",
+        "STATUS": "173",
+        "RETURN_HOME": "153",
+        "FAN_SPEED": "154",
+        "LOCATE": "153",
+        "BATTERY_LEVEL": "172",
+        "ERROR_CODE": "169",
+    }
+
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
+        entity = RoboVacEntity(mock_vacuum_data)
+
+        entity.update_entity_values()
+
+        assert entity.activity == VacuumActivity.IDLE
+
+
+@pytest.mark.asyncio
+async def test_partial_startup_dps_keeps_explicit_status(
+    mock_robovac, mock_vacuum_data
+) -> None:
+    """Test partial-DPS fallback does not override explicit status."""
+    mock_robovac._dps = {
+        "151": True,
+        "156": True,
+        "158": "Standard",
+        "159": True,
+        "160": False,
+        "161": 80,
+        "163": 61,
+        "173": "Charging",
+    }
+    mock_robovac.getDpsCodes.return_value = {
+        "MODE": "152",
+        "STATUS": "173",
+        "RETURN_HOME": "153",
+        "FAN_SPEED": "154",
+        "LOCATE": "153",
+        "BATTERY_LEVEL": "172",
+        "ERROR_CODE": "169",
+    }
+
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
+        entity = RoboVacEntity(mock_vacuum_data)
+
+        entity.update_entity_values()
+
+        assert entity.tuya_state == "Charging"
+
+
+@pytest.mark.asyncio
+async def test_battery_only_dps_does_not_set_idle(
+    mock_robovac, mock_vacuum_data
+) -> None:
+    """Test battery-only updates are not enough to infer idle."""
+    mock_robovac._dps = {"163": 74}
+    mock_robovac.getDpsCodes.return_value = {
+        "MODE": "152",
+        "STATUS": "173",
+        "RETURN_HOME": "153",
+        "FAN_SPEED": "154",
+        "LOCATE": "153",
+        "BATTERY_LEVEL": "172",
+        "ERROR_CODE": "169",
+    }
+
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
+        entity = RoboVacEntity(mock_vacuum_data)
+
+        entity.update_entity_values()
+
+        assert entity.activity is None
+
+
+@pytest.mark.asyncio
 async def test_fan_speed_formatting(mock_robovac, mock_vacuum_data) -> None:
     """Test fan speed formatting in update_entity_values."""
     # Arrange
     test_cases = [
         ("No_suction", "No Suction"),
         ("Boost_IQ", "Boost IQ"),
-        ("Quiet", "Pure"),
+        ("Quiet", "Quiet"),
         ("Standard", "Standard"),  # No change
     ]
 

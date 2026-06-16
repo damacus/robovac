@@ -3,7 +3,7 @@ from custom_components.robovac.tuyalocalapi import TuyaCipher, Message
 import struct
 
 
-def test_get_prefix_size_and_validate_v31():
+def test_get_prefix_size_and_validate_v31() -> None:
     cipher = TuyaCipher("1234567890123456", (3, 1))
 
     # Valid prefix
@@ -18,7 +18,7 @@ def test_get_prefix_size_and_validate_v31():
     assert cipher.get_prefix_size_and_validate(0, valid_data_with_hash) == 19
 
 
-def test_get_prefix_size_and_validate_v33():
+def test_get_prefix_size_and_validate_v33() -> None:
     cipher = TuyaCipher("1234567890123456", (3, 3))
 
     # Valid prefix, SET_COMMAND
@@ -31,7 +31,7 @@ def test_get_prefix_size_and_validate_v33():
     assert cipher.get_prefix_size_and_validate(Message.GET_COMMAND, valid_data) == 0
 
 
-def test_get_prefix_size_and_validate_invalid():
+def test_get_prefix_size_and_validate_invalid() -> None:
     cipher = TuyaCipher("1234567890123456", (3, 3))
     assert cipher.get_prefix_size_and_validate(0, b"3.4") == 0
     assert cipher.get_prefix_size_and_validate(0, b"") == 0

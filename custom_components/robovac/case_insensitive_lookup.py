@@ -20,6 +20,14 @@ def case_insensitive_lookup(
     """
     str_key = str(key)
 
+    # ⚡ Bolt optimization: Check if lookup_dict is actually a dictionary
+    # before attempting to use it. When a list is passed (which happens for some
+    # command values), accessing .items() raises an AttributeError which is
+    # caught and suppressed by the caller. Catching exceptions on the hot path
+    # is slow. Returning early avoids this expensive overhead.
+    if not isinstance(lookup_dict, dict):
+        return None
+
     # Try exact match first
     if str_key in lookup_dict:
         return lookup_dict[str_key]
