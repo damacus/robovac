@@ -156,6 +156,15 @@ _LOGGER = logging.getLogger(__name__)
 SCAN_INTERVAL = timedelta(seconds=REFRESH_RATE)
 UPDATE_RETRIES = 3
 
+ROOM_DISCOVERY_STRATEGIES: dict[str, dict[str, str]] = {
+    "T2320": {
+        "local_dps_key": "ROOM_META",
+        "local_dps_fallback": "165",
+        "local_decoder": "_decode_t2320_room_meta",
+        "cloud_dps_fetcher": "_fetch_t2320_dps_from_cloud_sync",
+    }
+}
+
 # ⚡ Bolt optimization: Pre-calculate valid VacuumActivity values into a set
 # to avoid O(n) list comprehension on every property getter access
 VACUUM_ACTIVITY_VALUES = {activity.value for activity in VacuumActivity}
@@ -716,8 +725,8 @@ class RoboVacEntity(StateVacuumEntity):
             _LOGGER.debug("Skipping update for unsupported model: %s", self._attr_model_code)
             return
 
-        if self._supports_t2320_rooms() and not self._attr_room_names:
-            await self._async_fetch_t2320_rooms_from_cloud_once()
+        if self._supports_room_discovery() and not self._attr_room_names:
+            await self._async_fetch_rooms_from_cloud_once()
 
         # Skip update if the IP address is not set
         if not self.ip_address:
@@ -966,15 +975,21 @@ class RoboVacEntity(StateVacuumEntity):
             self.get_dps_code("RETURN_HOME"),
         }
         battery_code = self.get_dps_code("BATTERY")
-        informative_dps = {
-            code for code, value in self.tuyastatus.items()
-            if value is not None and code and code != battery_code
-        }
+        # ⚡ Bolt optimization: Avoid creating full sets in hot paths.
+        # Replace O(N) set comprehension with an early-exit count loop to
+        # minimize allocations on every property access.
+        informative_count = 0
+        for code, value in self.tuyastatus.items():
+            if value is not None and code and code != battery_code:
+                informative_count += 1
+                if informative_count >= 2:
+                    break
 
         # Some vacuums return partial availability/config DPS after restart
         # without an explicit status DPS. Treat that as idle so HA leaves
         # unknown, but do not infer state from single-field updates.
-        if len(informative_dps) >= 2 and not known_state_codes.intersection(self.tuyastatus):
+        # ⚡ Bolt optimization: Replace expensive intersection (creates new set) with isdisjoint
+        if informative_count >= 2 and known_state_codes.isdisjoint(self.tuyastatus):
             return VacuumActivity.IDLE
 
         return 0
@@ -1076,8 +1091,57 @@ class RoboVacEntity(StateVacuumEntity):
                             except Exception as e:
                                 _LOGGER.warning("Failed to decode consumable data: %s", str(e))
 
+    def _get_room_discovery_strategy(self) -> dict[str, str] | None:
+        """Return the room discovery strategy for the current model."""
+        if not self.model_code:
+            return None
+        for model_prefix, strategy in ROOM_DISCOVERY_STRATEGIES.items():
+            if str(self.model_code).startswith(model_prefix):
+                return strategy
+        return None
+
+    def _supports_room_discovery(self) -> bool:
+        """Return whether this model has configured room discovery."""
+        return self._get_room_discovery_strategy() is not None
+
     def _supports_t2320_rooms(self) -> bool:
-        return bool(self.model_code and str(self.model_code).startswith("T2320"))
+        return self._supports_room_discovery() and bool(
+            self.model_code and str(self.model_code).startswith("T2320")
+        )
+
+    @staticmethod
+    def _decode_t2320_room_meta(raw: Any) -> dict[str, Any]:
+        """Decode T2320 room metadata with the shared protobuf decoder."""
+        return decode_t2320_room_meta(str(raw)) if raw else {"map_id": None, "rooms": []}
+
+    def _room_meta_raw_from_dps(
+        self, dps: dict[str, Any], strategy: dict[str, str]
+    ) -> Any:
+        """Return raw room metadata from a DPS map using a discovery strategy."""
+        dps_key_name = strategy.get("local_dps_key", "ROOM_META")
+        dps_code = self.get_dps_code(dps_key_name)
+        raw = dps.get(dps_code)
+        fallback = strategy.get("local_dps_fallback")
+        if raw is None and fallback and fallback != dps_code:
+            raw = dps.get(fallback)
+        return raw
+
+    def _decode_room_meta(self, raw: Any, strategy: dict[str, str]) -> dict[str, Any]:
+        """Decode room metadata using a configured decoder method."""
+        decoder_name = strategy.get("local_decoder")
+        decoder = getattr(self, decoder_name, None) if decoder_name else None
+        if not callable(decoder):
+            return {"map_id": None, "rooms": []}
+        decoded = decoder(raw)
+        return decoded if isinstance(decoded, dict) else {"map_id": None, "rooms": []}
+
+    def _discover_room_meta_from_local_dps(self) -> dict[str, Any]:
+        """Discover room metadata from local DPS values."""
+        strategy = self._get_room_discovery_strategy()
+        if not strategy or self.tuyastatus is None:
+            return {"map_id": None, "rooms": []}
+        raw = self._room_meta_raw_from_dps(self.tuyastatus, strategy)
+        return self._decode_room_meta(raw, strategy)
 
     def _merge_room_meta(self, meta: dict[str, Any], source: str) -> bool:
         """Merge decoded T2320 room metadata into exported attributes."""
@@ -1111,16 +1175,13 @@ class RoboVacEntity(StateVacuumEntity):
         return changed
 
     def _update_room_names_from_device_payload(self) -> None:
-        """Update T2320 room names from local DPS 165 when it is present."""
-        if not self._supports_t2320_rooms() or self.tuyastatus is None:
-            return
-        raw = self.tuyastatus.get(self.get_dps_code("ROOM_META"))
-        if not raw:
+        """Update room names from local DPS metadata when it is present."""
+        if not self._supports_room_discovery() or self.tuyastatus is None:
             return
         try:
-            self._merge_room_meta(decode_t2320_room_meta(str(raw)), "device")
+            self._merge_room_meta(self._discover_room_meta_from_local_dps(), "device")
         except Exception as ex:
-            _LOGGER.debug("T2320 room metadata decode failed for %s: %s", self.name, ex)
+            _LOGGER.debug("Room metadata decode failed for %s: %s", self.name, ex)
 
     def _build_tuya_session_sync(self) -> TuyaAPISession | None:
         """Authenticate to Tuya cloud using stored Eufy credentials."""
@@ -1190,19 +1251,36 @@ class RoboVacEntity(StateVacuumEntity):
         return nested if isinstance(nested, dict) else response
 
     def _fetch_t2320_rooms_from_cloud_sync(self) -> dict[str, Any]:
-        dps = self._cloud_dps_map(self._fetch_t2320_dps_from_cloud_sync())
-        raw = dps.get(self.get_dps_code("ROOM_META")) or dps.get("165")
-        return decode_t2320_room_meta(str(raw)) if raw else {"map_id": None, "rooms": []}
+        return self._fetch_room_meta_from_cloud_sync()
 
-    async def _async_fetch_t2320_rooms_from_cloud_once(self) -> None:
+    def _fetch_room_meta_from_cloud_sync(self) -> dict[str, Any]:
+        """Fetch room metadata from cloud DPS values using a strategy."""
+        strategy = self._get_room_discovery_strategy()
+        if not strategy:
+            return {"map_id": None, "rooms": []}
+        fetcher_name = strategy.get("cloud_dps_fetcher")
+        fetcher = getattr(self, fetcher_name, None) if fetcher_name else None
+        if not callable(fetcher):
+            return {"map_id": None, "rooms": []}
+        dps = self._cloud_dps_map(fetcher())
+        raw = self._room_meta_raw_from_dps(dps, strategy)
+        return self._decode_room_meta(raw, strategy)
+
+    async def _async_fetch_rooms_from_cloud_once(self) -> None:
+        """Bootstrap room metadata from cloud one time."""
+        if not self._supports_room_discovery():
+            return
         if self._cloud_room_lookup_attempted or self.hass is None:
             return
         self._cloud_room_lookup_attempted = True
         meta = await self.hass.async_add_executor_job(
-            self._fetch_t2320_rooms_from_cloud_sync
+            self._fetch_room_meta_from_cloud_sync
         )
         if self._merge_room_meta(meta, "cloud"):
             self.async_write_ha_state()
+
+    async def _async_fetch_t2320_rooms_from_cloud_once(self) -> None:
+        await self._async_fetch_rooms_from_cloud_once()
 
     def _t2320_room_id_for_label(self, room_label: str) -> int | None:
         label = room_label.casefold()
@@ -1216,7 +1294,7 @@ class RoboVacEntity(StateVacuumEntity):
     async def async_get_segments(self) -> list[Segment]:
         """Return known T2320 room segments for HA callers that support it."""
         if not self._attr_room_names:
-            await self._async_fetch_t2320_rooms_from_cloud_once()
+            await self._async_fetch_rooms_from_cloud_once()
         if not self._attr_room_names:
             return []
         return [
@@ -1259,13 +1337,15 @@ class RoboVacEntity(StateVacuumEntity):
             _LOGGER.error("Cannot return to base: vacuum not initialized")
             return
 
+        return_home_code = self.get_dps_code("RETURN_HOME")
         payload: dict[str, Any] = {
-            self.get_dps_code("RETURN_HOME"): self.vacuum.getRoboVacCommandValue(RobovacCommand.RETURN_HOME, "return")
+            return_home_code: self.vacuum.getRoboVacCommandValue(RobovacCommand.RETURN_HOME, "return")
         }
 
+        mode_code = self.get_dps_code("MODE")
         mode_return_value = self.vacuum.getRoboVacCommandValue(RobovacCommand.MODE, "return")
-        if mode_return_value != "return":
-            payload[self.get_dps_code("MODE")] = mode_return_value
+        if mode_return_value != "return" and mode_code not in payload:
+            payload[mode_code] = mode_return_value
 
         await self.vacuum.async_set(payload)
 
@@ -1280,14 +1360,16 @@ class RoboVacEntity(StateVacuumEntity):
             _LOGGER.error("Cannot start vacuum: vacuum not initialized")
             return
 
+        mode_code = self.get_dps_code("MODE")
         payload: dict[str, Any] = {
-            self.get_dps_code("MODE"): self.vacuum.getRoboVacCommandValue(RobovacCommand.MODE, "auto")
+            mode_code: self.vacuum.getRoboVacCommandValue(RobovacCommand.MODE, "auto")
         }
 
         # For models with boolean START_PAUSE (e.g. T2118, T2128), also toggle start
+        start_pause_code = self.get_dps_code("START_PAUSE")
         start_value = self.vacuum.getRoboVacCommandValue(RobovacCommand.START_PAUSE, "start")
-        if start_value != "start":
-            payload[self.get_dps_code("START_PAUSE")] = start_value
+        if start_value != "start" and start_pause_code != mode_code:
+            payload[start_pause_code] = start_value
 
         await self.vacuum.async_set(payload)
 
@@ -1509,14 +1591,12 @@ class RoboVacEntity(StateVacuumEntity):
                 if map_id is None:
                     if self.hass is None:
                         raise HomeAssistantError("T2320 room map ID is unavailable")
-                    dps = self._cloud_dps_map(
+                    self._merge_room_meta(
                         await self.hass.async_add_executor_job(
-                            self._fetch_t2320_dps_from_cloud_sync
-                        )
+                            self._fetch_room_meta_from_cloud_sync
+                        ),
+                        "cloud",
                     )
-                    raw = dps.get(self.get_dps_code("ROOM_META")) or dps.get("165")
-                    if raw:
-                        self._merge_room_meta(decode_t2320_room_meta(str(raw)), "cloud")
                     map_id = self._attr_room_map_id
                 if map_id is None:
                     raise HomeAssistantError("T2320 room map ID is unavailable")

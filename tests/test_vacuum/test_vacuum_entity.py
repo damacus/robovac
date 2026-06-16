@@ -187,6 +187,104 @@ async def test_activity_property_cleaning(mock_robovac, mock_vacuum_data) -> Non
         assert result == VacuumActivity.CLEANING
 
 
+def test_t2320_room_discovery_strategy_uses_local_room_meta(
+    mock_robovac: MagicMock, mock_vacuum_data: dict[str, Any]
+) -> None:
+    """Test T2320 room discovery decodes the configured local DPS payload."""
+    data = dict(mock_vacuum_data)
+    data[CONF_MODEL] = "T2320"
+    mock_robovac.getDpsCodes.return_value = {"ROOM_META": "165"}
+
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
+        entity = RoboVacEntity(data)
+        entity.tuyastatus = {"165": "room-payload"}
+
+        with patch.object(
+            entity,
+            "_decode_t2320_room_meta",
+            return_value={"map_id": 7, "rooms": [{"id": 3, "label": "Kitchen"}]},
+        ) as decode:
+            entity._update_room_names_from_device_payload()
+
+    decode.assert_called_once_with("room-payload")
+    assert entity._attr_room_map_id == 7
+    assert entity._attr_room_names == {
+        "3": {"id": 3, "key": "3", "label": "Kitchen", "source": "device"}
+    }
+
+
+def test_t2320_room_discovery_strategy_falls_back_to_dps_165(
+    mock_robovac: MagicMock, mock_vacuum_data: dict[str, Any]
+) -> None:
+    """Test room discovery uses DPS 165 when model DPS codes do not expose ROOM_META."""
+    data = dict(mock_vacuum_data)
+    data[CONF_MODEL] = "T2320"
+    mock_robovac.getDpsCodes.return_value = {}
+
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
+        entity = RoboVacEntity(data)
+        entity.tuyastatus = {"165": "fallback-payload"}
+
+        with patch.object(
+            entity,
+            "_decode_t2320_room_meta",
+            return_value={"map_id": 8, "rooms": [{"id": 4, "label": "Hall"}]},
+        ) as decode:
+            assert entity._discover_room_meta_from_local_dps() == {
+                "map_id": 8,
+                "rooms": [{"id": 4, "label": "Hall"}],
+            }
+
+    decode.assert_called_once_with("fallback-payload")
+
+
+def test_non_room_discovery_model_ignores_room_meta_strategy(
+    mock_robovac: MagicMock, mock_vacuum_data: dict[str, Any]
+) -> None:
+    """Test models without a strategy do not attempt room metadata discovery."""
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
+        entity = RoboVacEntity(mock_vacuum_data)
+        entity.tuyastatus = {"165": "ignored"}
+
+        assert entity._supports_room_discovery() is False
+        assert entity._discover_room_meta_from_local_dps() == {
+            "map_id": None,
+            "rooms": [],
+        }
+
+
+def test_t2320_room_discovery_strategy_uses_cloud_fetcher(
+    mock_robovac: MagicMock, mock_vacuum_data: dict[str, Any]
+) -> None:
+    """Test cloud room discovery decodes DPS from the configured fetcher."""
+    data = dict(mock_vacuum_data)
+    data[CONF_MODEL] = "T2320"
+    mock_robovac.getDpsCodes.return_value = {"ROOM_META": "165"}
+
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
+        entity = RoboVacEntity(data)
+
+        with (
+            patch.object(
+                entity,
+                "_fetch_t2320_dps_from_cloud_sync",
+                return_value={"dps": {"165": "cloud-payload"}},
+            ) as fetch,
+            patch.object(
+                entity,
+                "_decode_t2320_room_meta",
+                return_value={"map_id": 9, "rooms": [{"id": 5, "label": "Office"}]},
+            ) as decode,
+        ):
+            assert entity._fetch_room_meta_from_cloud_sync() == {
+                "map_id": 9,
+                "rooms": [{"id": 5, "label": "Office"}],
+            }
+
+    fetch.assert_called_once_with()
+    decode.assert_called_once_with("cloud-payload")
+
+
 @pytest.mark.asyncio
 async def test_activity_property_uses_mode_when_status_is_idle(
     mock_robovac, mock_vacuum_data

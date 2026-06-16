@@ -35,6 +35,7 @@ class T2080(RobovacModelDetails):
             "code": 2,
             # I've seen `'2': False` when ending a session (maybe when paused??)
             # I've also seen `'2': False` when actively vacuuming..
+            "values": {"start": True, "pause": False},
         },
         RobovacCommand.DIRECTION: {
             # Not working

@@ -21,7 +21,10 @@ class T2270(RobovacModelDetails):
         | RoboVacEntityFeature.AUTO_RETURN
     )
     commands = {
-        RobovacCommand.START_PAUSE: 2,
+        RobovacCommand.START_PAUSE: {
+            "code": 2,
+            "values": {"start": True, "pause": False},
+        },
         RobovacCommand.DIRECTION: {
             "code": 3,
             "values": {

@@ -51,7 +51,7 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Run linkspector
-        uses: umbrelladocs/action-linkspector@963b6264d7de32c904942a70b488d3407453049e # v1
+        uses: umbrelladocs/action-linkspector@6c637d70424624231467a4ca918be54fa3b792d0 # v1
         with:
           fail_on_error: false
           reporter: github-pr-review
@@ -96,6 +96,6 @@ jobs:
           filename: coverage.xml
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@e79a6962e0d4c0c17b229090214935d2e33f8354 # v6
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
