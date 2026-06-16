@@ -49,6 +49,7 @@ class T2118(RobovacModelDetails):
                 "completed": "Completed",
                 "Running": "Running",
                 "standby": "Standby",
+                "Recharge": "Returning to Dock",
                 "Sleeping": "Sleeping",
                 "recharge_needed": "Recharge needed",
             },

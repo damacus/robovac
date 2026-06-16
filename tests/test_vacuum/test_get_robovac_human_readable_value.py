@@ -20,7 +20,7 @@ def mock_t2080_robovac() -> RoboVac:
         )
 
         # Mock the T2080 model commands for testing
-        robovac.model_details.commands = {
+        commands = {
             RobovacCommand.STATUS: {
                 "code": 153,
                 "values": {
@@ -59,7 +59,8 @@ def mock_t2080_robovac() -> RoboVac:
                 },
             },
         }
-        return robovac
+        with patch.object(robovac.model_details, "commands", commands):
+            yield robovac
 
 
 def test_get_human_readable_value_status_success(mock_t2080_robovac) -> None:
