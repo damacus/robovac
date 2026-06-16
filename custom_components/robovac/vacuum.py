@@ -1347,13 +1347,6 @@ class RoboVacEntity(StateVacuumEntity):
         if mode_return_value != "return" and mode_code not in payload:
             payload[mode_code] = mode_return_value
 
-        # For models with boolean START_PAUSE (e.g. T2128, T2276), DPS 2 is the
-        # execution trigger — without it, the device ACKs but doesn't physically act.
-        start_pause_code = self.get_dps_code("START_PAUSE")
-        start_value = self.vacuum.getRoboVacCommandValue(RobovacCommand.START_PAUSE, "start")
-        if start_value != "start" and start_pause_code not in payload:
-            payload[start_pause_code] = start_value
-
         await self.vacuum.async_set(payload)
 
     async def async_start(self, **kwargs: Any) -> None:
@@ -1367,12 +1360,12 @@ class RoboVacEntity(StateVacuumEntity):
             _LOGGER.error("Cannot start vacuum: vacuum not initialized")
             return
 
+        mode_code = self.get_dps_code("MODE")
         payload: dict[str, Any] = {
-            self.get_dps_code("MODE"): self.vacuum.getRoboVacCommandValue(RobovacCommand.MODE, "auto")
+            mode_code: self.vacuum.getRoboVacCommandValue(RobovacCommand.MODE, "auto")
         }
 
         # For models with boolean START_PAUSE (e.g. T2118, T2128), also toggle start
-        mode_code = self.get_dps_code("MODE")
         start_pause_code = self.get_dps_code("START_PAUSE")
         start_value = self.vacuum.getRoboVacCommandValue(RobovacCommand.START_PAUSE, "start")
         if start_value != "start" and start_pause_code != mode_code:

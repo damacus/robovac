@@ -17,6 +17,7 @@ from homeassistant.const import (
 from custom_components.robovac.proto_decode import decode_clean_param_response
 from custom_components.robovac.robovac import RoboVac
 from custom_components.robovac.vacuum import RoboVacEntity
+from custom_components.robovac.vacuums.base import RobovacCommand
 
 
 @pytest.mark.asyncio
@@ -126,51 +127,62 @@ async def test_async_start_sends_start_pause_for_boolean_models(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("model_code", ["T2277", "T2278"])
 async def test_async_return_to_base_does_not_overwrite_shared_dps_code(
     mock_vacuum_data,
+    model_code,
 ) -> None:
     """When RETURN_HOME and START_PAUSE share a DPS code, keep return payload.
 
-    T2277 uses DPS 152 for both RETURN_HOME and START_PAUSE. Sending START_PAUSE
-    in the same payload overwrites return_home and causes resume instead.
+    Some models use DPS 152 for RETURN_HOME, MODE, and START_PAUSE. Adding
+    another command on the same key would overwrite return_home.
     """
     with patch("custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None):
         robovac = RoboVac(
-            model_code="T2277",
+            model_code=model_code,
             device_id="test_id",
             host="192.168.1.100",
             local_key="test_key",
         )
     robovac.async_set = AsyncMock(return_value=True)
 
-    model_data = {**mock_vacuum_data, "model": "T2277"}
+    model_data = {**mock_vacuum_data, "model": model_code}
     with patch("custom_components.robovac.vacuum.RoboVac", return_value=robovac):
         entity = RoboVacEntity(model_data)
         await entity.async_return_to_base()
 
-        robovac.async_set.assert_called_once_with({"152": "AggG"})
+        return_home_code = entity.get_dps_code("RETURN_HOME")
+        expected_return_value = robovac.getRoboVacCommandValue(RobovacCommand.RETURN_HOME, "return")
+        assert return_home_code == entity.get_dps_code("MODE")
+        assert return_home_code == entity.get_dps_code("START_PAUSE")
+        robovac.async_set.assert_called_once_with({return_home_code: expected_return_value})
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("model_code", ["T2277", "T2278"])
 async def test_async_start_does_not_overwrite_shared_dps_code(
     mock_vacuum_data,
+    model_code,
 ) -> None:
     """When MODE and START_PAUSE share a DPS code, keep mode payload for start."""
     with patch("custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None):
         robovac = RoboVac(
-            model_code="T2277",
+            model_code=model_code,
             device_id="test_id",
             host="192.168.1.100",
             local_key="test_key",
         )
     robovac.async_set = AsyncMock(return_value=True)
 
-    model_data = {**mock_vacuum_data, "model": "T2277"}
+    model_data = {**mock_vacuum_data, "model": model_code}
     with patch("custom_components.robovac.vacuum.RoboVac", return_value=robovac):
         entity = RoboVacEntity(model_data)
         await entity.async_start()
 
-        robovac.async_set.assert_called_once_with({"152": "BBoCCAE="})
+        mode_code = entity.get_dps_code("MODE")
+        expected_auto_value = robovac.getRoboVacCommandValue(RobovacCommand.MODE, "auto")
+        assert mode_code == entity.get_dps_code("START_PAUSE")
+        robovac.async_set.assert_called_once_with({mode_code: expected_auto_value})
 
 
 @pytest.mark.asyncio
