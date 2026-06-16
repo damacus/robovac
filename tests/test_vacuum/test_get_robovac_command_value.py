@@ -18,7 +18,7 @@ def mock_robovac():
         )
 
         # Mock the model commands for testing
-        robovac.model_details.commands = {
+        commands = {
             RobovacCommand.MODE: {
                 "code": 5,
                 "values": {
@@ -36,7 +36,8 @@ def mock_robovac():
                 "code": 102,
             },
         }
-        return robovac
+        with patch.object(robovac.model_details, "commands", commands):
+            yield robovac
 
 
 def test_get_robovac_command_value_with_dict(mock_robovac):

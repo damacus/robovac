@@ -52,6 +52,7 @@ class T2252(RobovacModelDetails):
                 "completed": "Completed",
                 "Running": "Running",
                 "standby": "Standby",
+                "Recharge": "Returning to Dock",
                 "Sleeping": "Sleeping",
                 "recharge_needed": "Recharge needed",
             },
