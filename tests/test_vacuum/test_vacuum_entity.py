@@ -3,9 +3,9 @@
 import base64
 import pytest
 from typing import Any
-from unittest.mock import patch, MagicMock
+from unittest.mock import AsyncMock, patch, MagicMock
 
-from homeassistant.components.vacuum import VacuumActivity
+from homeassistant.components.vacuum import VacuumActivity, VacuumEntityFeature
 from homeassistant.const import (
     CONF_ACCESS_TOKEN,
     CONF_DESCRIPTION,
@@ -15,8 +15,15 @@ from homeassistant.const import (
     CONF_MODEL,
     CONF_NAME,
 )
+from custom_components.robovac.const import CONF_ROOM_SEGMENT_MAP_ID, CONF_ROOM_SEGMENTS
 from custom_components.robovac.robovac import RoboVac
-from custom_components.robovac.vacuum import ATTR_ERROR, RoboVacEntity
+from custom_components.robovac.vacuum import (
+    ATTR_ERROR,
+    RoboVacEntity,
+    _parse_clean_count,
+    _parse_room_segment_map_id,
+    _parse_room_segments,
+)
 from custom_components.robovac.vacuums.base import TuyaCodes
 
 
@@ -459,6 +466,145 @@ async def test_update_entity_values(mock_robovac, mock_vacuum_data) -> None:
         assert entity.error_code == 0
         assert entity._attr_mode == "auto"
         assert entity._attr_fan_speed == "Standard"
+
+
+def test_parse_room_segments() -> None:
+    """Test configured room segment parsing."""
+    segments = _parse_room_segments(
+        "1:Kitchen, , bad, nope:Study, 2: Living Room, 3:"
+    )
+
+    assert [(segment.id, segment.name) for segment in segments] == [
+        (1, "Kitchen"),
+        (2, "Living Room"),
+    ]
+
+
+def test_room_segment_parser_fallbacks() -> None:
+    """Test defensive parsing for configured segment controls."""
+    assert _parse_room_segment_map_id(None) == 1
+    assert _parse_room_segment_map_id("") == 1
+    assert _parse_room_segment_map_id("bad") == 1
+    assert _parse_clean_count("bad") == 1
+    assert _parse_clean_count(0) == 1
+
+
+def test_clean_area_feature_enabled_only_with_segments(
+    mock_robovac, mock_vacuum_data
+) -> None:
+    """Test CLEAN_AREA is enabled only when segments are configured."""
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
+        entity = RoboVacEntity(mock_vacuum_data)
+        assert not entity.supported_features & VacuumEntityFeature.CLEAN_AREA
+
+    segmented_data = {
+        **mock_vacuum_data,
+        CONF_ROOM_SEGMENT_MAP_ID: 3,
+        CONF_ROOM_SEGMENTS: "1:Kitchen,2:Living Room",
+    }
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
+        entity = RoboVacEntity(segmented_data)
+        assert entity.supported_features & VacuumEntityFeature.CLEAN_AREA
+
+
+@pytest.mark.asyncio
+async def test_async_get_segments(mock_robovac, mock_vacuum_data) -> None:
+    """Test Home Assistant segment metadata is returned from configured rooms."""
+    data = {
+        **mock_vacuum_data,
+        CONF_ROOM_SEGMENT_MAP_ID: 3,
+        CONF_ROOM_SEGMENTS: "1:Kitchen,2:Living Room",
+    }
+
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
+        entity = RoboVacEntity(data)
+
+    segments = await entity.async_get_segments()
+
+    assert [(segment.id, segment.name) for segment in segments] == [
+        ("1", "Kitchen"),
+        ("2", "Living Room"),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_async_get_segments_without_segments_returns_empty(
+    mock_robovac, mock_vacuum_data
+) -> None:
+    """Test no cleanable segments are exposed when none are configured/discovered."""
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
+        entity = RoboVacEntity(mock_vacuum_data)
+
+    assert await entity.async_get_segments() == []
+
+
+@pytest.mark.asyncio
+async def test_async_get_segments_uses_discovered_rooms(
+    mock_robovac, mock_vacuum_data
+) -> None:
+    """Test discovered room metadata is exposed when no manual segments exist."""
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
+        entity = RoboVacEntity(mock_vacuum_data)
+
+    entity._attr_room_names = {
+        "room_1": {"id": 1, "label": "Kitchen"},
+        "room_2": {"id": 2, "label": "Living Room"},
+    }
+
+    segments = await entity.async_get_segments()
+
+    assert [(segment.id, segment.name) for segment in segments] == [
+        ("1", "Kitchen"),
+        ("2", "Living Room"),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_async_clean_segments_maps_to_room_clean(
+    mock_robovac, mock_vacuum_data
+) -> None:
+    """Test segment cleaning validates IDs and calls roomClean."""
+    data = {
+        **mock_vacuum_data,
+        CONF_ID: "test_robovac_id",
+        CONF_ROOM_SEGMENT_MAP_ID: 3,
+        CONF_ROOM_SEGMENTS: "1:Kitchen,2:Living Room",
+    }
+
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
+        entity = RoboVacEntity(data)
+
+    entity.async_send_command = AsyncMock()
+    await entity.async_clean_segments(["2", "bad", "99"], repeats=2)
+
+    entity.async_send_command.assert_awaited_once_with(
+        "roomClean",
+        {
+            "room_ids": [2],
+            "map_id": 3,
+            "count": 2,
+        },
+    )
+
+
+@pytest.mark.asyncio
+async def test_async_clean_segments_ignores_empty_selection(
+    mock_robovac, mock_vacuum_data
+) -> None:
+    """Test segment cleaning does not dispatch when no supplied IDs are valid."""
+    data = {
+        **mock_vacuum_data,
+        CONF_ROOM_SEGMENT_MAP_ID: 3,
+        CONF_ROOM_SEGMENTS: "1:Kitchen,2:Living Room",
+    }
+
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
+        entity = RoboVacEntity(data)
+
+    entity.async_send_command = AsyncMock()
+    await entity.async_clean_segments(["bad", "99"])
+
+    entity.async_send_command.assert_not_awaited()
 
 
 @pytest.mark.asyncio

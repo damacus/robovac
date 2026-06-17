@@ -1,5 +1,8 @@
 """Tests for the RoboVac vacuum entity commands."""
 
+import base64
+import json
+
 import pytest
 from typing import Any
 from unittest.mock import patch, MagicMock, AsyncMock, call
@@ -475,6 +478,89 @@ async def test_async_send_command(mock_robovac, mock_vacuum_data) -> None:
         entity._attr_boost_iq = True
         await entity.async_send_command("boostIQ")
         mock_robovac.async_set.assert_called_once_with({"118": False})
+
+
+@pytest.mark.asyncio
+async def test_room_clean_includes_map_id(mock_robovac, mock_vacuum_data) -> None:
+    """Test roomClean forwards the configured map ID when provided."""
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
+        entity = RoboVacEntity(mock_vacuum_data)
+
+    await entity.async_send_command(
+        "roomClean",
+        {
+            "room_ids": [2],
+            "map_id": 3,
+            "count": 2,
+        },
+    )
+
+    first_call = mock_robovac.async_set.await_args_list[0]
+    payload = first_call.args[0]["124"]
+    method_call = json.loads(base64.b64decode(payload).decode("utf8"))
+
+    assert method_call["method"] == "selectRoomsClean"
+    assert method_call["data"] == {
+        "roomIds": [2],
+        "cleanTimes": 2,
+        "mapId": 3,
+    }
+
+
+@pytest.mark.asyncio
+async def test_room_clean_accepts_list_params_with_map_id(
+    mock_robovac, mock_vacuum_data
+) -> None:
+    """Test roomClean merges Home Assistant list params and preserves map ID."""
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
+        entity = RoboVacEntity(mock_vacuum_data)
+
+    await entity.async_send_command(
+        "roomClean",
+        [{"roomIds": [2]}, {"mapId": 0}, {"count": 2}],
+    )
+
+    first_call = mock_robovac.async_set.await_args_list[0]
+    payload = first_call.args[0]["124"]
+    method_call = json.loads(base64.b64decode(payload).decode("utf8"))
+
+    assert method_call["method"] == "selectRoomsClean"
+    assert method_call["data"] == {
+        "roomIds": [2],
+        "cleanTimes": 2,
+        "mapId": 0,
+    }
+
+
+@pytest.mark.asyncio
+async def test_room_clean_accepts_room_id_list(mock_robovac, mock_vacuum_data) -> None:
+    """Test roomClean accepts a direct list of room IDs."""
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
+        entity = RoboVacEntity(mock_vacuum_data)
+
+    await entity.async_send_command("roomClean", [2, 3])
+
+    first_call = mock_robovac.async_set.await_args_list[0]
+    payload = first_call.args[0]["124"]
+    method_call = json.loads(base64.b64decode(payload).decode("utf8"))
+
+    assert method_call["data"] == {
+        "roomIds": [2, 3],
+        "cleanTimes": 1,
+    }
+
+
+@pytest.mark.asyncio
+async def test_room_clean_ignores_unexpected_params(
+    mock_robovac, mock_vacuum_data
+) -> None:
+    """Test roomClean ignores unsupported parameter shapes."""
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
+        entity = RoboVacEntity(mock_vacuum_data)
+
+    await entity.async_send_command("roomClean", "bad params")
+
+    mock_robovac.async_set.assert_not_awaited()
 
 
 @pytest.mark.asyncio
