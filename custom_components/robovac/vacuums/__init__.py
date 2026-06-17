@@ -46,6 +46,7 @@ from .base import RobovacModelDetails
 ROBOVAC_MODELS: Dict[str, Type[RobovacModelDetails]] = {
     "T1250": T1250,
     "T2080": T2080,
+    "T2080A": T2080,
     "T2103": T2103,
     "T2117": T2117,
     "T2118": T2118,
