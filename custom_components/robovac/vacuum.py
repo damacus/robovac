@@ -75,7 +75,7 @@ from .proto_decode import (
 )
 from .vacuums.base import RobovacCommand, RoboVacEntityFeature, TuyaCodes, TUYA_CONSUMABLES_CODES
 from .robovac import ModelNotSupportedException, RoboVac
-from .tuyalocalapi import TuyaException
+from .tuyalocalapi import InvalidKey, TuyaException
 from .tuyawebapi import TuyaAPISession
 
 ATTR_BATTERY_ICON = "battery_icon"
@@ -736,33 +736,50 @@ class RoboVacEntity(StateVacuumEntity):
         self._cloud_room_lookup_attempted = False
 
         # Initialize the RoboVac connection
-        try:
-            # Extract model code prefix for device identification
-            model_code_prefix = ""
-            if self.model_code is not None:
-                model_code_prefix = self.model_code[0:5]
-
-            # Create the RoboVac instance
-            self.vacuum = RoboVac(
-                device_id=self.unique_id,
-                host=self.ip_address,
-                local_key=self.access_token,
-                timeout=TIMEOUT,
-                ping_interval=PING_RATE,
-                model_code=model_code_prefix,
-                update_entity_state=self.pushed_update_handler,
-            )
-            _LOGGER.debug(
-                "Initialized RoboVac connection for %s (model: %s)",
-                self._attr_name,
-                self._attr_model_code
-            )
-        except ModelNotSupportedException:
+        if not self.access_token:
             _LOGGER.error(
-                "Model %s is not supported",
-                self._attr_model_code
+                "Cannot initialize %s: Tuya denied access to the local key. "
+                "Re-link the vacuum in the Eufy app or check account and "
+                "region permissions, then reload the integration.",
+                self._attr_name,
             )
-            self._attr_error_code = "UNSUPPORTED_MODEL"
+            self._attr_error_code = "LOCAL_KEY_UNAVAILABLE"
+        else:
+            try:
+                # Extract model code prefix for device identification
+                model_code_prefix = ""
+                if self.model_code is not None:
+                    model_code_prefix = self.model_code[0:5]
+
+                # Create the RoboVac instance
+                self.vacuum = RoboVac(
+                    device_id=self.unique_id,
+                    host=self.ip_address,
+                    local_key=self.access_token,
+                    timeout=TIMEOUT,
+                    ping_interval=PING_RATE,
+                    model_code=model_code_prefix,
+                    update_entity_state=self.pushed_update_handler,
+                )
+                _LOGGER.debug(
+                    "Initialized RoboVac connection for %s (model: %s)",
+                    self._attr_name,
+                    self._attr_model_code
+                )
+            except ModelNotSupportedException:
+                _LOGGER.error(
+                    "Model %s is not supported",
+                    self._attr_model_code
+                )
+                self._attr_error_code = "UNSUPPORTED_MODEL"
+            except InvalidKey:
+                _LOGGER.error(
+                    "Cannot initialize %s: Tuya returned an invalid local key. "
+                    "Re-link the vacuum in the Eufy app or check account and "
+                    "region permissions, then reload the integration.",
+                    self._attr_name,
+                )
+                self._attr_error_code = "INVALID_LOCAL_KEY"
 
         # Set supported features if vacuum was initialized successfully
         if self.vacuum is not None:

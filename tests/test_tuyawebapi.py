@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import patch, MagicMock
-from custom_components.robovac.tuyawebapi import TuyaAPISession
+from custom_components.robovac.tuyawebapi import TuyaAPIError, TuyaAPISession
 
 
 def test_generate_new_device_id() -> None:
@@ -71,6 +71,29 @@ def test_tuya_api_session_request(mock_post) -> None:
     # Check that query string gets sign
     args, kwargs = mock_post.call_args
     assert "sign" in kwargs["params"]
+
+
+@patch("custom_components.robovac.tuyawebapi.requests.Session.post")
+def test_tuya_api_session_request_raises_structured_permission_error(mock_post) -> None:
+    """Test Tuya permission errors retain the API error code."""
+    mock_response = MagicMock()
+    mock_response.json.return_value = {
+        "success": False,
+        "errorCode": "PERMISSION_DENIED",
+        "status": "error",
+        "errorMsg": "No access",
+    }
+    mock_response.raise_for_status.return_value = None
+    mock_post.return_value = mock_response
+
+    session = TuyaAPISession("username", "EU", "Europe/London", "44")
+    session.session_id = "test_sid"
+
+    with pytest.raises(TuyaAPIError) as exc_info:
+        session._request("tuya.m.device.get", version="1.0", data={"devId": "device"})
+
+    assert exc_info.value.error_code == "PERMISSION_DENIED"
+    assert str(exc_info.value) == "PERMISSION_DENIED: No access"
 
 
 def test_tuya_api_session_determine_password() -> None:
