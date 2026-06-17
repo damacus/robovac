@@ -44,7 +44,7 @@ class T2194(RobovacModelDetails):
         RobovacCommand.MODE: {
             "code": 5,
             "values": {
-                "auto": "Auto",
+                "auto": "auto",
                 "small_room": "SmallRoom",
                 "spot": "Spot",
                 "edge": "Edge",
