@@ -16,6 +16,7 @@ from homeassistant.const import (
     CONF_MODEL,
     CONF_NAME,
 )
+from homeassistant.exceptions import HomeAssistantError
 
 from custom_components.robovac.proto_decode import decode_clean_param_response
 from custom_components.robovac.robovac import RoboVac
@@ -478,6 +479,65 @@ async def test_async_send_command(mock_robovac, mock_vacuum_data) -> None:
         entity._attr_boost_iq = True
         await entity.async_send_command("boostIQ")
         mock_robovac.async_set.assert_called_once_with({"118": False})
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("command", ["edgeClean", "smallRoomClean"])
+async def test_async_send_command_rejects_unsupported_t2258_modes(
+    mock_vacuum_data,
+    command,
+) -> None:
+    """Test T2258 does not send undocumented cleaning modes."""
+    with patch("custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None):
+        robovac = RoboVac(
+            model_code="T2258",
+            device_id="test_id",
+            host="192.168.1.100",
+            local_key="test_key",
+        )
+    robovac.async_set = AsyncMock(return_value=True)
+    t2258_data = {
+        **mock_vacuum_data,
+        CONF_MODEL: "T2258",
+        CONF_DESCRIPTION: "RoboVac G20 Hybrid",
+    }
+
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=robovac):
+        entity = RoboVacEntity(t2258_data)
+
+    with pytest.raises(HomeAssistantError, match="does not support mode"):
+        await entity.async_send_command(command)
+
+    robovac.async_set.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_async_send_command_rejects_t2258_boost_iq_setting(
+    mock_vacuum_data,
+) -> None:
+    """Test T2258 does not send BoostIQ as a separate setting command."""
+    with patch("custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None):
+        robovac = RoboVac(
+            model_code="T2258",
+            device_id="test_id",
+            host="192.168.1.100",
+            local_key="test_key",
+        )
+    robovac.async_set = AsyncMock(return_value=True)
+    t2258_data = {
+        **mock_vacuum_data,
+        CONF_MODEL: "T2258",
+        CONF_DESCRIPTION: "RoboVac G20 Hybrid",
+    }
+
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=robovac):
+        entity = RoboVacEntity(t2258_data)
+
+    entity._attr_boost_iq = False
+    with pytest.raises(HomeAssistantError, match="does not support BoostIQ setting"):
+        await entity.async_send_command("boostIQ")
+
+    robovac.async_set.assert_not_called()
 
 
 @pytest.mark.asyncio

@@ -88,7 +88,9 @@ def mock_robovac() -> MagicMock:
 
     mock.getRoboVacCommandValue.side_effect = command_value_side_effect
     mock.getRoboVacFeatures.return_value = (
-        RoboVacEntityFeature.EDGE | RoboVacEntityFeature.SMALL_ROOM
+        RoboVacEntityFeature.EDGE
+        | RoboVacEntityFeature.SMALL_ROOM
+        | RoboVacEntityFeature.BOOST_IQ
     )
     mock.getFanSpeeds.return_value = ["No Suction", "Standard", "Boost IQ", "Max"]
     mock._dps = {}
