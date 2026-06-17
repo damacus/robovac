@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.3](https://github.com/damacus/robovac/compare/v2.4.3...v2.4.3) (2026-06-17)
+
+
+### Features
+
+* Add native Home Assistant clean segment support ([#456](https://github.com/damacus/robovac/issues/456)) ([3d20011](https://github.com/damacus/robovac/commit/3d2001158291a0a72c73ed3674d624a4947a0836))
+
 ## [2.4.3](https://github.com/damacus/robovac/compare/v2.4.3-beta.1...v2.4.3) (2026-06-17)
 
 
