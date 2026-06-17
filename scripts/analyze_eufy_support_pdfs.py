@@ -155,7 +155,6 @@ def analyze_product(product: dict[str, Any]) -> dict[str, Any]:
                 "clean_modes": find_keys(text, CLEAN_MODE_PATTERNS),
                 "suction_levels": find_keys(text, SUCTION_PATTERNS),
                 "features": find_keys(text, FEATURE_PATTERNS),
-                "supported_functions": find_keys(text, FEATURE_PATTERNS),
             }
         )
 
@@ -170,7 +169,6 @@ def analyze_product(product: dict[str, Any]) -> dict[str, Any]:
         "clean_modes": find_keys(combined_text, CLEAN_MODE_PATTERNS),
         "suction_levels": find_keys(combined_text, SUCTION_PATTERNS),
         "features": find_keys(combined_text, FEATURE_PATTERNS),
-        "supported_functions": find_keys(combined_text, FEATURE_PATTERNS),
         "downloads": analyzed_downloads,
     }
 

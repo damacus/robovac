@@ -170,7 +170,7 @@ def test_get_fan_speeds() -> None:
             # Model code, expected fan speeds, and mock dictionary
             (
                 "T2118",
-                ["No Suction", "Standard", "Boost Iq", "Max"],
+                ["No Suction", "Standard", "Boost IQ", "Max"],
                 {
                     "no_suction": "No_suction",
                     "standard": "Standard",
@@ -180,7 +180,7 @@ def test_get_fan_speeds() -> None:
             ),
             (
                 "T2250",
-                ["Standard", "Turbo", "Max", "Boost Iq"],
+                ["Standard", "Turbo", "Max", "Boost IQ"],
                 {
                     "standard": "Standard",
                     "turbo": "Turbo",
