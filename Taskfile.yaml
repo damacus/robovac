@@ -46,6 +46,11 @@ tasks:
     cmds:
       - uv run flake8 custom_components tests
 
+  cache-eufy-pdfs:
+    desc: Refresh ignored local cache of eufy support owner-manual PDFs
+    cmds:
+      - uv run python scripts/cache_eufy_support_pdfs.py
+
   markdownlint:
     desc: Lint with markdownlint
     cmds:
