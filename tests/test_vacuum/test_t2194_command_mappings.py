@@ -63,8 +63,12 @@ def test_t2194_fan_speed_command_values(mock_t2194_robovac) -> None:
 
 
 def test_t2194_mode_command_values(mock_t2194_robovac) -> None:
-    """Test T2194 MODE command value mappings."""
-    assert mock_t2194_robovac.getRoboVacCommandValue(RobovacCommand.MODE, "auto") == "Auto"
+    """Test T2194 MODE command value mappings.
+
+    GH-309: L35 Hybrid interprets DPS 5 "Auto" as spot cleaning, so normal
+    cleaning must send lowercase "auto" like the device reports in state.
+    """
+    assert mock_t2194_robovac.getRoboVacCommandValue(RobovacCommand.MODE, "auto") == "auto"
     assert mock_t2194_robovac.getRoboVacCommandValue(RobovacCommand.MODE, "spot") == "Spot"
     assert mock_t2194_robovac.getRoboVacCommandValue(RobovacCommand.MODE, "edge") == "Edge"
 
