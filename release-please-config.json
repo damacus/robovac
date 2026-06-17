@@ -2,6 +2,7 @@
   "packages": {
     ".": {
       "release-type": "python",
+      "release-as": "2.4.3",
       "prerelease": false,
       "extra-files": [
         {
