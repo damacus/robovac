@@ -58,6 +58,7 @@ class T2276(RobovacModelDetails):
                 "pure": "Quiet",
                 "standard": "Standard",
                 "turbo": "Turbo",
+                "max": "Max",
                 "boost": "Boost",
             },
         },

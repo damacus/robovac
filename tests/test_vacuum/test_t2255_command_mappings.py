@@ -43,10 +43,12 @@ def test_t2255_mode_case_insensitive(mock_t2255_robovac) -> None:
 
 def test_t2255_fan_speed_command_values(mock_t2255_robovac) -> None:
     """Test T2255 FAN_SPEED value mapping."""
+    assert mock_t2255_robovac.getRoboVacCommandValue(RobovacCommand.FAN_SPEED, "quiet") == "Quiet"
     assert mock_t2255_robovac.getRoboVacCommandValue(RobovacCommand.FAN_SPEED, "standard") == "Standard"
     assert mock_t2255_robovac.getRoboVacCommandValue(RobovacCommand.FAN_SPEED, "turbo") == "Turbo"
     assert mock_t2255_robovac.getRoboVacCommandValue(RobovacCommand.FAN_SPEED, "max") == "Max"
-    assert mock_t2255_robovac.getRoboVacCommandValue(RobovacCommand.FAN_SPEED, "boost_iq") == "Boost_IQ"
+    values = mock_t2255_robovac.model_details.commands[RobovacCommand.FAN_SPEED]["values"]
+    assert "boost_iq" not in values
     assert mock_t2255_robovac.getRoboVacCommandValue(RobovacCommand.FAN_SPEED, "unknown") == "unknown"
 
 

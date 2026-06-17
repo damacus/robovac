@@ -40,10 +40,11 @@ class T2351(RobovacModelDetails):
         RobovacCommand.FAN_SPEED: {
             "code": 154,
             "values": {
-                "Standard": "standard",
-                "Boost IQ": "boost_iq",
-                "Max": "max",
-                "Quiet": "Quiet",
+                "quiet": "Quiet",
+                "standard": "standard",
+                "turbo": "turbo",
+                "max": "max",
+                "boost_iq": "boost_iq",
             },
         },
         RobovacCommand.LOCATE: {"code": 153, "values": {"locate": True}},
