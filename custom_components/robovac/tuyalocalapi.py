@@ -1199,15 +1199,19 @@ class TuyaDevice:
 
         This method retrieves the current state of the device.
         """
+        if self.version >= (3, 5):
+            payload_bytes = json.dumps({}).encode("utf-8")
+            message = Message(
+                Message.GET_COMMAND_NEW,
+                payload_bytes,
+                encrypt=True,
+                device=self,
+                expect_response=False,
+            )
+            await self.async_connect()
+            self._queue.append(message)
+            return
         if self.version >= (3, 4):
-            # v3.5 devices reject all known GET/query commands:
-            # - DP_QUERY (0x0a) → "json obj data unvalid"
-            # - DP_QUERY_NEW (0x10) → same
-            # - UPDATEDPS (0x12) → empty ACK, no DPS data (tested with
-            #   valid DPS IDs [2,5,15,101,102,103,104,106] — still empty)
-            #
-            # The only way to get DPS state is via gratuitous updates (0x08)
-            # the device sends after SET commands.  So just stay connected.
             await self.async_connect()
             return
         if self._backoff is True:
@@ -1282,11 +1286,34 @@ class TuyaDevice:
         if self._backoff is True:
             self._LOGGER.debug("Currently in backoff, not adding ping to queue")
         elif self.version >= (3, 5):
-            # v3.5 devices (like T2276) don't support Tuya heartbeats — they
-            # close the TCP connection after receiving any ping, regardless of
-            # format.  Skip heartbeats entirely; the device will naturally EOF
-            # when idle, and process_queue will drive reconnection.
-            pass
+            t = int(time.time())
+            payload = {
+                "protocol": 5,
+                "data": {
+                    "dps": {
+                        "121": base64.b64encode(
+                            json.dumps(
+                                {
+                                    "type": "mapData",
+                                    "id": self.device_id,
+                                    "timestamp": int(time.time() * 1000),
+                                },
+                                separators=(",", ":"),
+                            ).encode("utf-8")
+                        ).decode("utf-8")
+                    }
+                },
+                "t": t,
+            }
+            payload_bytes = json.dumps(payload).encode("utf-8")
+            message = Message(
+                Message.SET_COMMAND_NEW,
+                payload_bytes,
+                encrypt=True,
+                device=self,
+                expect_response=False,
+            )
+            self._queue.append(message)
         else:
             self.last_ping = time.time()
             encrypt = False if self.version < (3, 3) else True

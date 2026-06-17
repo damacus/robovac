@@ -1,6 +1,8 @@
 """Tests for local Tuya status refresh behavior."""
 
 import asyncio
+import base64
+import json
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 from unittest.mock import MagicMock
@@ -63,6 +65,75 @@ async def test_legacy_async_get_skips_status_request_during_backoff() -> None:
     device.async_receive.assert_not_awaited()
     assert device._queue == []
     assert device._listeners == {}
+
+
+@pytest.mark.asyncio
+async def test_protocol_35_async_get_requests_status_with_get_command_new() -> None:
+    """Protocol 3.5 status refresh sends DP_QUERY_NEW with an empty object."""
+    device = TuyaDevice.__new__(TuyaDevice)
+    device.version = (3, 5)
+    device.gateway_id = "test-device"
+    device.device_id = "test-device"
+    device._queue = []
+    device._listeners = {}
+    device._backoff = False
+
+    device.async_connect = AsyncMock()
+    device.async_receive = AsyncMock()
+
+    await device.async_get()
+
+    device.async_connect.assert_awaited_once()
+    device.async_receive.assert_not_awaited()
+    assert len(device._queue) == 1
+    message = device._queue[0]
+    assert message.command == Message.GET_COMMAND_NEW
+    assert json.loads(message.payload.decode("utf-8")) == {}
+    assert message.encrypt is True
+    assert message.expect_response is False
+
+
+@pytest.mark.asyncio
+async def test_protocol_35_ping_queues_map_data_keepalive() -> None:
+    """Protocol 3.5 keepalive mirrors the mobile app map-data control request."""
+    device = TuyaDevice.__new__(TuyaDevice)
+    device.version = (3, 5)
+    device.device_id = "test-device"
+    device._queue = []
+    device._backoff = False
+    device._enabled = True
+    device._LOGGER = MagicMock()
+    device.ping_interval = 55
+
+    def close_scheduled_ping(coro: object) -> MagicMock:
+        close = getattr(coro, "close", None)
+        if close is not None:
+            close()
+        return MagicMock()
+
+    with patch("custom_components.robovac.tuyalocalapi.time.time", return_value=1234.5):
+        with patch("custom_components.robovac.tuyalocalapi.asyncio.sleep", new=AsyncMock()):
+            with patch(
+                "custom_components.robovac.tuyalocalapi.asyncio.create_task",
+                side_effect=close_scheduled_ping,
+            ):
+                await device.async_ping(55)
+
+    assert len(device._queue) == 1
+    message = device._queue[0]
+    assert message.command == Message.SET_COMMAND_NEW
+    assert message.encrypt is True
+    assert message.expect_response is False
+
+    payload = json.loads(message.payload.decode("utf-8"))
+    assert payload["protocol"] == 5
+    assert payload["t"] == 1234
+    map_data = json.loads(base64.b64decode(payload["data"]["dps"]["121"]))
+    assert map_data == {
+        "type": "mapData",
+        "id": "test-device",
+        "timestamp": 1234500,
+    }
 
 
 @pytest.mark.asyncio
