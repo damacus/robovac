@@ -4,49 +4,49 @@ This page lists all currently supported Eufy RoboVac models.
 
 ## Model Compatibility Table
 
-| Model Code | Friendly Name        | Protocol |
-|------------|----------------------|----------|
-| T1250      | RoboVac G40          | 3.3      |
-| T2080      | RoboVac S1 Pro       | 3.4      |
-| T2103      | RoboVac 11S          | 3.3      |
-| T2117      | RoboVac 35C          | 3.3      |
-| T2118      | RoboVac 30C          | 3.3      |
-| T2119      | RoboVac 11S Plus     | 3.3      |
-| T2120      | RoboVac 15C          | 3.3      |
-| T2123      | RoboVac 25C          | 3.3      |
-| T2128      | RoboVac 15C Max      | 3.3      |
-| T2130      | RoboVac 30C Max      | 3.3      |
-| T2132      | RoboVac 25C Max      | 3.3      |
-| T2150      | RoboVac G10 Hybrid   | 3.3      |
-| T2181      | RoboVac LR30 Hybrid+ | 3.3      |
-| T2190      | RoboVac L70 Hybrid   | 3.3      |
-| T2192      | RoboVac LR20         | 3.3      |
-| T2193      | RoboVac LR30 Hybrid  | 3.3      |
-| T2194      | RoboVac L35 Hybrid   | 3.4      |
-| T2210      | eufy Clean G50       | 3.3      |
-| T2212      | eufy Clean G50 Hybrid | 3.3     |
-| T2250      | RoboVac G30          | 3.3      |
-| T2251      | RoboVac G30 Edge     | 3.3      |
-| T2252      | RoboVac G30 Verge    | 3.3      |
-| T2253      | RoboVac G30 Hybrid   | 3.3      |
-| T2254      | eufy Clean G35       | 3.3      |
-| T2255      | eufy Clean G40       | 3.3      |
-| T2258      | RoboVac G20 Hybrid   | 3.3      |
-| T2259      | RoboVac G32 Pro      | 3.3      |
-| T2261      | RoboVac X8 Hybrid    | 3.3      |
-| T2262      | RoboVac X8           | 3.3      |
-| T2267      | eufy Clean L60       | 3.4      |
-| T2268      | eufy Clean L60 Hybrid | 3.4     |
-| T2270      | RoboVac G35+         | 3.3      |
-| T2272      | RoboVac G40+         | 3.3      |
-| T2273      | RoboVac G40 Hybrid+  | 3.3      |
-| T2275      | eufy Clean L50 SES   | 3.4      |
-| T2276      | eufy Clean X8 Pro SES | 3.4     |
-| T2277      | eufy Clean L60 SES   | 3.4      |
-| T2278      | eufy Clean L60 Hybrid SES | 3.4 |
-| T2280      | eufy Omni C20        | 3.4      |
-| T2320      | eufy Clean X9 Pro    | 3.3      |
-| T2351      | eufy Clean X10 Pro Omni | 3.4   |
+| Model Code | Friendly Name               | Protocol |
+|------------|-----------------------------|----------|
+| T1250      | RoboVac G40                 | 3.3      |
+| T2080      | RoboVac S1 Pro              | 3.4      |
+| T2103      | RoboVac 11S                 | 3.3      |
+| T2117      | RoboVac 35C                 | 3.3      |
+| T2118      | RoboVac 30C                 | 3.3      |
+| T2119      | RoboVac 11S Plus            | 3.3      |
+| T2120      | RoboVac 15C                 | 3.3      |
+| T2123      | RoboVac 25C                 | 3.3      |
+| T2128      | RoboVac 15C Max             | 3.3      |
+| T2130      | RoboVac 30C Max             | 3.3      |
+| T2132      | RoboVac 25C Max             | 3.3      |
+| T2150      | RoboVac G10 Hybrid          | 3.3      |
+| T2181      | RoboVac LR30 Hybrid+        | 3.3      |
+| T2190      | RoboVac L70 Hybrid          | 3.3      |
+| T2192      | RoboVac LR20                | 3.3      |
+| T2193      | RoboVac LR30 Hybrid         | 3.3      |
+| T2194      | RoboVac L35 Hybrid          | 3.4      |
+| T2210      | eufy Clean G50              | 3.3      |
+| T2212      | eufy Clean G50 Hybrid       | 3.3      |
+| T2250      | RoboVac G30                 | 3.3      |
+| T2251      | RoboVac G30 Edge            | 3.3      |
+| T2252      | RoboVac G30 Verge           | 3.3      |
+| T2253      | RoboVac G30 Hybrid          | 3.3      |
+| T2254      | eufy Clean G35              | 3.3      |
+| T2255      | eufy Clean G40              | 3.3      |
+| T2258      | RoboVac G20 Hybrid          | 3.3      |
+| T2259      | RoboVac G32 Pro             | 3.3      |
+| T2261      | RoboVac X8 Hybrid           | 3.3      |
+| T2262      | RoboVac X8                  | 3.3      |
+| T2267      | eufy Clean L60              | 3.4      |
+| T2268      | eufy Clean L60 Hybrid       | 3.4      |
+| T2270      | RoboVac G35+                | 3.3      |
+| T2272      | RoboVac G40+                | 3.3      |
+| T2273      | RoboVac G40 Hybrid+         | 3.3      |
+| T2275      | eufy Clean L50 SES          | 3.4      |
+| T2276      | eufy Clean X8 Pro SES       | 3.4      |
+| T2277      | eufy Clean L60 SES          | 3.4      |
+| T2278      | eufy Clean L60 Hybrid SES   | 3.4      |
+| T2280      | eufy Omni C20               | 3.4      |
+| T2320      | eufy Clean X9 Pro           | 3.3      |
+| T2351      | eufy Clean X10 Pro Omni     | 3.4      |
 
 ## Model Series
 
