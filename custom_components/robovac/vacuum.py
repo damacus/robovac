@@ -707,6 +707,7 @@ class RoboVacEntity(StateVacuumEntity):
         self.tuyastatus: dict[str, Any] | None = None
         self._last_no_data_warning_time: float = 0
         self._no_data_warning_logged: bool = False
+        self._has_seen_data_points: bool = False
         self._consumables_codes_cache: list[str] | None = None
         self._dps_codes_memo: dict[str, str] = {}
         self._last_consumable_data: str | None = None
@@ -879,6 +880,9 @@ class RoboVacEntity(StateVacuumEntity):
         self.tuyastatus = self.vacuum._dps
 
         if self.tuyastatus is None or not self.tuyastatus:
+            if not self._has_seen_data_points:
+                _LOGGER.debug("Vacuum %s has no data points available yet", self.name)
+                return
             current_time = time.time()
             # Only log warning when state changes or after 5 minutes
             if not self._no_data_warning_logged or (current_time - self._last_no_data_warning_time) >= 300:
@@ -886,6 +890,8 @@ class RoboVacEntity(StateVacuumEntity):
                 self._last_no_data_warning_time = current_time
                 self._no_data_warning_logged = True
             return
+
+        self._has_seen_data_points = True
 
         # Reset warning state when data is available
         if self._no_data_warning_logged:

@@ -69,6 +69,23 @@ def test_update_entity_values_with_valid_data(vacuum_entity):
     assert vacuum_entity.tuyastatus is not None
 
 
+def test_initial_empty_data_points_do_not_warn(mock_robovac, mock_vacuum_data, caplog):
+    """Initial empty DPS is not actionable and should not warn."""
+    mock_robovac._dps = {}
+
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
+        entity = RoboVacEntity(mock_vacuum_data)
+
+    entity.update_entity_values()
+
+    assert not [
+        record
+        for record in caplog.records
+        if record.levelname == "WARNING"
+        and "has no data points available" in record.message
+    ]
+
+
 def test_battery_sensor_exists_separately(vacuum_entity):
     """Test that battery level is handled by separate sensor, not vacuum entity."""
     # Battery level attribute should not exist on vacuum entity
