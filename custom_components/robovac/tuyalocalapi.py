@@ -995,9 +995,13 @@ class TuyaDevice:
                 timeout=self.timeout,
             )
         except (asyncio.TimeoutError, OSError) as e:
-            self._dps[self.model_details.commands[RobovacCommand.ERROR]] = (
-                "CONNECTION_FAILED"
+            error_command = self.model_details.commands.get(RobovacCommand.ERROR, {})
+            error_dps = (
+                error_command.get("code")
+                if isinstance(error_command, dict)
+                else error_command
             )
+            self._dps[str(error_dps)] = "CONNECTION_FAILED"
             raise ConnectionTimeoutException("Connection timed out: {}".format(e))
         self._connected = True
 
