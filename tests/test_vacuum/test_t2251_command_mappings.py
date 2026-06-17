@@ -62,6 +62,18 @@ def test_t2251_status_human_readable(mock_t2251_robovac) -> None:
     assert mock_t2251_robovac.getRoboVacHumanReadableValue(RobovacCommand.STATUS, "standby") == "Standby"
     assert mock_t2251_robovac.getRoboVacHumanReadableValue(RobovacCommand.STATUS, "Sleeping") == "Sleeping"
     assert mock_t2251_robovac.getRoboVacHumanReadableValue(RobovacCommand.STATUS, "recharge_needed") == "Recharge needed"
+    assert mock_t2251_robovac.getRoboVacHumanReadableValue(RobovacCommand.STATUS, "Recharge") == "Returning to Dock"
+
+
+def test_t2251_start_pause_values(mock_t2251_robovac) -> None:
+    """Test T2251 START_PAUSE maps 'start' to True and 'pause' to False.
+
+    G30 Edge reports the same legacy DPS 2 boolean start/pause behavior as
+    related G30 models. Without this mapping, HA omits DPS 2 on start and
+    sends the string "pause" on pause.
+    """
+    assert mock_t2251_robovac.getRoboVacCommandValue(RobovacCommand.START_PAUSE, "start") is True
+    assert mock_t2251_robovac.getRoboVacCommandValue(RobovacCommand.START_PAUSE, "pause") is False
 
 
 def test_t2251_error_code_mapping(mock_t2251_robovac) -> None:

@@ -13,7 +13,7 @@ jobs:
     name: runner / hacs
     steps:
       - name: Check out code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
 
       - name: Run HACS validation
         uses: hacs/action@d556e736723344f83838d08488c983a15381059a # 22.5.0
@@ -25,7 +25,7 @@ jobs:
     name: runner / hassfest
     steps:
       - name: Check out code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
 
       - name: Run hassfest validation
         uses: home-assistant/actions/hassfest@master
@@ -35,7 +35,7 @@ jobs:
     name: runner / markdownlint
     steps:
       - name: Check out code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
 
       - name: Run Markdown Lint
         uses: DavidAnson/markdownlint-cli2-action@ded1f9488f68a970bc66ea5619e13e9b52e601cd # v23
@@ -48,10 +48,10 @@ jobs:
     continue-on-error: true
     steps:
       - name: Check out code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
 
       - name: Run linkspector
-        uses: umbrelladocs/action-linkspector@963b6264d7de32c904942a70b488d3407453049e # v1
+        uses: umbrelladocs/action-linkspector@6c637d70424624231467a4ca918be54fa3b792d0 # v1
         with:
           fail_on_error: false
           reporter: github-pr-review
@@ -61,7 +61,7 @@ jobs:
     name: runner / lint
     steps:
       - name: Check out code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
 
       - name: Setup Python Environment
         uses: ./.github/actions/setup-python-env
@@ -80,7 +80,7 @@ jobs:
     needs: [check-markdown, check-links, lint, hacs, hassfest]
     steps:
       - name: Check out code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
 
       - name: Setup Python Environment
         uses: ./.github/actions/setup-python-env
@@ -96,6 +96,6 @@ jobs:
           filename: coverage.xml
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@e79a6962e0d4c0c17b229090214935d2e33f8354 # v6
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}

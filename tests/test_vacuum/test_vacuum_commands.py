@@ -1,5 +1,8 @@
 """Tests for the RoboVac vacuum entity commands."""
 
+import base64
+import json
+
 import pytest
 from typing import Any
 from unittest.mock import patch, MagicMock, AsyncMock, call
@@ -17,6 +20,7 @@ from homeassistant.const import (
 from custom_components.robovac.proto_decode import decode_clean_param_response
 from custom_components.robovac.robovac import RoboVac
 from custom_components.robovac.vacuum import RoboVacEntity
+from custom_components.robovac.vacuums.base import RobovacCommand
 
 
 @pytest.mark.asyncio
@@ -123,6 +127,65 @@ async def test_async_start_sends_start_pause_for_boolean_models(
         await entity.async_start()
 
         robovac.async_set.assert_called_once_with({"5": "Auto", "2": True})
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("model_code", ["T2277", "T2278"])
+async def test_async_return_to_base_does_not_overwrite_shared_dps_code(
+    mock_vacuum_data,
+    model_code,
+) -> None:
+    """When RETURN_HOME and START_PAUSE share a DPS code, keep return payload.
+
+    Some models use DPS 152 for RETURN_HOME, MODE, and START_PAUSE. Adding
+    another command on the same key would overwrite return_home.
+    """
+    with patch("custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None):
+        robovac = RoboVac(
+            model_code=model_code,
+            device_id="test_id",
+            host="192.168.1.100",
+            local_key="test_key",
+        )
+    robovac.async_set = AsyncMock(return_value=True)
+
+    model_data = {**mock_vacuum_data, "model": model_code}
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=robovac):
+        entity = RoboVacEntity(model_data)
+        await entity.async_return_to_base()
+
+        return_home_code = entity.get_dps_code("RETURN_HOME")
+        expected_return_value = robovac.getRoboVacCommandValue(RobovacCommand.RETURN_HOME, "return")
+        assert return_home_code == entity.get_dps_code("MODE")
+        assert return_home_code == entity.get_dps_code("START_PAUSE")
+        robovac.async_set.assert_called_once_with({return_home_code: expected_return_value})
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("model_code", ["T2277", "T2278"])
+async def test_async_start_does_not_overwrite_shared_dps_code(
+    mock_vacuum_data,
+    model_code,
+) -> None:
+    """When MODE and START_PAUSE share a DPS code, keep mode payload for start."""
+    with patch("custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None):
+        robovac = RoboVac(
+            model_code=model_code,
+            device_id="test_id",
+            host="192.168.1.100",
+            local_key="test_key",
+        )
+    robovac.async_set = AsyncMock(return_value=True)
+
+    model_data = {**mock_vacuum_data, "model": model_code}
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=robovac):
+        entity = RoboVacEntity(model_data)
+        await entity.async_start()
+
+        mode_code = entity.get_dps_code("MODE")
+        expected_auto_value = robovac.getRoboVacCommandValue(RobovacCommand.MODE, "auto")
+        assert mode_code == entity.get_dps_code("START_PAUSE")
+        robovac.async_set.assert_called_once_with({mode_code: expected_auto_value})
 
 
 @pytest.mark.asyncio
@@ -415,6 +478,89 @@ async def test_async_send_command(mock_robovac, mock_vacuum_data) -> None:
         entity._attr_boost_iq = True
         await entity.async_send_command("boostIQ")
         mock_robovac.async_set.assert_called_once_with({"118": False})
+
+
+@pytest.mark.asyncio
+async def test_room_clean_includes_map_id(mock_robovac, mock_vacuum_data) -> None:
+    """Test roomClean forwards the configured map ID when provided."""
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
+        entity = RoboVacEntity(mock_vacuum_data)
+
+    await entity.async_send_command(
+        "roomClean",
+        {
+            "room_ids": [2],
+            "map_id": 3,
+            "count": 2,
+        },
+    )
+
+    first_call = mock_robovac.async_set.await_args_list[0]
+    payload = first_call.args[0]["124"]
+    method_call = json.loads(base64.b64decode(payload).decode("utf8"))
+
+    assert method_call["method"] == "selectRoomsClean"
+    assert method_call["data"] == {
+        "roomIds": [2],
+        "cleanTimes": 2,
+        "mapId": 3,
+    }
+
+
+@pytest.mark.asyncio
+async def test_room_clean_accepts_list_params_with_map_id(
+    mock_robovac, mock_vacuum_data
+) -> None:
+    """Test roomClean merges Home Assistant list params and preserves map ID."""
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
+        entity = RoboVacEntity(mock_vacuum_data)
+
+    await entity.async_send_command(
+        "roomClean",
+        [{"roomIds": [2]}, {"mapId": 0}, {"count": 2}],
+    )
+
+    first_call = mock_robovac.async_set.await_args_list[0]
+    payload = first_call.args[0]["124"]
+    method_call = json.loads(base64.b64decode(payload).decode("utf8"))
+
+    assert method_call["method"] == "selectRoomsClean"
+    assert method_call["data"] == {
+        "roomIds": [2],
+        "cleanTimes": 2,
+        "mapId": 0,
+    }
+
+
+@pytest.mark.asyncio
+async def test_room_clean_accepts_room_id_list(mock_robovac, mock_vacuum_data) -> None:
+    """Test roomClean accepts a direct list of room IDs."""
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
+        entity = RoboVacEntity(mock_vacuum_data)
+
+    await entity.async_send_command("roomClean", [2, 3])
+
+    first_call = mock_robovac.async_set.await_args_list[0]
+    payload = first_call.args[0]["124"]
+    method_call = json.loads(base64.b64decode(payload).decode("utf8"))
+
+    assert method_call["data"] == {
+        "roomIds": [2, 3],
+        "cleanTimes": 1,
+    }
+
+
+@pytest.mark.asyncio
+async def test_room_clean_ignores_unexpected_params(
+    mock_robovac, mock_vacuum_data
+) -> None:
+    """Test roomClean ignores unsupported parameter shapes."""
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
+        entity = RoboVacEntity(mock_vacuum_data)
+
+    await entity.async_send_command("roomClean", "bad params")
+
+    mock_robovac.async_set.assert_not_awaited()
 
 
 @pytest.mark.asyncio

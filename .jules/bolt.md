@@ -30,3 +30,7 @@
 ## 2026-03-03 - [Cryptography Context (Tuya) in Optimization]
 **Learning:** In `TuyaCipher`, the legacy MD5 `hash` method is only used for older protocols. Attempting to optimize it by pre-caching a hash suffix string using the session key broke device communication on Protocol >= 3.4. Those protocols negotiate a pure binary session key via ECDH. Decoding this binary key to an ASCII string (with `errors="replace"`) to build a string suffix corrupted `self.key` and permanently broke the device connection.
 **Action:** Always carefully inspect how the data is used downstream. Never try to decode arbitrary binary data to a string just to perform string formatting. Keep optimizations focused on eliminating overhead (like avoiding `.decode` and `encode` by using pure byte concatenation) without mutating object state.
+
+## 2026-03-03 - [Python set intersection vs isdisjoint]
+**Learning:** `set.intersection()` constructs and returns a new set, causing an unnecessary memory allocation, which is particularly wasteful in a hot path if the result is only used for a boolean check (e.g., `if not set_a.intersection(dict_b)`).
+**Action:** Replace `set.intersection()` with `set.isdisjoint()` when only a boolean presence check is needed to avoid object allocations and allow for early-exit evaluation.
