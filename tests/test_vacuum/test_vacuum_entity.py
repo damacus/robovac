@@ -16,7 +16,7 @@ from homeassistant.const import (
     CONF_NAME,
 )
 from custom_components.robovac.robovac import RoboVac
-from custom_components.robovac.vacuum import RoboVacEntity
+from custom_components.robovac.vacuum import ATTR_ERROR, RoboVacEntity
 from custom_components.robovac.vacuums.base import TuyaCodes
 
 
@@ -83,6 +83,31 @@ async def test_activity_property_error(mock_robovac, mock_vacuum_data) -> None:
 
         # Assert
         assert result == VacuumActivity.ERROR
+
+
+@pytest.mark.asyncio
+async def test_error_attribute_uses_error_message(mock_robovac, mock_vacuum_data) -> None:
+    """Test error attribute displays actual error details when present."""
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
+        entity = RoboVacEntity(mock_vacuum_data)
+        entity.tuya_state = "Cleaning"
+        entity.error_code = "Wheel_stuck"
+
+        assert entity.activity == VacuumActivity.ERROR
+        assert entity.state == VacuumActivity.ERROR
+        assert entity.extra_state_attributes[ATTR_ERROR] == "Wheel stuck"
+
+
+@pytest.mark.asyncio
+async def test_no_error_text_is_not_error_attribute(mock_robovac, mock_vacuum_data) -> None:
+    """Test decoded 'No error' text is not exposed as an active error."""
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
+        entity = RoboVacEntity(mock_vacuum_data)
+        entity.tuya_state = "Charging"
+        entity.error_code = "No error"
+
+        assert entity.activity == VacuumActivity.DOCKED
+        assert ATTR_ERROR not in entity.extra_state_attributes
 
 
 @pytest.mark.asyncio

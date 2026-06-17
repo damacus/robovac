@@ -100,6 +100,11 @@ _CLEAN_TYPE_LABELS = {
 }
 
 
+def _is_error_code(value: int | str | None) -> bool:
+    """Return True when an error value represents an active error."""
+    return value not in (None, 0, "no_error", "No error")
+
+
 def _clean_type_label(clean_type: str | None) -> str | None:
     if not clean_type:
         return None
@@ -423,10 +428,11 @@ class RoboVacEntity(StateVacuumEntity):
             and mode_activity not in (None, VacuumActivity.RETURNING)
         ):
             return_progress_activity = None
-        if self.error_code is not None and self.error_code not in [0, "no_error", "No error"]:
+        error_code = self.error_code
+        if _is_error_code(error_code) and error_code is not None:
             _LOGGER.debug(
                 "State changed to error. Error message: {}".format(
-                    getErrorMessage(self.error_code)
+                    getErrorMessage(error_code)
                 )
             )
             return VacuumActivity.ERROR
@@ -529,8 +535,9 @@ class RoboVacEntity(StateVacuumEntity):
         """Return the device-specific state attributes of this vacuum."""
         data: dict[str, Any] = {}
 
-        if self._attr_error_code is not None and self._attr_error_code not in [0, "no_error"]:
-            data[ATTR_ERROR] = getErrorMessage(self._attr_error_code)
+        error_code = self._attr_error_code
+        if _is_error_code(error_code) and error_code is not None:
+            data[ATTR_ERROR] = getErrorMessage(error_code)
         if (
             self.robovac_supported is not None
             and self.robovac_supported & RoboVacEntityFeature.CLEANING_AREA
