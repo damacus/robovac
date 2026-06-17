@@ -6,6 +6,7 @@
         "error": {
             "cannot_connect": "Verbinding mislukt",
             "invalid_auth": "Ongeldige authenticatie",
+            "no_vacuums_found": "Er zijn geen compatibele RoboVac-apparaten gevonden in je Eufy-account",
             "unknown": "Onverwachte fout"
         },
         "step": {

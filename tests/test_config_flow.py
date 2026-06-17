@@ -233,6 +233,43 @@ async def test_user_form_success(
 
 
 @pytest.mark.asyncio
+async def test_user_form_no_vacuums_found(
+    hass: HomeAssistant, mock_eufy_response
+) -> None:
+    """Test setup fails when no discovered vacuum has Tuya credentials."""
+    with (
+        patch(
+            "custom_components.robovac.config_flow.EufyLogon",
+            return_value=MagicMock(
+                get_user_info=MagicMock(return_value=mock_eufy_response["user_info"]),
+                get_device_info=MagicMock(
+                    return_value=mock_eufy_response["device_info"]
+                ),
+                get_user_settings=MagicMock(
+                    return_value=mock_eufy_response["settings"]
+                ),
+            ),
+        ),
+        patch(
+            "custom_components.robovac.config_flow.TuyaAPISession",
+            return_value=MagicMock(get_device=MagicMock(side_effect=Exception)),
+        ),
+    ):
+        result = await hass.config_entries.flow.async_init(
+            DOMAIN,
+            context={"source": config_entries.SOURCE_USER},
+            data={
+                CONF_USERNAME: "test-username",
+                CONF_PASSWORD: "test-password",
+            },
+        )
+
+    assert result["type"] == data_entry_flow.FlowResultType.FORM
+    assert result["step_id"] == "user"
+    assert result["errors"] == {"base": "no_vacuums_found"}
+
+
+@pytest.mark.asyncio
 async def test_options_flow_init(hass: HomeAssistant) -> None:
     """Test options flow init step."""
     # Create a mock config entry using MagicMock instead of actual ConfigEntry
