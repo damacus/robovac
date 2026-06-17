@@ -21,7 +21,6 @@ class T2258(RobovacModelDetails):
         | RoboVacEntityFeature.DO_NOT_DISTURB
         | RoboVacEntityFeature.AUTO_RETURN
         | RoboVacEntityFeature.CONSUMABLES
-        | RoboVacEntityFeature.BOOST_IQ
     )
     commands = {
         RobovacCommand.START_PAUSE: {
@@ -48,6 +47,7 @@ class T2258(RobovacModelDetails):
                 "standard": "Standard",
                 "turbo": "Turbo",
                 "max": "Max",
+                "boost_iq": "Boost_IQ",
             },
         },
         RobovacCommand.LOCATE: {

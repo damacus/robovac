@@ -512,10 +512,37 @@ async def test_async_send_command_rejects_unsupported_t2258_modes(
 
 
 @pytest.mark.asyncio
-async def test_async_send_command_sends_t2258_boost_iq_setting(
+async def test_async_set_fan_speed_sends_t2258_boost_iq_value(
     mock_vacuum_data,
 ) -> None:
-    """Test T2258 sends documented BoostIQ as a separate setting command."""
+    """Test T2258 sends documented BoostIQ as a fan-speed value."""
+    with patch("custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None):
+        robovac = RoboVac(
+            model_code="T2258",
+            device_id="test_id",
+            host="192.168.1.100",
+            local_key="test_key",
+        )
+    robovac.async_set = AsyncMock(return_value=True)
+    robovac._dps = {}
+    t2258_data = {
+        **mock_vacuum_data,
+        CONF_MODEL: "T2258",
+        CONF_DESCRIPTION: "RoboVac G20 Hybrid",
+    }
+
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=robovac):
+        entity = RoboVacEntity(t2258_data)
+
+    await entity.async_set_fan_speed("Boost IQ")
+    robovac.async_set.assert_called_once_with({"102": "Boost_IQ"})
+
+
+@pytest.mark.asyncio
+async def test_async_send_command_rejects_t2258_boost_iq_setting(
+    mock_vacuum_data,
+) -> None:
+    """Test T2258 does not send an unverified BoostIQ setting command."""
     with patch("custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None):
         robovac = RoboVac(
             model_code="T2258",
@@ -533,17 +560,10 @@ async def test_async_send_command_sends_t2258_boost_iq_setting(
     with patch("custom_components.robovac.vacuum.RoboVac", return_value=robovac):
         entity = RoboVacEntity(t2258_data)
 
-    assert entity.get_dps_code("BOOST_IQ") == "118"
+    with pytest.raises(HomeAssistantError, match="does not support BoostIQ setting"):
+        await entity.async_send_command("boostIQ")
 
-    entity._attr_boost_iq = False
-    await entity.async_send_command("boostIQ")
-    robovac.async_set.assert_called_once_with({"118": True})
-
-    robovac.async_set.reset_mock()
-
-    entity._attr_boost_iq = True
-    await entity.async_send_command("boostIQ")
-    robovac.async_set.assert_called_once_with({"118": False})
+    robovac.async_set.assert_not_called()
 
 
 @pytest.mark.asyncio
