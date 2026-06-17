@@ -410,6 +410,18 @@ class RoboVacEntity(StateVacuumEntity):
             return value == "True" or value.lower() == "true"
         return False
 
+    def _supports_command_value(self, command: RobovacCommand, value: str) -> bool:
+        """Return whether the current model supports a command value."""
+        if self.vacuum is None:
+            return False
+
+        supports_value = getattr(self.vacuum, "supportsRoboVacCommandValue", None)
+        if not callable(supports_value):
+            return True
+
+        supported = supports_value(command, value)
+        return supported if isinstance(supported, bool) else True
+
     def _get_mode_command_data(self, mode: str) -> dict[str, str | bool] | None:
         """Helper method to get mode command data for the vacuum.
 
@@ -425,6 +437,9 @@ class RoboVacEntity(StateVacuumEntity):
         """
         if self.vacuum is None:
             return None
+
+        if not self._supports_command_value(RobovacCommand.MODE, mode):
+            raise HomeAssistantError(f"{self.model_code} does not support mode {mode}")
 
         return {
             self.get_dps_code("MODE"): self.vacuum.getRoboVacCommandValue(RobovacCommand.MODE, mode)
@@ -1682,6 +1697,12 @@ class RoboVacEntity(StateVacuumEntity):
                 self.get_dps_code("DO_NOT_DISTURB"): new_value
             })
         elif command == "boostIQ":
+            if not self.robovac_supported or not (
+                self.robovac_supported & RoboVacEntityFeature.BOOST_IQ
+            ):
+                raise HomeAssistantError(
+                    f"{self.model_code} does not support BoostIQ setting"
+                )
             # Toggle the boost IQ setting
             new_value = not self._is_value_true(self.boost_iq)
             await self.vacuum.async_set({

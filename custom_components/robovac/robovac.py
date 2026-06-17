@@ -243,6 +243,29 @@ class RoboVac(TuyaDevice):
 
         return value
 
+    def supportsRoboVacCommandValue(
+        self, command_name: RobovacCommand, value: str
+    ) -> bool:
+        """Return whether a model explicitly supports a command value.
+
+        Commands without a model-specific values table keep their existing
+        passthrough behavior.
+        """
+        try:
+            cmd = (
+                command_name
+                if isinstance(command_name, RobovacCommand)
+                else RobovacCommand(command_name)
+            )
+            values = self._get_command_values(cmd)
+        except (ValueError, KeyError):
+            return True
+
+        if values is None:
+            return True
+
+        return value in values
+
     def getRoboVacHumanReadableValue(self, command_name: RobovacCommand, value: str) -> str:
         """Convert model-specific device value to human-readable command value.
 
