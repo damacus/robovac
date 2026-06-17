@@ -1194,12 +1194,48 @@ class TuyaDevice:
         # most vacuum models.
         return {str(k): None for k in [2, 5, 15, 101, 102, 103, 104, 106]}
 
+    def _uses_protocol_35_empty_dps_query(self) -> bool:
+        """Return whether the model uses empty DP_QUERY_NEW for status refresh."""
+        model_details = getattr(self, "model_details", None)
+        return self.version >= (3, 5) and bool(
+            getattr(model_details, "protocol_35_empty_dps_query", False)
+        )
+
+    def _uses_protocol_35_map_data_keepalive(self) -> bool:
+        """Return whether the model uses the DPS 121 mapData keepalive."""
+        model_details = getattr(self, "model_details", None)
+        return self.version >= (3, 5) and bool(
+            getattr(model_details, "protocol_35_map_data_keepalive", False)
+        )
+
+    def _protocol_35_map_data_keepalive_payload(self, now: float) -> bytes:
+        """Build the mobile-app-style DPS 121 keepalive payload."""
+        map_data = {
+            "type": "mapData",
+            "id": self.device_id,
+            "timestamp": int(now * 1000),
+        }
+        payload = {
+            "protocol": 5,
+            "data": {
+                "dps": {
+                    "121": base64.b64encode(
+                        json.dumps(map_data, separators=(",", ":")).encode("utf-8")
+                    ).decode("utf-8")
+                }
+            },
+            "t": int(now),
+        }
+        return json.dumps(payload).encode("utf-8")
+
     async def async_get(self) -> None:
         """Get the current state of the device.
 
         This method retrieves the current state of the device.
         """
-        if self.version >= (3, 5):
+        if self._uses_protocol_35_empty_dps_query():
+            # T2276/X8 Pro SES mirrors the mobile app: after session-key
+            # negotiation, an empty DP_QUERY_NEW prompts the device to push DPS.
             payload_bytes = json.dumps({}).encode("utf-8")
             message = Message(
                 Message.GET_COMMAND_NEW,
@@ -1285,27 +1321,8 @@ class TuyaDevice:
 
         if self._backoff is True:
             self._LOGGER.debug("Currently in backoff, not adding ping to queue")
-        elif self.version >= (3, 5):
-            t = int(time.time())
-            payload = {
-                "protocol": 5,
-                "data": {
-                    "dps": {
-                        "121": base64.b64encode(
-                            json.dumps(
-                                {
-                                    "type": "mapData",
-                                    "id": self.device_id,
-                                    "timestamp": int(time.time() * 1000),
-                                },
-                                separators=(",", ":"),
-                            ).encode("utf-8")
-                        ).decode("utf-8")
-                    }
-                },
-                "t": t,
-            }
-            payload_bytes = json.dumps(payload).encode("utf-8")
+        elif self._uses_protocol_35_map_data_keepalive():
+            payload_bytes = self._protocol_35_map_data_keepalive_payload(time.time())
             message = Message(
                 Message.SET_COMMAND_NEW,
                 payload_bytes,
@@ -1314,6 +1331,10 @@ class TuyaDevice:
                 expect_response=False,
             )
             self._queue.append(message)
+        elif self.version >= (3, 5):
+            # Unknown protocol 3.5 models should not inherit T2276's DPS 121
+            # write until that behavior has been confirmed for the model.
+            pass
         else:
             self.last_ping = time.time()
             encrypt = False if self.version < (3, 3) else True

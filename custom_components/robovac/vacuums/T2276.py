@@ -11,6 +11,8 @@ from .base import RoboVacEntityFeature, RobovacCommand, RobovacModelDetails
 
 class T2276(RobovacModelDetails):
     protocol_version = 3.5
+    protocol_35_empty_dps_query = True
+    protocol_35_map_data_keepalive = True
     homeassistant_features = (
         VacuumEntityFeature.FAN_SPEED
         | VacuumEntityFeature.LOCATE

@@ -69,8 +69,9 @@ async def test_legacy_async_get_skips_status_request_during_backoff() -> None:
 
 @pytest.mark.asyncio
 async def test_protocol_35_async_get_requests_status_with_get_command_new() -> None:
-    """Protocol 3.5 status refresh sends DP_QUERY_NEW with an empty object."""
+    """Opted-in protocol 3.5 models send DP_QUERY_NEW with an empty object."""
     device = TuyaDevice.__new__(TuyaDevice)
+    device.model_details = SimpleNamespace(protocol_35_empty_dps_query=True)
     device.version = (3, 5)
     device.gateway_id = "test-device"
     device.device_id = "test-device"
@@ -94,9 +95,30 @@ async def test_protocol_35_async_get_requests_status_with_get_command_new() -> N
 
 
 @pytest.mark.asyncio
-async def test_protocol_35_ping_queues_map_data_keepalive() -> None:
-    """Protocol 3.5 keepalive mirrors the mobile app map-data control request."""
+async def test_protocol_35_async_get_without_opt_in_only_connects() -> None:
+    """Protocol 3.5 models do not inherit T2276 status queries by default."""
     device = TuyaDevice.__new__(TuyaDevice)
+    device.model_details = SimpleNamespace()
+    device.version = (3, 5)
+    device._queue = []
+    device._listeners = {}
+    device._backoff = False
+
+    device.async_connect = AsyncMock()
+    device.async_receive = AsyncMock()
+
+    await device.async_get()
+
+    device.async_connect.assert_awaited_once()
+    device.async_receive.assert_not_awaited()
+    assert device._queue == []
+
+
+@pytest.mark.asyncio
+async def test_protocol_35_ping_queues_map_data_keepalive() -> None:
+    """Opted-in protocol 3.5 models mirror the mobile app keepalive request."""
+    device = TuyaDevice.__new__(TuyaDevice)
+    device.model_details = SimpleNamespace(protocol_35_map_data_keepalive=True)
     device.version = (3, 5)
     device.device_id = "test-device"
     device._queue = []
@@ -134,6 +156,35 @@ async def test_protocol_35_ping_queues_map_data_keepalive() -> None:
         "id": "test-device",
         "timestamp": 1234500,
     }
+
+
+@pytest.mark.asyncio
+async def test_protocol_35_ping_without_opt_in_does_not_write_dps_121() -> None:
+    """Protocol 3.5 models do not inherit T2276 map-data writes by default."""
+    device = TuyaDevice.__new__(TuyaDevice)
+    device.model_details = SimpleNamespace()
+    device.version = (3, 5)
+    device.device_id = "test-device"
+    device._queue = []
+    device._backoff = False
+    device._enabled = True
+    device._LOGGER = MagicMock()
+    device.ping_interval = 55
+
+    def close_scheduled_ping(coro: object) -> MagicMock:
+        close = getattr(coro, "close", None)
+        if close is not None:
+            close()
+        return MagicMock()
+
+    with patch("custom_components.robovac.tuyalocalapi.asyncio.sleep", new=AsyncMock()):
+        with patch(
+            "custom_components.robovac.tuyalocalapi.asyncio.create_task",
+            side_effect=close_scheduled_ping,
+        ):
+            await device.async_ping(55)
+
+    assert device._queue == []
 
 
 @pytest.mark.asyncio
