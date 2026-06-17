@@ -233,6 +233,69 @@ async def test_user_form_success(
 
 
 @pytest.mark.asyncio
+async def test_user_form_keeps_eufy_device_when_tuya_denies_permission(
+    hass: HomeAssistant, mock_eufy_response
+) -> None:
+    """Test Eufy-discovered vacuums are retained when Tuya denies device access."""
+    mock_eufy_response["device_info"].json.return_value["devices"][0]["product"][
+        "product_code"
+    ] = "T2292"
+    mock_eufy_response["device_info"].json.return_value["devices"][0][
+        "alias_name"
+    ] = "Bob Junior"
+    mock_eufy_response["device_info"].json.return_value["devices"][0][
+        "name"
+    ] = "AE C10"
+
+    with (
+        patch(
+            "custom_components.robovac.config_flow.EufyLogon",
+            return_value=MagicMock(
+                get_user_info=MagicMock(return_value=mock_eufy_response["user_info"]),
+                get_device_info=MagicMock(
+                    return_value=mock_eufy_response["device_info"]
+                ),
+                get_user_settings=MagicMock(
+                    return_value=mock_eufy_response["settings"]
+                ),
+            ),
+        ),
+        patch(
+            "custom_components.robovac.config_flow.TuyaAPISession",
+            return_value=MagicMock(
+                get_device=MagicMock(
+                    side_effect=KeyError(
+                        "No 'result' key in the response - the entire response is "
+                        "{'success': False, 'errorCode': 'PERMISSION_DENIED', "
+                        "'status': 'error', 'errorMsg': 'No access'}"
+                    )
+                )
+            ),
+        ),
+        patch(
+            "custom_components.robovac.TuyaLocalDiscovery",
+            return_value=MagicMock(start=AsyncMock(), close=MagicMock()),
+        ),
+    ):
+        result = await hass.config_entries.flow.async_init(
+            DOMAIN,
+            context={"source": config_entries.SOURCE_USER},
+            data={
+                CONF_USERNAME: "test-username",
+                CONF_PASSWORD: "test-password",
+            },
+        )
+
+    assert result["type"] == data_entry_flow.FlowResultType.CREATE_ENTRY
+    assert "test_device_id" in result["data"][CONF_VACS]
+    vacuum = result["data"][CONF_VACS]["test_device_id"]
+    assert vacuum[CONF_MODEL] == "T2292"
+    assert vacuum[CONF_NAME] == "Bob Junior"
+    assert vacuum[CONF_DESCRIPTION] == "AE C10"
+    assert vacuum[CONF_ACCESS_TOKEN] == ""
+
+
+@pytest.mark.asyncio
 async def test_user_form_no_vacuums_found(
     hass: HomeAssistant, mock_eufy_response
 ) -> None:

@@ -117,6 +117,16 @@ DEFAULT_TUYA_QUERY_PARAMS = {
 }
 
 
+class TuyaAPIError(RuntimeError):
+    """Error returned by the Tuya API."""
+
+    def __init__(self, message: str, response: Dict[str, Any]) -> None:
+        """Initialize a Tuya API error from the response payload."""
+        super().__init__(message)
+        self.response = response
+        self.error_code = response.get("errorCode")
+
+
 class TuyaAPISession:
     """Session handler for Tuya API authentication and requests.
 
@@ -282,6 +292,11 @@ class TuyaAPISession:
             raise TypeError(f"Invalid JSON response from API: {str(e)}") from e
 
         if "result" not in response_data:
+            if "errorCode" in response_data:
+                raise TuyaAPIError(
+                    response_data.get("errorMsg", "Tuya API request failed"),
+                    response_data,
+                )
             raise KeyError(
                 f"No 'result' key in the response - the entire response is {response_data}"
             )
