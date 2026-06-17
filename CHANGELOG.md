@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.0-beta.1](https://github.com/damacus/robovac/compare/v2.4.3-beta.1...v2.5.0-beta.1) (2026-06-17)
+
+
+### Features
+
+* add T2320 room discovery from metadata DPS ([eb5a1ec](https://github.com/damacus/robovac/commit/eb5a1ec758c5510655c76037c514533c4f316083))
+
+
+### Bug Fixes
+
+* avoid START_PAUSE overwriting return/start on shared DPS models ([#486](https://github.com/damacus/robovac/issues/486)) ([5a8aec9](https://github.com/damacus/robovac/commit/5a8aec91cc0c9a2594daba817811a5ba40c91cc9))
+* remove dependency pins conflicting with homeassistant ([#500](https://github.com/damacus/robovac/issues/500)) ([36280af](https://github.com/damacus/robovac/commit/36280afcd844c24e1c90a9b77d1cd3329e73e93e))
+* restore legacy robovac commands ([#515](https://github.com/damacus/robovac/issues/515)) ([d0f1013](https://github.com/damacus/robovac/commit/d0f10139ccf4f681f23dcf4a6d8bebed7637197b))
+* show detailed vacuum errors ([#516](https://github.com/damacus/robovac/issues/516)) ([51ade65](https://github.com/damacus/robovac/commit/51ade652b9db07bf11fc2860efd68140799b7206))
+
 ## [2.4.3-beta.1](https://github.com/damacus/robovac/compare/v2.4.2-beta.1...v2.4.3-beta.1) (2026-05-30)
 
 
