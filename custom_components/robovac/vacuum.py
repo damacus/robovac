@@ -1572,7 +1572,7 @@ class RoboVacEntity(StateVacuumEntity):
         Args:
             **kwargs: Additional arguments passed from Home Assistant.
         """
-        await self.async_return_to_base()
+        await self.async_pause(**kwargs)
 
     async def async_clean_spot(self, **kwargs: Any) -> None:
         """Perform a spot clean.
