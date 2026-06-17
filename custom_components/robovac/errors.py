@@ -2,6 +2,16 @@ ERROR_MESSAGES = {
     "IP_ADDRESS": "IP Address not set",
     "CONNECTION_FAILED": "Connection to the vacuum failed",
     "UNSUPPORTED_MODEL": "This model is not supported",
+    "LOCAL_KEY_UNAVAILABLE": (
+        "Tuya denied access to this vacuum's local key. Re-link the vacuum in "
+        "the Eufy app or check account and region permissions, then reload the "
+        "integration."
+    ),
+    "INVALID_LOCAL_KEY": (
+        "Tuya returned an invalid local key for this vacuum. Re-link the vacuum "
+        "in the Eufy app or check account and region permissions, then reload "
+        "the integration."
+    ),
     "no_error": "None",
     1: "Front bumper stuck",
     2: "Wheel stuck",

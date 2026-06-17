@@ -93,6 +93,7 @@ def test_tuya_api_session_request_raises_structured_permission_error(mock_post) 
         session._request("tuya.m.device.get", version="1.0", data={"devId": "device"})
 
     assert exc_info.value.error_code == "PERMISSION_DENIED"
+    assert str(exc_info.value) == "PERMISSION_DENIED: No access"
 
 
 def test_tuya_api_session_determine_password() -> None:

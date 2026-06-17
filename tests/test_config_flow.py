@@ -29,6 +29,7 @@ from custom_components.robovac.config_flow import (
 )
 from custom_components.robovac.const import DOMAIN, CONF_AUTODISCOVERY, CONF_VACS
 from custom_components.robovac.robovac import RoboVac
+from custom_components.robovac.tuyawebapi import TuyaAPIError
 
 
 @pytest.fixture
@@ -264,10 +265,14 @@ async def test_user_form_keeps_eufy_device_when_tuya_denies_permission(
             "custom_components.robovac.config_flow.TuyaAPISession",
             return_value=MagicMock(
                 get_device=MagicMock(
-                    side_effect=KeyError(
-                        "No 'result' key in the response - the entire response is "
-                        "{'success': False, 'errorCode': 'PERMISSION_DENIED', "
-                        "'status': 'error', 'errorMsg': 'No access'}"
+                    side_effect=TuyaAPIError(
+                        "No access",
+                        {
+                            "success": False,
+                            "errorCode": "PERMISSION_DENIED",
+                            "status": "error",
+                            "errorMsg": "No access",
+                        },
                     )
                 )
             ),

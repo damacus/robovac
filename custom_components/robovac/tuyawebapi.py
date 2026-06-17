@@ -124,7 +124,10 @@ class TuyaAPIError(RuntimeError):
         """Initialize a Tuya API error from the response payload."""
         super().__init__(message)
         self.response = response
-        self.error_code = response.get("errorCode")
+        error_code = response.get("errorCode")
+        self.error_code: str | None = (
+            str(error_code) if error_code is not None else None
+        )
 
 
 class TuyaAPISession:
@@ -293,8 +296,10 @@ class TuyaAPISession:
 
         if "result" not in response_data:
             if "errorCode" in response_data:
+                error_code = response_data.get("errorCode")
+                error_msg = response_data.get("errorMsg", "Tuya API request failed")
                 raise TuyaAPIError(
-                    response_data.get("errorMsg", "Tuya API request failed"),
+                    f"{error_code}: {error_msg}",
                     response_data,
                 )
             raise KeyError(

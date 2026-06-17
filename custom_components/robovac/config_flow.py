@@ -72,7 +72,7 @@ USER_SCHEMA = vol.Schema(
 
 
 def _is_tuya_permission_denied(error: Exception) -> bool:
-    """Return True when Tuya denied access to a Eufy-discovered device."""
+    """Return True when Tuya denied access to an Eufy-discovered device."""
     if isinstance(error, TuyaAPIError):
         return error.error_code == "PERMISSION_DENIED"
     return "PERMISSION_DENIED" in str(error)
@@ -81,7 +81,7 @@ def _is_tuya_permission_denied(error: Exception) -> bool:
 def _vacuum_details_from_eufy_item(
     item: dict[str, Any], access_token: str
 ) -> dict[str, Any]:
-    """Build config-flow vacuum details from a Eufy device record."""
+    """Build config-flow vacuum details from an Eufy device record."""
     return {
         CONF_ID: item["id"],
         CONF_MODEL: item["product"]["product_code"],
