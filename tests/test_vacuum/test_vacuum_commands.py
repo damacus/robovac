@@ -512,10 +512,10 @@ async def test_async_send_command_rejects_unsupported_t2258_modes(
 
 
 @pytest.mark.asyncio
-async def test_async_send_command_rejects_t2258_boost_iq_setting(
+async def test_async_send_command_sends_t2258_boost_iq_setting(
     mock_vacuum_data,
 ) -> None:
-    """Test T2258 does not send BoostIQ as a separate setting command."""
+    """Test T2258 sends documented BoostIQ as a separate setting command."""
     with patch("custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None):
         robovac = RoboVac(
             model_code="T2258",
@@ -533,11 +533,17 @@ async def test_async_send_command_rejects_t2258_boost_iq_setting(
     with patch("custom_components.robovac.vacuum.RoboVac", return_value=robovac):
         entity = RoboVacEntity(t2258_data)
 
-    entity._attr_boost_iq = False
-    with pytest.raises(HomeAssistantError, match="does not support BoostIQ setting"):
-        await entity.async_send_command("boostIQ")
+    assert entity.get_dps_code("BOOST_IQ") == "118"
 
-    robovac.async_set.assert_not_called()
+    entity._attr_boost_iq = False
+    await entity.async_send_command("boostIQ")
+    robovac.async_set.assert_called_once_with({"118": True})
+
+    robovac.async_set.reset_mock()
+
+    entity._attr_boost_iq = True
+    await entity.async_send_command("boostIQ")
+    robovac.async_set.assert_called_once_with({"118": False})
 
 
 @pytest.mark.asyncio

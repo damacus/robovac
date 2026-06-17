@@ -43,8 +43,8 @@ def test_t2258_excludes_undocumented_mode_values(mock_t2258_robovac) -> None:
     assert "nosweep" not in values
 
 
-def test_t2258_uses_documented_suction_levels_and_boost_iq(mock_t2258_robovac) -> None:
-    """Test T2258 exposes documented suction levels and BoostIQ fan speed."""
+def test_t2258_uses_documented_suction_levels(mock_t2258_robovac) -> None:
+    """Test T2258 exposes documented suction levels."""
     values = mock_t2258_robovac.model_details.commands[RobovacCommand.FAN_SPEED]["values"]
 
     assert values == {
@@ -52,18 +52,17 @@ def test_t2258_uses_documented_suction_levels_and_boost_iq(mock_t2258_robovac) -
         "standard": "Standard",
         "turbo": "Turbo",
         "max": "Max",
-        "boost_iq": "Boost_IQ",
     }
     assert mock_t2258_robovac.getRoboVacCommandValue(RobovacCommand.FAN_SPEED, "quiet") == "Quiet"
     assert mock_t2258_robovac.getRoboVacCommandValue(RobovacCommand.FAN_SPEED, "standard") == "Standard"
     assert mock_t2258_robovac.getRoboVacCommandValue(RobovacCommand.FAN_SPEED, "turbo") == "Turbo"
     assert mock_t2258_robovac.getRoboVacCommandValue(RobovacCommand.FAN_SPEED, "max") == "Max"
-    assert mock_t2258_robovac.getRoboVacCommandValue(RobovacCommand.FAN_SPEED, "boost_iq") == "Boost_IQ"
+    assert "boost_iq" not in values
 
 
-def test_t2258_does_not_expose_boost_iq_as_separate_setting(mock_t2258_robovac) -> None:
-    """Test T2258 follows G-series BoostIQ fan speed behavior."""
-    assert not mock_t2258_robovac.model_details.robovac_features & RoboVacEntityFeature.BOOST_IQ
+def test_t2258_exposes_boost_iq_as_separate_setting(mock_t2258_robovac) -> None:
+    """Test T2258 follows documented BoostIQ feature behavior."""
+    assert mock_t2258_robovac.model_details.robovac_features & RoboVacEntityFeature.BOOST_IQ
 
 
 def test_t2258_does_not_expose_direction_command(mock_t2258_robovac) -> None:
@@ -83,3 +82,8 @@ def test_t2258_model_has_basic_commands(mock_t2258_robovac) -> None:
     assert RobovacCommand.LOCATE in commands
     assert RobovacCommand.BATTERY in commands
     assert RobovacCommand.ERROR in commands
+
+
+def test_t2258_does_not_override_default_boost_iq_dps_code(mock_t2258_robovac) -> None:
+    """Test T2258 relies on the default BoostIQ DPS fallback."""
+    assert mock_t2258_robovac.getDpsCodes().get("BOOST_IQ") is None
