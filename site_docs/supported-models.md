@@ -27,8 +27,9 @@ This page lists all currently supported Eufy RoboVac models.
 | T2251      | RoboVac G30 Edge     | 3.3      |
 | T2252      | RoboVac G30 Verge    | 3.3      |
 | T2253      | RoboVac G30 Hybrid   | 3.3      |
-| T2254      | RoboVac G20 Hybrid   | 3.3      |
-| T2255      | RoboVac G35+         | 3.3      |
+| T2254      | eufy Clean G35       | 3.3      |
+| T2255      | eufy Clean G40       | 3.3      |
+| T2258      | RoboVac G20 Hybrid   | 3.3      |
 | T2259      | RoboVac G40+         | 3.3      |
 | T2261      | RoboVac X8           | 3.3      |
 | T2262      | RoboVac X8 Hybrid    | 3.3      |
@@ -51,11 +52,11 @@ series, it may work with an existing configuration.
 
 ### G Series (Basic)
 
-- **G20**: T2181, T2254, T2272
+- **G20**: T2181, T2258, T2272
 - **G30**: T2190, T2250, T2251, T2252, T2253, T2273
 - **G32**: T2270
-- **G35**: T2255
-- **G40**: T1250, T2259, T2277, T2278, T2280
+- **G35**: T2254
+- **G40**: T1250, T2255, T2259, T2277, T2278, T2280
 
 ### X Series (Premium)
 
