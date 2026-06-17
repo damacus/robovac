@@ -22,6 +22,8 @@ htmlcov/
 .pytest_cache/
 coverage.xml
 .mypy_cache
+mutants/
+mutation-reports/
 __pycache__/
 
 # IDE specific files
