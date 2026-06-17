@@ -82,3 +82,28 @@ exclude_lines = [
     "pass",
     "raise ImportError",
 ]
+
+[tool.mutmut]
+source_paths = ["custom_components/robovac"]
+# mutmut 3 supports only_mutate; the old paths_to_mutate key was renamed to source_paths.
+only_mutate = [
+    "custom_components/robovac/robovac.py",
+    "custom_components/robovac/vacuum.py",
+    "custom_components/robovac/sensor.py",
+    "custom_components/robovac/select.py",
+    "custom_components/robovac/switch.py",
+    "custom_components/robovac/proto_decode.py",
+    "custom_components/robovac/case_insensitive_lookup.py",
+    "custom_components/robovac/model_validator.py",
+    "custom_components/robovac/vacuums/*",
+]
+pytest_add_cli_args_test_selection = [
+    "tests/test_case_insensitive_lookup.py",
+    "tests/test_model_validator.py",
+    "tests/test_vacuum",
+    "--ignore=tests/test_vacuum/test_protocol_35_cipher.py",
+    "--ignore=tests/test_vacuum/test_protocol_35_message.py",
+]
+mutate_only_covered_lines = true
+max_stack_depth = 8
+timeout_multiplier = 10.0

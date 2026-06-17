@@ -24,16 +24,37 @@ tasks:
     cmds:
       - uv run pytest --cov=custom_components tests --cov-report=xml
 
+  mutation:
+    desc: Run advisory mutation testing
+    cmds:
+      - task: mutation:code
+      - task: mutation:mappings
+
+  mutation:code:
+    desc: Run mutmut against executable RoboVac code
+    cmds:
+      - uv run mutmut run {{.CLI_ARGS}}
+
+  mutation:browse:
+    desc: Browse mutmut survivors
+    cmds:
+      - uv run mutmut browse
+
+  mutation:mappings:
+    desc: Run RoboVac model mapping mutation audit
+    cmds:
+      - uv run python scripts/mutate_model_mappings.py {{.CLI_ARGS}}
+
   install-dev:
     desc: Install development dependencies
     cmds:
-      - uv venv
+      - uv venv --allow-existing
       - uv pip install -r requirements-dev.txt
 
   install:
     desc: Install dependencies
     cmds:
-      - uv venv
+      - uv venv --allow-existing
       - uv pip install -r requirements.txt
 
   type-check:
