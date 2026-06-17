@@ -2,6 +2,7 @@
   "packages": {
     ".": {
       "release-type": "python",
+      "prerelease": false,
       "extra-files": [
         {
           "type": "json",
