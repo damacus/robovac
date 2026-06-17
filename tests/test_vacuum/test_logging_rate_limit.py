@@ -11,12 +11,14 @@ from custom_components.robovac.vacuum import RoboVacEntity
 
 @pytest.mark.asyncio
 async def test_no_data_warning_logged_once(mock_robovac, mock_vacuum_data: Any, caplog) -> None:
-    """Test that no data warning is logged only once initially."""
+    """Test that no data warning is logged only once after data was seen."""
     # Arrange
-    mock_robovac._dps = None
+    mock_robovac._dps = {"103": 100, "15": "Charging", "106": 0}
 
     with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
         entity = RoboVacEntity(mock_vacuum_data)
+        entity.update_entity_values()
+        mock_robovac._dps = None
 
         # Act - call update_entity_values multiple times
         entity.update_entity_values()
@@ -36,10 +38,12 @@ async def test_no_data_warning_logged_once(mock_robovac, mock_vacuum_data: Any, 
 async def test_no_data_warning_logged_after_threshold(mock_robovac, mock_vacuum_data: Any, caplog) -> None:
     """Test that no data warning is logged again after 5 minute threshold."""
     # Arrange
-    mock_robovac._dps = None
+    mock_robovac._dps = {"103": 100, "15": "Charging", "106": 0}
 
     with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
         entity = RoboVacEntity(mock_vacuum_data)
+        entity.update_entity_values()
+        mock_robovac._dps = None
 
         # Act - first call logs warning
         entity.update_entity_values()
@@ -69,10 +73,12 @@ async def test_no_data_warning_logged_after_threshold(mock_robovac, mock_vacuum_
 async def test_no_data_warning_not_logged_before_threshold(mock_robovac, mock_vacuum_data: Any, caplog) -> None:
     """Test that no data warning is not logged again before 5 minute threshold."""
     # Arrange
-    mock_robovac._dps = None
+    mock_robovac._dps = {"103": 100, "15": "Charging", "106": 0}
 
     with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
         entity = RoboVacEntity(mock_vacuum_data)
+        entity.update_entity_values()
+        mock_robovac._dps = None
 
         # Act - first call logs warning
         entity.update_entity_values()
@@ -102,15 +108,17 @@ async def test_no_data_warning_not_logged_before_threshold(mock_robovac, mock_va
 async def test_data_recovery_info_logged(mock_robovac, mock_vacuum_data: Any, caplog) -> None:
     """Test that info message is logged when data becomes available after warning."""
     # Arrange
-    mock_robovac._dps = None
+    mock_robovac._dps = {"103": 100, "15": "Charging", "106": 0}
 
     with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
         entity = RoboVacEntity(mock_vacuum_data)
-
-        # Act - first call with no data logs warning
         entity.update_entity_values()
 
-        # Now provide data
+        # Act - data disappears after it was previously available
+        mock_robovac._dps = None
+        entity.update_entity_values()
+
+        # Now provide data again
         mock_robovac._dps = {"103": 100, "15": "Charging", "106": 0}
         entity.update_entity_values()
 
@@ -150,12 +158,14 @@ async def test_no_info_logged_when_data_always_available(mock_robovac, mock_vacu
 async def test_warning_state_resets_after_data_recovery(mock_robovac, mock_vacuum_data: Any, caplog) -> None:
     """Test that warning state resets after data recovery and can be logged again."""
     # Arrange
-    mock_robovac._dps = None
+    mock_robovac._dps = {"103": 100, "15": "Charging", "106": 0}
 
     with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
         entity = RoboVacEntity(mock_vacuum_data)
+        entity.update_entity_values()
 
         # Act - first no data period
+        mock_robovac._dps = None
         entity.update_entity_values()
         first_warning_count = sum(
             1 for record in caplog.records
@@ -171,7 +181,7 @@ async def test_warning_state_resets_after_data_recovery(mock_robovac, mock_vacuu
         mock_robovac._dps = None
         entity.update_entity_values()
 
-        # Assert - warning should be logged twice (once for each no-data period)
+        # Assert - warning should be logged twice after each post-data no-data period
         final_warning_count = sum(
             1 for record in caplog.records
             if record.levelname == "WARNING"
