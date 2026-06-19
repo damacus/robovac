@@ -1,4 +1,5 @@
 """RoboVac L60 (T2267)"""
+
 from homeassistant.components.vacuum import VacuumEntityFeature
 from .base import RoboVacEntityFeature, RobovacCommand, RobovacModelDetails
 
@@ -15,9 +16,15 @@ class T2267(RobovacModelDetails):
         | VacuumEntityFeature.STOP
     )
     robovac_features = (
-        RoboVacEntityFeature.DO_NOT_DISTURB
-        | RoboVacEntityFeature.BOOST_IQ
+        RoboVacEntityFeature.DO_NOT_DISTURB | RoboVacEntityFeature.BOOST_IQ
     )
+    consumable_sensor_keys = [
+        "side_brush",
+        "rolling_brush",
+        "filter_mesh",
+        "sensor",
+        "dustbag",
+    ]
     commands = {
         RobovacCommand.MODE: {
             "code": 152,
@@ -92,5 +99,5 @@ class T2267(RobovacModelDetails):
         },
         RobovacCommand.ERROR: {
             "code": 177,
-        }
+        },
     }
