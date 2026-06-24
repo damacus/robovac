@@ -61,6 +61,13 @@ class T2267(RobovacModelDetails):
                 return "no_error"
         return None
 
+    consumable_sensor_keys = [
+        "side_brush",
+        "rolling_brush",
+        "filter_mesh",
+        "sensor",
+        "dustbag",
+    ]
     commands = {
         RobovacCommand.MODE: {
             "code": 152,
