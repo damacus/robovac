@@ -21,7 +21,6 @@ import asyncio
 import base64
 from dataclasses import dataclass
 from datetime import timedelta
-from enum import StrEnum
 import json
 import logging
 import time
@@ -726,6 +725,7 @@ class RoboVacEntity(StateVacuumEntity):
         self._consumables_codes_cache: list[str] | None = None
         self._dps_codes_memo: dict[str, str] = {}
         self._last_consumable_data: str | None = None
+        self._last_clean_param_data: str | None = None
         self._room_name_registry: dict[str, dict[str, Any]] = {}
         self._eufy_username: str | None = item.get(CONF_USERNAME)
         self._eufy_password: str | None = item.get(CONF_PASSWORD)
@@ -1073,6 +1073,11 @@ class RoboVacEntity(StateVacuumEntity):
 
         try:
             raw_str = raw if isinstance(raw, str) else str(raw)
+            # ⚡ Bolt optimization: Avoid redundant decodes by memoizing the payload
+            if raw_str == self._last_clean_param_data:
+                return
+            self._last_clean_param_data = raw_str
+
             decoded = decode_clean_param_response(raw_str)
             params = merge_clean_param_layers(decoded)
             clean_type = params.get("clean_type")
