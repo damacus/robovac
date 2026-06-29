@@ -13,7 +13,7 @@ from .vacuums import ROBOVAC_MODELS
 
 # Series detection patterns
 SERIES_PATTERNS = {
-    "C": r"^T2(103|123)$",
+    "C": r"^T2(103|11A|123)$",
     "G": r"^T2(150|210|212|261)$",
     "L": r"^T2(2[67][0-9]|278|320)$",
     "X": r"^T2(080|117|118|119|120|128|130|132|181|190|192|193|194|25[0-9]|262)$",
@@ -132,11 +132,18 @@ def suggest_similar_models(
         try:
             model_num = int(model_code[1:])
             # Find models with closest numeric values
+            numeric_supported = []
+            for model in supported:
+                try:
+                    numeric_supported.append((model, int(model[1:])))
+                except (ValueError, IndexError):
+                    continue
+
             similar = sorted(
-                supported,
-                key=lambda m: abs(int(m[1:]) - model_num),
+                numeric_supported,
+                key=lambda item: abs(item[1] - model_num),
             )
-            for model in similar:
+            for model, _model_num in similar:
                 if model not in [s[0] for s in suggestions]:
                     suggestions.append((model, "Similar model number"))
                     if len(suggestions) >= max_suggestions:

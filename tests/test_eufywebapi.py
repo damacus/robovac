@@ -154,6 +154,65 @@ def test_get_device_info(mock_requests_request, mock_device_info_response) -> No
     assert "User-Agent" in kwargs["headers"]
 
 
+def test_get_device_info_falls_back_to_devices_and_groups(
+    mock_requests_request,
+) -> None:
+    """Test get_device_info falls back when the legacy endpoint has no devices."""
+    empty_legacy_response = MagicMock()
+    empty_legacy_response.json.return_value = {
+        "res_code": 1,
+        "message": "",
+        "devices": [],
+    }
+    devices_and_groups_response = MagicMock()
+    devices_and_groups_response.json.return_value = {
+        "res_code": 1,
+        "message": "",
+        "items": [
+            {
+                "item_type": 0,
+                "device": {
+                    "id": "test_device_id",
+                    "name": "Omni C28",
+                    "alias_name": "Robovac",
+                    "product": {
+                        "product_code": "T211A",
+                        "appliance": "Cleaning",
+                    },
+                    "wifi": {
+                        "mac": "AA:BB:CC:DD:EE:FF",
+                    },
+                },
+                "group": None,
+            }
+        ],
+    }
+    mock_requests_request.side_effect = [
+        empty_legacy_response,
+        devices_and_groups_response,
+    ]
+
+    eufy = EufyLogon("test@example.com", "password123")
+    response = eufy.get_device_info(
+        "https://appliances-api-eu.eufylife.com",
+        "test_user_id",
+        "test_access_token",
+    )
+
+    assert response == devices_and_groups_response
+    assert mock_requests_request.call_count == 2
+    assert mock_requests_request.call_args_list[0].args[1] == (
+        "https://appliances-api-eu.eufylife.com/v1/device/v2"
+    )
+    assert mock_requests_request.call_args_list[1].args[1] == (
+        "https://home-api.eufylife.com/v1/device/list/devices-and-groups"
+    )
+    assert (
+        mock_requests_request.call_args_list[1].kwargs["headers"]["token"]
+        == "test_access_token"
+    )
+
+
 def test_get_user_settings(mock_requests_request, mock_user_settings_response) -> None:
     """Test get_user_settings method."""
     # Set up the mock

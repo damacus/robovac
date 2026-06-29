@@ -93,11 +93,41 @@ class EufyLogon:
             Response object or None if connection error occurs.
         """
         device_url = url + "/v1/device/v2"
+        devices_and_groups_url = (
+            "https://home-api.eufylife.com/v1/device/list/devices-and-groups"
+        )
         # Create a local copy of headers to prevent cross-session data leakage
         headers = eufyheaders.copy()
         headers["token"] = token
         headers["id"] = userid
         try:
-            return requests.request("GET", device_url, headers=headers, timeout=10)
+            response = requests.request("GET", device_url, headers=headers, timeout=10)
+            if self._has_device_records(response):
+                return response
+
+            return requests.request(
+                "GET", devices_and_groups_url, headers=headers, timeout=10
+            )
         except requests.exceptions.RequestException:
             return None
+
+    @staticmethod
+    def _has_device_records(response: requests.Response) -> bool:
+        """Return True when a Eufy device response contains device records."""
+        try:
+            payload = response.json()
+        except ValueError:
+            return False
+
+        devices = payload.get("devices")
+        if isinstance(devices, list) and devices:
+            return True
+
+        items = payload.get("items")
+        if not isinstance(items, list):
+            return False
+
+        return any(
+            isinstance(item, dict) and isinstance(item.get("device"), dict)
+            for item in items
+        )

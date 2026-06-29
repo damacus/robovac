@@ -82,16 +82,36 @@ def _vacuum_details_from_eufy_item(
     item: dict[str, Any], access_token: str
 ) -> dict[str, Any]:
     """Build config-flow vacuum details from an Eufy device record."""
+    wifi = item.get("wifi") or {}
     return {
         CONF_ID: item["id"],
         CONF_MODEL: item["product"]["product_code"],
-        CONF_NAME: item["alias_name"],
+        CONF_NAME: item.get("alias_name") or item["name"],
         CONF_DESCRIPTION: item["name"],
-        CONF_MAC: item["wifi"]["mac"],
+        CONF_MAC: wifi.get("mac", ""),
         CONF_IP_ADDRESS: "",
         CONF_AUTODISCOVERY: True,
         CONF_ACCESS_TOKEN: access_token,
     }
+
+
+def _eufy_device_records(device_response: dict[str, Any]) -> list[dict[str, Any]]:
+    """Normalize Eufy device responses into device records."""
+    records: list[dict[str, Any]] = []
+
+    devices = device_response.get("devices")
+    if isinstance(devices, list):
+        records.extend(device for device in devices if isinstance(device, dict))
+
+    items = device_response.get("items")
+    if isinstance(items, list):
+        records.extend(
+            item["device"]
+            for item in items
+            if isinstance(item, dict) and isinstance(item.get("device"), dict)
+        )
+
+    return records
 
 
 def get_eufy_vacuums(self: dict[str, Any]) -> requests.Response:
@@ -179,10 +199,11 @@ def get_eufy_vacuums(self: dict[str, Any]) -> requests.Response:
         phone_code=self[CONF_COUNTRY_CODE],
     )
 
-    items = device_response["devices"]
+    items = _eufy_device_records(device_response)
     self[CONF_VACS] = {}
     for item in items:
-        if item["product"]["appliance"] == "Cleaning":
+        product = item.get("product") or {}
+        if product.get("appliance") == "Cleaning":
             try:
                 device = tuya_client.get_device(item["id"])
                 access_token = device["localKey"]

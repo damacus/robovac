@@ -16,8 +16,9 @@ class TestSeriesDetection:
 
     def test_detect_c_series(self) -> None:
         """Test detection of C series models."""
-        # C series models: T2103, T2123
+        # C series models: T2103, T211A, T2123
         assert detect_series("T2103") == "C"
+        assert detect_series("T211A") == "C"
         assert detect_series("T2123") == "C"
 
     def test_detect_g_series(self) -> None:
@@ -58,6 +59,7 @@ class TestModelValidation:
         assert is_supported_model("T2278") is True
         assert is_supported_model("T2250") is True
         assert is_supported_model("T2080") is True
+        assert is_supported_model("T211A") is True
 
     def test_is_supported_model_false(self) -> None:
         """Test is_supported_model returns False for unknown models."""
@@ -81,6 +83,7 @@ class TestModelValidation:
         assert "T2278" in models
         assert "T2250" in models
         assert "T2080" in models
+        assert "T211A" in models
 
     def test_get_supported_models_no_duplicates(self) -> None:
         """Test get_supported_models has no duplicates."""

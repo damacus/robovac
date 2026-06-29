@@ -9,6 +9,7 @@ This page lists all currently supported Eufy RoboVac models.
 | T1250      | RoboVac G40                 | 3.3      |
 | T2080      | RoboVac S1 Pro              | 3.4      |
 | T2103      | RoboVac 11S                 | 3.3      |
+| T211A      | eufy Omni C28               | 3.4      |
 | T2117      | RoboVac 35C                 | 3.3      |
 | T2118      | RoboVac 30C                 | 3.3      |
 | T2119      | RoboVac 11S Plus            | 3.3      |
@@ -83,6 +84,7 @@ series, it may work with an existing configuration.
 ### Omni Series
 
 - **C20**: T2280
+- **C28**: T211A
 
 ### Classic Series
 
