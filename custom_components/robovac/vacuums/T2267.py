@@ -1,7 +1,10 @@
 """RoboVac L60 (T2267)"""
 
-from homeassistant.components.vacuum import VacuumEntityFeature
+import logging
+from homeassistant.components.vacuum import VacuumActivity, VacuumEntityFeature
 from .base import RoboVacEntityFeature, RobovacCommand, RobovacModelDetails
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class T2267(RobovacModelDetails):
@@ -18,6 +21,46 @@ class T2267(RobovacModelDetails):
     robovac_features = (
         RoboVacEntityFeature.DO_NOT_DISTURB | RoboVacEntityFeature.BOOST_IQ
     )
+    activity_mapping = {
+        "BgoAEAUyAA==": VacuumActivity.CLEANING,
+        "BgoAEAVSAA==": VacuumActivity.CLEANING,
+        "CAoAEAUyAggB": VacuumActivity.CLEANING,
+        "CAoCCAEQBTIA": VacuumActivity.CLEANING,
+        "CAoCCAEQBVIA": VacuumActivity.CLEANING,
+        "CgoCCAEQBTICCAE=": VacuumActivity.CLEANING,
+        "CAoCCAIQBTIA": VacuumActivity.CLEANING,
+        "CAoCCAIQBVIA": VacuumActivity.CLEANING,
+        "CgoCCAIQBTICCAE=": VacuumActivity.CLEANING,
+        "BAoAEAY=": VacuumActivity.RETURNING,
+        "BBAHQgA=": VacuumActivity.RETURNING,
+        "BBADGgA=": VacuumActivity.DOCKED,
+        "BhADGgIIAQ==": VacuumActivity.DOCKED,
+        "AA==": VacuumActivity.IDLE,
+        "AhAB": VacuumActivity.IDLE,
+    }
+
+    @staticmethod
+    def decode_dps(dps_code: int, value: str) -> str | None:
+        """Decode binary protobuf DPS values for the L60 (T2267)."""
+        if dps_code == 177:
+            try:
+                from custom_components.robovac.proto_decode import decode_error_code
+
+                result = decode_error_code(value)
+                if result != "no_error" and result.startswith("error_"):
+                    _LOGGER.warning(
+                        "T2267 DPS 177: unmapped error code %s (raw value=%r). "
+                        "Check the Eufy app for the error description and please "
+                        "report this at https://github.com/damacus/robovac/issues "
+                        "so it can be added to the error code mappings.",
+                        result,
+                        value,
+                    )
+                return result
+            except Exception:
+                return "no_error"
+        return None
+
     consumable_sensor_keys = [
         "side_brush",
         "rolling_brush",
@@ -39,8 +82,8 @@ class T2267(RobovacModelDetails):
         RobovacCommand.STATUS: {
             "code": 153,
             "values": [
-                "BgoAEAUyAA===",
-                "BgoAEAVSAA===",
+                "BgoAEAUyAA==",
+                "BgoAEAVSAA==",
                 "CAoAEAUyAggB",
                 "CAoCCAEQBTIA",
                 "CAoCCAEQBVIA",
