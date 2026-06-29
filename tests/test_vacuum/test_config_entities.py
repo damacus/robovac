@@ -52,6 +52,25 @@ async def test_t2320_exposes_config_entities() -> None:
 
 
 @pytest.mark.asyncio
+async def test_t211a_exposes_omni_config_entities() -> None:
+    """T211A exposes clean-param, fan, room, and mop configuration controls."""
+    entry = SimpleNamespace(data={CONF_VACS: {"vacuum": _vacuum_config("T211A")}})
+    select_entities = []
+    switch_entities = []
+
+    await async_setup_select_entry(None, entry, select_entities.extend)
+    await async_setup_switch_entry(None, entry, switch_entities.extend)
+
+    assert [entity.name for entity in select_entities] == [
+        "Fan speed",
+        "Clean type",
+        "Mop level",
+        "Room",
+    ]
+    assert [entity.name for entity in switch_entities] == ["Edge mopping"]
+
+
+@pytest.mark.asyncio
 async def test_other_clean_param_models_do_not_get_t2320_config_entities() -> None:
     """Avoid exposing X9-specific config controls on other clean-param models."""
     entry = SimpleNamespace(data={CONF_VACS: {"vacuum": _vacuum_config("T2277")}})
@@ -69,6 +88,27 @@ async def test_other_clean_param_models_do_not_get_t2320_config_entities() -> No
 async def test_t2320_does_not_duplicate_clean_type_as_diagnostic_sensor() -> None:
     """T2320 exposes clean type as configuration, not a duplicate sensor."""
     entry = SimpleNamespace(data={CONF_VACS: {"vacuum": _vacuum_config("T2320")}})
+    sensor_entities = []
+
+    await async_setup_sensor_entry(None, entry, sensor_entities.extend)
+
+    sensor_names = [entity.name for entity in sensor_entities]
+    assert "Clean Type" not in sensor_names
+    assert "Notification" in sensor_names
+    assert "Warning" in sensor_names
+    assert "Side Brush" in sensor_names
+    assert "Rolling Brush" in sensor_names
+    assert "Filter" in sensor_names
+    assert "Scraper" in sensor_names
+    assert "Sensor" in sensor_names
+    assert "Mop" in sensor_names
+    assert "Dust Bag" not in sensor_names
+
+
+@pytest.mark.asyncio
+async def test_t211a_exposes_omni_diagnostic_sensors() -> None:
+    """T211A exposes station warnings and consumables without duplicate clean type."""
+    entry = SimpleNamespace(data={CONF_VACS: {"vacuum": _vacuum_config("T211A")}})
     sensor_entities = []
 
     await async_setup_sensor_entry(None, entry, sensor_entities.extend)

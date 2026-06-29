@@ -1,9 +1,9 @@
 """eufy Omni C28 (T211A)."""
 
-from .T2280 import T2280
+from .T2320 import T2320
 
 
-class T211A(T2280):
-    """Omni C28 shares the Omni C-series command profile."""
+class T211A(T2320):
+    """Omni C28 uses the station-aware RoboVac and mop command profile."""
 
     pass
