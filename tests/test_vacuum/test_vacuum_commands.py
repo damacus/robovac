@@ -372,13 +372,13 @@ async def test_async_stop(mock_robovac, mock_vacuum_data) -> None:
     with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
         entity = RoboVacEntity(mock_vacuum_data)
 
-        # Mock the async_return_to_base method
-        with patch.object(entity, "async_return_to_base") as mock_return:
+        # Mock the async_pause method
+        with patch.object(entity, "async_pause") as mock_pause:
             # Act
             await entity.async_stop()
 
             # Assert
-            mock_return.assert_called_once()
+            mock_pause.assert_awaited_once_with()
 
 
 @pytest.mark.asyncio
