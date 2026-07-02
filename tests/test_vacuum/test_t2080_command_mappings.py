@@ -7,6 +7,7 @@ from typing import Any
 from unittest.mock import patch
 
 from custom_components.robovac.robovac import RoboVac
+from custom_components.robovac.vacuums import ROBOVAC_MODELS
 from custom_components.robovac.vacuums.base import RobovacCommand
 
 
@@ -41,6 +42,31 @@ def test_t2080_fan_speed_command_values(mock_t2080_robovac) -> None:
     assert mock_t2080_robovac.getRoboVacCommandValue(RobovacCommand.FAN_SPEED, "turbo") == "Turbo"
     assert mock_t2080_robovac.getRoboVacCommandValue(RobovacCommand.FAN_SPEED, "max") == "Max"
     assert mock_t2080_robovac.getRoboVacCommandValue(RobovacCommand.FAN_SPEED, "unknown") == "unknown"
+
+
+def test_t2080a_alias_uses_t2080_mapping() -> None:
+    """Test T2080A devices resolve to the S1 Pro T2080 command map."""
+    assert ROBOVAC_MODELS["T2080A"] is ROBOVAC_MODELS["T2080"]
+
+
+def test_t2080_s1_pro_writable_dps_codes(mock_t2080_robovac) -> None:
+    """Test S1 Pro command DPS codes from GH-443."""
+    dps_codes = mock_t2080_robovac.getDpsCodes()
+
+    assert dps_codes["FAN_SPEED"] == "158"
+    assert dps_codes["LOCATE"] == "159"
+    assert dps_codes["START_PAUSE"] == "160"
+    assert dps_codes["RETURN_HOME"] == "160"
+    assert dps_codes["MODE"] == "160"
+
+
+def test_t2080_s1_pro_start_stop_values(mock_t2080_robovac) -> None:
+    """Test S1 Pro start/stop commands use DPS 160 booleans."""
+    assert mock_t2080_robovac.getRoboVacCommandValue(RobovacCommand.START_PAUSE, "start") is True
+    assert mock_t2080_robovac.getRoboVacCommandValue(RobovacCommand.START_PAUSE, "pause") is False
+    assert mock_t2080_robovac.getRoboVacCommandValue(RobovacCommand.MODE, "auto") is True
+    assert mock_t2080_robovac.getRoboVacCommandValue(RobovacCommand.MODE, "return") is False
+    assert mock_t2080_robovac.getRoboVacCommandValue(RobovacCommand.RETURN_HOME, "return") is False
 
 
 def test_t2080_mop_level_command_values(mock_t2080_robovac) -> None:

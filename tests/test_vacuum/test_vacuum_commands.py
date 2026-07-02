@@ -131,6 +131,98 @@ async def test_async_start_sends_start_pause_for_boolean_models(
 
 
 @pytest.mark.asyncio
+async def test_async_start_sends_t2080a_start_dps(
+    mock_vacuum_data,
+) -> None:
+    """Test S1 Pro starts through DPS 160 instead of ignored standard codes."""
+    with patch("custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None):
+        robovac = RoboVac(
+            model_code="T2080A",
+            device_id="test_id",
+            host="192.168.1.100",
+            local_key="test_key",
+        )
+    robovac.async_set = AsyncMock(return_value=True)
+
+    t2080a_data = {**mock_vacuum_data, CONF_MODEL: "T2080A"}
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=robovac):
+        entity = RoboVacEntity(t2080a_data)
+        await entity.async_start()
+
+        robovac.async_set.assert_called_once_with({"160": True})
+
+
+@pytest.mark.asyncio
+async def test_async_return_to_base_sends_t2080a_stop_dps(
+    mock_vacuum_data,
+) -> None:
+    """Test S1 Pro stop/return command uses the confirmed DPS 160 toggle."""
+    with patch("custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None):
+        robovac = RoboVac(
+            model_code="T2080A",
+            device_id="test_id",
+            host="192.168.1.100",
+            local_key="test_key",
+        )
+    robovac.async_set = AsyncMock(return_value=True)
+
+    t2080a_data = {**mock_vacuum_data, CONF_MODEL: "T2080A"}
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=robovac):
+        entity = RoboVacEntity(t2080a_data)
+        await entity.async_return_to_base()
+
+        robovac.async_set.assert_called_once_with({"160": False})
+
+
+@pytest.mark.asyncio
+async def test_async_locate_sends_t2080a_locate_dps(
+    mock_vacuum_data,
+) -> None:
+    """Test S1 Pro locate toggles DPS 159 instead of standard DPS 103."""
+    with patch("custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None):
+        robovac = RoboVac(
+            model_code="T2080A",
+            device_id="test_id",
+            host="192.168.1.100",
+            local_key="test_key",
+        )
+    robovac.async_set = AsyncMock(return_value=True)
+    robovac._dps = {"159": False}
+
+    t2080a_data = {**mock_vacuum_data, CONF_MODEL: "T2080A"}
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=robovac):
+        entity = RoboVacEntity(t2080a_data)
+        entity.tuyastatus = robovac._dps
+        await entity.async_locate()
+
+        robovac.async_set.assert_called_once_with({"159": True})
+
+
+@pytest.mark.asyncio
+async def test_async_set_fan_speed_sends_t2080a_fan_dps(
+    mock_vacuum_data,
+) -> None:
+    """Test S1 Pro fan speed writes DPS 158 values from GH-443."""
+    with patch("custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None):
+        robovac = RoboVac(
+            model_code="T2080A",
+            device_id="test_id",
+            host="192.168.1.100",
+            local_key="test_key",
+        )
+    robovac.async_set = AsyncMock(return_value=True)
+    robovac._dps = {"158": "Quiet"}
+
+    t2080a_data = {**mock_vacuum_data, CONF_MODEL: "T2080A"}
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=robovac):
+        entity = RoboVacEntity(t2080a_data)
+        entity.tuyastatus = robovac._dps
+        await entity.async_set_fan_speed("Standard")
+
+        robovac.async_set.assert_called_once_with({"158": "Standard"})
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize("model_code", ["T2277", "T2278"])
 async def test_async_return_to_base_does_not_overwrite_shared_dps_code(
     mock_vacuum_data,

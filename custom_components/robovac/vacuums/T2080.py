@@ -5,15 +5,14 @@ from .base import RoboVacEntityFeature, RobovacCommand, RobovacModelDetails
 
 class T2080(RobovacModelDetails):
     homeassistant_features = (
-        VacuumEntityFeature.CLEAN_SPOT
-        | VacuumEntityFeature.FAN_SPEED
+        VacuumEntityFeature.FAN_SPEED
         | VacuumEntityFeature.LOCATE
-        | VacuumEntityFeature.PAUSE  # Not yet confirmed working
-        | VacuumEntityFeature.RETURN_HOME  # Not yet confirmed working
+        | VacuumEntityFeature.PAUSE
+        | VacuumEntityFeature.RETURN_HOME
         | VacuumEntityFeature.SEND_COMMAND
-        | VacuumEntityFeature.START  # Verified
+        | VacuumEntityFeature.START
         | VacuumEntityFeature.STATE
-        | VacuumEntityFeature.STOP  # Not yet confirmed working
+        | VacuumEntityFeature.STOP
         | VacuumEntityFeature.MAP
     )
     robovac_features = (
@@ -23,18 +22,18 @@ class T2080(RobovacModelDetails):
         | RoboVacEntityFeature.AUTO_RETURN
         | RoboVacEntityFeature.ROOM
         | RoboVacEntityFeature.ZONE
-        | RoboVacEntityFeature.BOOST_IQ
         | RoboVacEntityFeature.MAP
         | RoboVacEntityFeature.CONSUMABLES
     )
+    protocol_version = (3, 3)
     commands = {
         # Received updated state bf7ef4e5de08b0b99an7pf (192.168.1.105:6668):
         # {'2': False, '5': 'smart', '6': 0, '7': 0, '8': 100, '9': 'normal', '10': 'low', '40': 'installed', '156': True, '158': 'Standard', '159': True, '161': 24, '163': 100}
 
         RobovacCommand.START_PAUSE: {
-            "code": 2,
-            # I've seen `'2': False` when ending a session (maybe when paused??)
-            # I've also seen `'2': False` when actively vacuuming..
+            # S1 Pro/T2080A uses DPS 160 for the start/stop cleaning toggle.
+            # Standard Tuya DPS 2 writes are accepted by the API but ignored.
+            "code": 160,
             "values": {"start": True, "pause": False},
         },
         RobovacCommand.DIRECTION: {
@@ -42,18 +41,14 @@ class T2080(RobovacModelDetails):
             "code": 176,  # try 157 next??
             "values": ["forward", "back", "left", "right"],
         },
-        # The below is copied from T2267.py - need to test.
         RobovacCommand.MODE: {
-            # Not sure this is accurate
-            "code": 152,
+            # Route HA auto/pause/return helpers to the confirmed DPS 160
+            # cleaning toggle instead of the unconfirmed protobuf DPS 152.
+            "code": 160,
             "values": {
-                "BBoCCAE=": "auto",
-                "AggN": "pause",
-                "AA==": "Spot",
-                "AggG": "return",
-                "AggO": "Nosweep",
-                "AggB": "Vacuum and Mop",  # Not 100% certain of this
-                # "BAgNGAE=": "BAgNGAE=",
+                "auto": True,
+                "pause": False,
+                "return": False,
             },
         },
         RobovacCommand.STATUS: {
@@ -96,12 +91,11 @@ class T2080(RobovacModelDetails):
             }
         },
         RobovacCommand.RETURN_HOME: {
-            # Pretty sure this is correct, but untested
-            "code": 152,
-            "values": ["AggB"]
+            "code": 160,
+            "values": {"return": False},
         },
         RobovacCommand.LOCATE: {
-            "code": 103,
+            "code": 159,
         },
         RobovacCommand.ERROR: {
             "code": 106,
@@ -131,10 +125,6 @@ class T2080(RobovacModelDetails):
             # Verified
             # Seems that '8' is a duplicate of '163'
             "code": 163,
-        },
-        RobovacCommand.BOOST_IQ: {
-            # Verified
-            "code": 159,
         },
         RobovacCommand.CLEANING_TIME: {
             # Verified
