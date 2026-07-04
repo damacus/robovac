@@ -38,4 +38,3 @@ message.txt
 
 # Local support-document cache
 .cache/eufy-support-pdfs/
-.env
