@@ -131,6 +131,7 @@ async def test_t2080a_command_payloads(mock_vacuum_data) -> None:
 
     await entity.async_start()
     robovac.async_set.assert_awaited_once_with({"160": True})
+    assert entity._attr_mode is None
 
     robovac.async_set.reset_mock()
     await entity.async_pause()

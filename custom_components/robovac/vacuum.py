@@ -1528,7 +1528,6 @@ class RoboVacEntity(StateVacuumEntity):
         Args:
             **kwargs: Additional arguments passed from Home Assistant.
         """
-        self._attr_mode = "auto"
         if self.vacuum is None:
             _LOGGER.error("Cannot start vacuum: vacuum not initialized")
             return
@@ -1537,6 +1536,7 @@ class RoboVacEntity(StateVacuumEntity):
 
         payload: dict[str, Any] = {}
         if RobovacCommand.MODE in supported_commands:
+            self._attr_mode = "auto"
             mode_code = self.get_dps_code("MODE")
             payload[mode_code] = self.vacuum.getRoboVacCommandValue(
                 RobovacCommand.MODE, "auto"
