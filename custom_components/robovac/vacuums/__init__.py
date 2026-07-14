@@ -2,6 +2,7 @@ from typing import Dict, Type
 
 from .T1250 import T1250
 from .T2080 import T2080
+from .T2080A import T2080A
 from .T2103 import T2103
 from .T2117 import T2117
 from .T2118 import T2118
@@ -47,7 +48,7 @@ from .base import RobovacModelDetails
 ROBOVAC_MODELS: Dict[str, Type[RobovacModelDetails]] = {
     "T1250": T1250,
     "T2080": T2080,
-    "T2080A": T2080,
+    "T2080A": T2080A,
     "T2103": T2103,
     "T2117": T2117,
     "T2118": T2118,
@@ -89,3 +90,15 @@ ROBOVAC_MODELS: Dict[str, Type[RobovacModelDetails]] = {
     "T2351": T2351,
     "T2280": T2280,
 }
+
+
+def resolve_model_code(model_code: str) -> str:
+    """Resolve exact registered codes before using the legacy five-character prefix."""
+    if model_code in ROBOVAC_MODELS:
+        return model_code
+
+    model_prefix = model_code[:5]
+    if model_prefix in ROBOVAC_MODELS:
+        return model_prefix
+
+    return model_code

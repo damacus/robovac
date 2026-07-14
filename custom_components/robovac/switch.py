@@ -13,7 +13,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.event import async_call_later
 
 from .const import CONF_VACS, DOMAIN
-from .vacuums import ROBOVAC_MODELS
+from .vacuums import ROBOVAC_MODELS, resolve_model_code
 from .vacuums.base import RobovacCommand
 
 if TYPE_CHECKING:
@@ -38,8 +38,8 @@ async def async_setup_entry(
 
     for key in vacuums:
         item = vacuums[key]
-        model_prefix = (item.get(CONF_MODEL) or "")[:5]
-        model_class = ROBOVAC_MODELS.get(model_prefix)
+        model_code = resolve_model_code(item.get(CONF_MODEL) or "")
+        model_class = ROBOVAC_MODELS.get(model_code)
         if model_class is None:
             continue
         if not getattr(model_class, "expose_config_entities", False):

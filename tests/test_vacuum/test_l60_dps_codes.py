@@ -41,6 +41,7 @@ async def test_l60_start_command_uses_correct_dps_value() -> None:
         "BATTERY_LEVEL": "163",
         "ERROR_CODE": "177"
     }
+    mock_robovac.getSupportedCommands.return_value = [RobovacCommand.MODE]
     # Mock getRoboVacCommandValue to return base64 for MODE, passthrough for others
 
     def l60_command_value(command_name: RobovacCommand, value: str) -> str:

@@ -746,11 +746,6 @@ class RoboVacEntity(StateVacuumEntity):
             self._attr_error_code = "LOCAL_KEY_UNAVAILABLE"
         else:
             try:
-                # Extract model code prefix for device identification
-                model_code_prefix = ""
-                if self.model_code is not None:
-                    model_code_prefix = self.model_code[0:5]
-
                 # Create the RoboVac instance
                 self.vacuum = RoboVac(
                     device_id=self.unique_id,
@@ -758,7 +753,7 @@ class RoboVacEntity(StateVacuumEntity):
                     local_key=self.access_token,
                     timeout=TIMEOUT,
                     ping_interval=PING_RATE,
-                    model_code=model_code_prefix,
+                    model_code=self.model_code or "",
                     update_entity_state=self.pushed_update_handler,
                 )
                 _LOGGER.debug(
@@ -1538,16 +1533,26 @@ class RoboVacEntity(StateVacuumEntity):
             _LOGGER.error("Cannot start vacuum: vacuum not initialized")
             return
 
-        mode_code = self.get_dps_code("MODE")
-        payload: dict[str, Any] = {
-            mode_code: self.vacuum.getRoboVacCommandValue(RobovacCommand.MODE, "auto")
-        }
+        supported_commands = self.vacuum.getSupportedCommands()
 
-        # For models with boolean START_PAUSE (e.g. T2118, T2128), also toggle start
-        start_pause_code = self.get_dps_code("START_PAUSE")
-        start_value = self.vacuum.getRoboVacCommandValue(RobovacCommand.START_PAUSE, "start")
-        if start_value != "start" and start_pause_code != mode_code:
-            payload[start_pause_code] = start_value
+        payload: dict[str, Any] = {}
+        if RobovacCommand.MODE in supported_commands:
+            mode_code = self.get_dps_code("MODE")
+            payload[mode_code] = self.vacuum.getRoboVacCommandValue(
+                RobovacCommand.MODE, "auto"
+            )
+
+        if RobovacCommand.START_PAUSE in supported_commands:
+            start_pause_code = self.get_dps_code("START_PAUSE")
+            start_value = self.vacuum.getRoboVacCommandValue(
+                RobovacCommand.START_PAUSE, "start"
+            )
+            if start_pause_code not in payload:
+                payload[start_pause_code] = start_value
+
+        if not payload:
+            _LOGGER.error("%s does not declare a start command", self.model_code)
+            return
 
         await self.vacuum.async_set(payload)
 

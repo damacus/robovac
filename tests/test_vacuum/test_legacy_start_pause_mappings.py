@@ -9,6 +9,7 @@ import pytest
 
 LEGACY_DPS2_MODELS = (
     "T1250",
+    "T2080",
     "T2103",
     "T2117",
     "T2118",

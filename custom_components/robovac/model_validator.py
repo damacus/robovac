@@ -116,33 +116,42 @@ def suggest_similar_models(
     """
     suggestions: list[tuple[str, str]] = []
 
-    # First, try to detect series and suggest same-series models
-    detected_series = detect_series(model_code)
-    if detected_series:
-        series_models = [
-            m for m in get_supported_models() if detect_series(m) == detected_series
-        ]
-        for model in series_models[:max_suggestions]:
-            suggestions.append((model, f"Same series ({detected_series})"))
+    def numeric_component(candidate: str) -> int | None:
+        """Return a model's numeric component, allowing alphabetic suffixes."""
+        match = re.fullmatch(r"[A-Za-z](\d+)[A-Za-z]*", candidate)
+        return int(match.group(1)) if match else None
 
-    # If we don't have enough suggestions, add similar model numbers
-    if len(suggestions) < max_suggestions:
-        supported = get_supported_models()
-        # Extract numeric part for comparison
-        try:
-            model_num = int(model_code[1:])
-            # Find models with closest numeric values
-            similar = sorted(
-                supported,
-                key=lambda m: abs(int(m[1:]) - model_num),
-            )
-            for model in similar:
-                if model not in [s[0] for s in suggestions]:
-                    suggestions.append((model, "Similar model number"))
-                    if len(suggestions) >= max_suggestions:
-                        break
-        except (ValueError, IndexError):
-            pass
+    detected_series = detect_series(model_code)
+    supported = get_supported_models()
+    model_num = numeric_component(model_code)
+    if model_num is not None:
+        numeric_supported = [
+            (model, candidate_num)
+            for model in supported
+            if (candidate_num := numeric_component(model)) is not None
+        ]
+        similar = sorted(
+            numeric_supported,
+            key=lambda candidate: (
+                abs(candidate[1] - model_num),
+                candidate[1],
+                candidate[0].casefold(),
+            ),
+        )
+        for model, _candidate_num in similar[:max_suggestions]:
+            if detected_series and detect_series(model) == detected_series:
+                reason = f"Same series ({detected_series})"
+            else:
+                reason = "Similar model number"
+            suggestions.append((model, reason))
+    elif detected_series:
+        series_models = [
+            model for model in supported if detect_series(model) == detected_series
+        ]
+        suggestions.extend(
+            (model, f"Same series ({detected_series})")
+            for model in series_models[:max_suggestions]
+        )
 
     return suggestions[:max_suggestions]
 

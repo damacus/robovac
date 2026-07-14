@@ -121,6 +121,18 @@ class TestModelSuggestions:
                 assert isinstance(suggestion, tuple)
                 assert len(suggestion) == 2
 
+    def test_alphanumeric_models_keep_numeric_proximity_order(self) -> None:
+        """Alphanumeric registered codes must not abort numeric suggestions."""
+        suggestions = suggest_similar_models("T2081", max_suggestions=5)
+        suggested_codes = [model for model, _reason in suggestions]
+
+        assert suggested_codes[:2] == ["T2080", "T2080A"]
+        distances = [abs(int(model[1:5]) - 2081) for model in suggested_codes]
+        assert distances == sorted(distances)
+
+    def test_unparseable_model_code_does_not_raise(self) -> None:
+        assert suggest_similar_models("INVALID") == []
+
 
 class TestTroubleshootingGuide:
     """Test suite for troubleshooting guides."""

@@ -23,7 +23,7 @@ from homeassistant.const import (
     CONF_MAC,
 )
 
-from custom_components.robovac.vacuums.base import RoboVacEntityFeature
+from custom_components.robovac.vacuums.base import RoboVacEntityFeature, RobovacCommand
 
 
 # This fixture is required for testing custom components
@@ -98,6 +98,7 @@ def mock_robovac() -> MagicMock:
     # Mock the new methods added in PR #161
     # For models without activity mapping, return None
     mock.getRoboVacActivityMapping.return_value = None
+    mock.getSupportedCommands.return_value = [RobovacCommand.MODE]
 
     # For human readable values, return the original value (no conversion)
     mock.getRoboVacHumanReadableValue.side_effect = lambda command, value: value
@@ -188,6 +189,7 @@ def mock_l60() -> MagicMock:
     mock.getRoboVacFeatures.return_value = (
         RoboVacEntityFeature.DO_NOT_DISTURB | RoboVacEntityFeature.BOOST_IQ
     )
+    mock.getSupportedCommands.return_value = [RobovacCommand.MODE]
     mock.getFanSpeeds.return_value = ["No Suction", "Standard", "Boost IQ", "Max"]
     mock._dps = {}
 

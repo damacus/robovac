@@ -13,7 +13,7 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import CONF_VACS, DOMAIN
-from .vacuums import ROBOVAC_MODELS
+from .vacuums import ROBOVAC_MODELS, resolve_model_code
 from .vacuums.base import RobovacCommand
 
 if TYPE_CHECKING:
@@ -41,11 +41,11 @@ class _RobovacSelectEntity(SelectEntity):
 
     @property
     def options(self) -> list[str]:
-        return self._attr_options
+        return cast(list[str], self._attr_options)
 
     @property
     def current_option(self) -> str | None:
-        return self._attr_current_option
+        return cast(str | None, self._attr_current_option)
 
 
 def _vacuum_ready(vacuum_entity: RoboVacEntity | None) -> bool:
@@ -83,8 +83,8 @@ async def async_setup_entry(
 
     for key in vacuums:
         item = vacuums[key]
-        model_prefix = (item.get(CONF_MODEL) or "")[:5]
-        model_class = ROBOVAC_MODELS.get(model_prefix)
+        model_code = resolve_model_code(item.get(CONF_MODEL) or "")
+        model_class = ROBOVAC_MODELS.get(model_code)
         if model_class is None:
             continue
         if not getattr(model_class, "expose_config_entities", False):
@@ -231,8 +231,8 @@ class RobovacFanSpeedSelect(_RobovacSelectEntity):
         self._attr_unique_id = f"{item[CONF_ID]}_fan_speed_select"
         self._attr_name = "Fan speed"
         self._attr_device_info = _device_info(item)
-        model_prefix = (item.get(CONF_MODEL) or "")[:5]
-        model_class = ROBOVAC_MODELS.get(model_prefix)
+        model_code = resolve_model_code(item.get(CONF_MODEL) or "")
+        model_class = ROBOVAC_MODELS.get(model_code)
         values: dict[str, str] = {}
         if model_class is not None:
             command = getattr(model_class, "commands", {}).get(RobovacCommand.FAN_SPEED, {})

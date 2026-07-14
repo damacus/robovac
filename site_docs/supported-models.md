@@ -8,6 +8,7 @@ This page lists all currently supported Eufy RoboVac models.
 |------------|-----------------------------|----------|
 | T1250      | RoboVac G40                 | 3.3      |
 | T2080      | RoboVac S1 Pro              | 3.4      |
+| T2080A     | RoboVac S1 Pro              | 3.3      |
 | T2103      | RoboVac 11S                 | 3.3      |
 | T2117      | RoboVac 35C                 | 3.3      |
 | T2118      | RoboVac 30C                 | 3.3      |
@@ -94,7 +95,7 @@ series, it may work with an existing configuration.
 
 ### Other Models
 
-- **S1 Pro**: T2080
+- **S1 Pro**: T2080, T2080A
 
 ## Don't See Your Model?
 

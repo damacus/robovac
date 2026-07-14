@@ -12,7 +12,7 @@ from homeassistant.helpers.device_registry import DeviceInfo
 
 from .const import CONF_VACS, DOMAIN, REFRESH_RATE
 from .vacuums.base import TuyaCodes, RobovacCommand
-from .vacuums import ROBOVAC_MODELS
+from .vacuums import ROBOVAC_MODELS, resolve_model_code
 from .proto_decode import (
     decode_clean_param_response,
     merge_clean_param_layers,
@@ -66,9 +66,8 @@ async def async_setup_entry(
         entities.append(RobovacBatterySensor(item))
 
         # Look up model class to determine which optional sensors to create.
-        # ROBOVAC_MODELS is keyed by the 5-char prefix (e.g. "T2277").
-        model_prefix = (item.get(CONF_MODEL) or "")[:5]
-        model_class = ROBOVAC_MODELS.get(model_prefix)
+        model_code = resolve_model_code(item.get(CONF_MODEL) or "")
+        model_class = ROBOVAC_MODELS.get(model_code)
         if model_class is None:
             continue
 
