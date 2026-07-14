@@ -152,7 +152,10 @@ class RoboVac(TuyaDevice):
         # Return the keys title-cased as display names for the UI
         # This ensures user-friendly names like "Pure" are shown even when
         # the device uses different internal values like "Quiet"
-        return [key.replace("_", " ").title() for key in values.keys()]
+        return [
+            key.replace("_", " ").title().replace(" Iq", " IQ")
+            for key in values.keys()
+        ]
 
     def getSupportedCommands(self) -> list[str]:
         """Get the list of supported commands for this vacuum model.

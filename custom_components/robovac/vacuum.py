@@ -21,7 +21,6 @@ import asyncio
 import base64
 from dataclasses import dataclass
 from datetime import timedelta
-from enum import StrEnum
 import json
 import logging
 import time
@@ -75,7 +74,7 @@ from .proto_decode import (
 )
 from .vacuums.base import RobovacCommand, RoboVacEntityFeature, TuyaCodes, TUYA_CONSUMABLES_CODES
 from .robovac import ModelNotSupportedException, RoboVac
-from .tuyalocalapi import TuyaException
+from .tuyalocalapi import InvalidKey, TuyaException
 from .tuyawebapi import TuyaAPISession
 
 ATTR_BATTERY_ICON = "battery_icon"
@@ -726,6 +725,7 @@ class RoboVacEntity(StateVacuumEntity):
         self._consumables_codes_cache: list[str] | None = None
         self._dps_codes_memo: dict[str, str] = {}
         self._last_consumable_data: str | None = None
+        self._last_clean_param_data: str | None = None
         self._room_name_registry: dict[str, dict[str, Any]] = {}
         self._eufy_username: str | None = item.get(CONF_USERNAME)
         self._eufy_password: str | None = item.get(CONF_PASSWORD)
@@ -736,33 +736,50 @@ class RoboVacEntity(StateVacuumEntity):
         self._cloud_room_lookup_attempted = False
 
         # Initialize the RoboVac connection
-        try:
-            # Extract model code prefix for device identification
-            model_code_prefix = ""
-            if self.model_code is not None:
-                model_code_prefix = self.model_code[0:5]
-
-            # Create the RoboVac instance
-            self.vacuum = RoboVac(
-                device_id=self.unique_id,
-                host=self.ip_address,
-                local_key=self.access_token,
-                timeout=TIMEOUT,
-                ping_interval=PING_RATE,
-                model_code=model_code_prefix,
-                update_entity_state=self.pushed_update_handler,
-            )
-            _LOGGER.debug(
-                "Initialized RoboVac connection for %s (model: %s)",
-                self._attr_name,
-                self._attr_model_code
-            )
-        except ModelNotSupportedException:
+        if not self.access_token:
             _LOGGER.error(
-                "Model %s is not supported",
-                self._attr_model_code
+                "Cannot initialize %s: Tuya denied access to the local key. "
+                "Re-link the vacuum in the Eufy app or check account and "
+                "region permissions, then reload the integration.",
+                self._attr_name,
             )
-            self._attr_error_code = "UNSUPPORTED_MODEL"
+            self._attr_error_code = "LOCAL_KEY_UNAVAILABLE"
+        else:
+            try:
+                # Extract model code prefix for device identification
+                model_code_prefix = ""
+                if self.model_code is not None:
+                    model_code_prefix = self.model_code[0:5]
+
+                # Create the RoboVac instance
+                self.vacuum = RoboVac(
+                    device_id=self.unique_id,
+                    host=self.ip_address,
+                    local_key=self.access_token,
+                    timeout=TIMEOUT,
+                    ping_interval=PING_RATE,
+                    model_code=model_code_prefix,
+                    update_entity_state=self.pushed_update_handler,
+                )
+                _LOGGER.debug(
+                    "Initialized RoboVac connection for %s (model: %s)",
+                    self._attr_name,
+                    self._attr_model_code
+                )
+            except ModelNotSupportedException:
+                _LOGGER.error(
+                    "Model %s is not supported",
+                    self._attr_model_code
+                )
+                self._attr_error_code = "UNSUPPORTED_MODEL"
+            except InvalidKey:
+                _LOGGER.error(
+                    "Cannot initialize %s: Tuya returned an invalid local key. "
+                    "Re-link the vacuum in the Eufy app or check account and "
+                    "region permissions, then reload the integration.",
+                    self._attr_name,
+                )
+                self._attr_error_code = "INVALID_LOCAL_KEY"
 
         # Set supported features if vacuum was initialized successfully
         if self.vacuum is not None:
@@ -1056,6 +1073,11 @@ class RoboVacEntity(StateVacuumEntity):
 
         try:
             raw_str = raw if isinstance(raw, str) else str(raw)
+            # ⚡ Bolt optimization: Avoid redundant decodes by memoizing the payload
+            if raw_str == self._last_clean_param_data:
+                return
+            self._last_clean_param_data = raw_str
+
             decoded = decode_clean_param_response(raw_str)
             params = merge_clean_param_layers(decoded)
             clean_type = params.get("clean_type")
@@ -1555,7 +1577,7 @@ class RoboVacEntity(StateVacuumEntity):
         Args:
             **kwargs: Additional arguments passed from Home Assistant.
         """
-        await self.async_return_to_base()
+        await self.async_pause(**kwargs)
 
     async def async_clean_spot(self, **kwargs: Any) -> None:
         """Perform a spot clean.

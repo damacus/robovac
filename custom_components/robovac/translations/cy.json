@@ -6,6 +6,7 @@
         "error": {
             "cannot_connect": "Wedi methu cysylltu",
             "invalid_auth": "Dilysiad annilys",
+            "no_vacuums_found": "Ni chanfuwyd unrhyw ddyfeisiau RoboVac cydnaws yn eich cyfrif Eufy",
             "unknown": "Gwall annisgwyl"
         },
         "step": {

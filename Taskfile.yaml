@@ -72,6 +72,11 @@ tasks:
     cmds:
       - uv run python scripts/cache_eufy_support_pdfs.py
 
+  analyze-eufy-pdfs:
+    desc: Analyze ignored eufy support PDF cache for names, modes, and features
+    cmds:
+      - uv run --with pypdf python scripts/analyze_eufy_support_pdfs.py --output .cache/eufy-support-pdfs/analysis.json
+
   markdownlint:
     desc: Lint with markdownlint
     cmds:

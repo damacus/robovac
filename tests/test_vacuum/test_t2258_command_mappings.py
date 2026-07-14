@@ -4,10 +4,7 @@ import pytest
 from unittest.mock import patch
 
 from custom_components.robovac.robovac import RoboVac
-from custom_components.robovac.vacuums.base import (
-    RoboVacEntityFeature,
-    RobovacCommand,
-)
+from custom_components.robovac.vacuums.base import RobovacCommand
 
 
 @pytest.fixture
@@ -52,17 +49,15 @@ def test_t2258_uses_documented_suction_levels(mock_t2258_robovac) -> None:
         "standard": "Standard",
         "turbo": "Turbo",
         "max": "Max",
+        "boost_iq": "Boost_IQ",
     }
     assert mock_t2258_robovac.getRoboVacCommandValue(RobovacCommand.FAN_SPEED, "quiet") == "Quiet"
     assert mock_t2258_robovac.getRoboVacCommandValue(RobovacCommand.FAN_SPEED, "standard") == "Standard"
     assert mock_t2258_robovac.getRoboVacCommandValue(RobovacCommand.FAN_SPEED, "turbo") == "Turbo"
     assert mock_t2258_robovac.getRoboVacCommandValue(RobovacCommand.FAN_SPEED, "max") == "Max"
-    assert "boost_iq" not in values
-
-
-def test_t2258_exposes_boost_iq_as_separate_setting(mock_t2258_robovac) -> None:
-    """Test T2258 follows documented BoostIQ feature behavior."""
-    assert mock_t2258_robovac.model_details.robovac_features & RoboVacEntityFeature.BOOST_IQ
+    assert mock_t2258_robovac.getRoboVacCommandValue(
+        RobovacCommand.FAN_SPEED, "boost_iq"
+    ) == "Boost_IQ"
 
 
 def test_t2258_does_not_expose_direction_command(mock_t2258_robovac) -> None:
@@ -84,6 +79,6 @@ def test_t2258_model_has_basic_commands(mock_t2258_robovac) -> None:
     assert RobovacCommand.ERROR in commands
 
 
-def test_t2258_does_not_override_default_boost_iq_dps_code(mock_t2258_robovac) -> None:
-    """Test T2258 relies on the default BoostIQ DPS fallback."""
-    assert mock_t2258_robovac.getDpsCodes().get("BOOST_IQ") is None
+def test_t2258_does_not_expose_boost_iq_setting_command(mock_t2258_robovac) -> None:
+    """Test T2258 exposes BoostIQ as fan speed, not a boolean setting."""
+    assert RobovacCommand.BOOST_IQ not in mock_t2258_robovac.model_details.commands

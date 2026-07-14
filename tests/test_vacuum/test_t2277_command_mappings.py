@@ -60,6 +60,14 @@ def test_t2277_return_home_command_values(mock_t2277_robovac: RoboVac) -> None:
     )
 
 
+def test_t2277_start_pause_does_not_define_start_value(mock_t2277_robovac: RoboVac) -> None:
+    """GH-498: L60 SES HA Start must preserve app custom-clean settings."""
+    assert (
+        mock_t2277_robovac.getRoboVacCommandValue(RobovacCommand.START_PAUSE, "start")
+        == "start"
+    )
+
+
 def test_t2277_fan_speed_command_values(mock_t2277_robovac: RoboVac) -> None:
     """Test T2277 FAN_SPEED value mapping."""
     assert mock_t2277_robovac.getRoboVacCommandValue(RobovacCommand.FAN_SPEED, "quiet") == "Quiet"

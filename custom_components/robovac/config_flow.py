@@ -59,7 +59,7 @@ from .countries import (
     get_region_by_phone_code,
 )
 from .eufywebapi import EufyLogon
-from .tuyawebapi import TuyaAPISession
+from .tuyawebapi import TuyaAPIError, TuyaAPISession
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -69,6 +69,29 @@ USER_SCHEMA = vol.Schema(
         vol.Required(CONF_PASSWORD): cv.string,
     }
 )
+
+
+def _is_tuya_permission_denied(error: Exception) -> bool:
+    """Return True when Tuya denied access to an Eufy-discovered device."""
+    if isinstance(error, TuyaAPIError):
+        return error.error_code == "PERMISSION_DENIED"
+    return "PERMISSION_DENIED" in str(error)
+
+
+def _vacuum_details_from_eufy_item(
+    item: dict[str, Any], access_token: str
+) -> dict[str, Any]:
+    """Build config-flow vacuum details from an Eufy device record."""
+    return {
+        CONF_ID: item["id"],
+        CONF_MODEL: item["product"]["product_code"],
+        CONF_NAME: item["alias_name"],
+        CONF_DESCRIPTION: item["name"],
+        CONF_MAC: item["wifi"]["mac"],
+        CONF_IP_ADDRESS: "",
+        CONF_AUTODISCOVERY: True,
+        CONF_ACCESS_TOKEN: access_token,
+    }
 
 
 def get_eufy_vacuums(self: dict[str, Any]) -> requests.Response:
@@ -162,18 +185,28 @@ def get_eufy_vacuums(self: dict[str, Any]) -> requests.Response:
         if item["product"]["appliance"] == "Cleaning":
             try:
                 device = tuya_client.get_device(item["id"])
+                access_token = device["localKey"]
+            except Exception as err:
+                if _is_tuya_permission_denied(err):
+                    _LOGGER.warning(
+                        "Tuya denied access to vacuum %s; keeping Eufy discovery "
+                        "details without a local key",
+                        item["id"],
+                    )
+                    access_token = ""
+                else:
+                    _LOGGER.debug(
+                        "Skipping vacuum {}: found on Eufy but not on Tuya. Eufy details:".format(
+                            item["id"]
+                        )
+                    )
+                    _LOGGER.debug(json.dumps(item, indent=2))
+                    continue
 
-                vac_details = {
-                    CONF_ID: item["id"],
-                    CONF_MODEL: item["product"]["product_code"],
-                    CONF_NAME: item["alias_name"],
-                    CONF_DESCRIPTION: item["name"],
-                    CONF_MAC: item["wifi"]["mac"],
-                    CONF_IP_ADDRESS: "",
-                    CONF_AUTODISCOVERY: True,
-                    CONF_ACCESS_TOKEN: device["localKey"],
-                }
-                self[CONF_VACS][item["id"]] = vac_details
+            try:
+                self[CONF_VACS][item["id"]] = _vacuum_details_from_eufy_item(
+                    item, access_token
+                )
             except Exception:
                 _LOGGER.debug(
                     "Skipping vacuum {}: found on Eufy but not on Tuya. Eufy details:".format(
@@ -191,6 +224,8 @@ def get_eufy_vacuums(self: dict[str, Any]) -> requests.Response:
 async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
     """Validate the user input allows us to connect."""
     await hass.async_add_executor_job(get_eufy_vacuums, data)
+    if not data.get(CONF_VACS):
+        raise NoVacuumsFound
     return data
 
 
@@ -216,6 +251,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ignore[call
             errors["base"] = "cannot_connect"
         except InvalidAuth:
             errors["base"] = "invalid_auth"
+        except NoVacuumsFound:
+            errors["base"] = "no_vacuums_found"
         except Exception as e:  # pylint: disable=broad-except
             _LOGGER.exception("Unexpected exception: {}".format(e))
             errors["base"] = "unknown"
@@ -244,6 +281,10 @@ class CannotConnect(HomeAssistantError):
 
 class InvalidAuth(HomeAssistantError):
     """Error to indicate there is invalid auth."""
+
+
+class NoVacuumsFound(HomeAssistantError):
+    """Error to indicate no compatible vacuums were discovered."""
 
 
 class OptionsFlowHandler(config_entries.OptionsFlow):

@@ -27,6 +27,28 @@ from custom_components.robovac.vacuum import (
 from custom_components.robovac.vacuums.base import TuyaCodes
 
 
+def test_entity_with_missing_local_key_reports_actionable_error(mock_vacuum_data) -> None:
+    """Test permission-denied discovery does not crash entity initialization."""
+    vacuum_data = {
+        **mock_vacuum_data,
+        CONF_MODEL: "T2292",
+        CONF_DESCRIPTION: "AE C10",
+        CONF_ACCESS_TOKEN: "",
+    }
+
+    entity = RoboVacEntity(vacuum_data)
+
+    assert entity.vacuum is None
+    assert entity.error_code == "LOCAL_KEY_UNAVAILABLE"
+    assert entity.activity == VacuumActivity.ERROR
+    assert (
+        entity.extra_state_attributes[ATTR_ERROR]
+        == "Tuya denied access to this vacuum's local key. Re-link the vacuum in "
+        "the Eufy app or check account and region permissions, then reload the "
+        "integration."
+    )
+
+
 @pytest.mark.asyncio
 async def test_activity_property_none(mock_robovac, mock_vacuum_data) -> None:
     """Test activity property returns None when tuya_state is None."""

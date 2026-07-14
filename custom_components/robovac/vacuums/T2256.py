@@ -1,9 +1,16 @@
-"""G50 (T2210)"""
+"""RoboVac G40 Hybrid (T2256).
+
+Added 2026-06-24: the plain G40 Hybrid (Tuya model code T2256) was missing from
+damacus/robovac — it had the base G40 (T2255), G40+ (T2272) and G40 Hybrid+ (T2273)
+but not this variant, so the device reported "model is not supported". Profile cloned
+from the G40 Hybrid+ (T2273): the G40 family shares the same Tuya DP codes
+(start/pause 2, status 15, return-home 101, fan 102, battery 104, error 106).
+"""
 from homeassistant.components.vacuum import VacuumEntityFeature
 from .base import RoboVacEntityFeature, RobovacCommand, RobovacModelDetails
 
 
-class T2210(RobovacModelDetails):
+class T2256(RobovacModelDetails):
     homeassistant_features = (
         VacuumEntityFeature.CLEAN_SPOT
         | VacuumEntityFeature.FAN_SPEED
@@ -20,6 +27,7 @@ class T2210(RobovacModelDetails):
         | RoboVacEntityFeature.CLEANING_AREA
         | RoboVacEntityFeature.DO_NOT_DISTURB
         | RoboVacEntityFeature.AUTO_RETURN
+        | RoboVacEntityFeature.CONSUMABLES
     )
     commands = {
         RobovacCommand.START_PAUSE: {
@@ -29,10 +37,10 @@ class T2210(RobovacModelDetails):
         RobovacCommand.DIRECTION: {
             "code": 3,
             "values": {
-                "forward": "Forward",
-                "back": "Back",
-                "left": "Left",
-                "right": "Right",
+                "forward": "forward",
+                "back": "back",
+                "left": "left",
+                "right": "right",
             },
         },
         RobovacCommand.MODE: {
@@ -58,7 +66,6 @@ class T2210(RobovacModelDetails):
                 "standard": "Standard",
                 "turbo": "Turbo",
                 "max": "Max",
-                "boost_iq": "Boost_IQ",
             },
         },
         RobovacCommand.LOCATE: {
@@ -69,8 +76,5 @@ class T2210(RobovacModelDetails):
         },
         RobovacCommand.ERROR: {
             "code": 106,
-            "values": {
-                "0": "No error",
-            },
         },
     }

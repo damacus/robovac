@@ -90,6 +90,7 @@ def load_products() -> list[Product]:
     match = re.search(
         r'<script id="__NEXT_DATA__" type="application/json">(.*?)</script>',
         index_html,
+        flags=re.DOTALL,
     )
     if match is None:
         raise RuntimeError("could not find __NEXT_DATA__ in eufy manual index")
@@ -153,8 +154,8 @@ def collect_downloads(products: list[Product], timeout_ms: int, headless: bool) 
         page.set_default_timeout(timeout_ms)
 
         for product in products:
-            page.goto(product.url, wait_until="load")
             try:
+                page.goto(product.url, wait_until="load")
                 page.wait_for_function(
                     """
                     () => {
