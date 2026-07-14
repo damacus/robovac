@@ -1547,7 +1547,7 @@ class RoboVacEntity(StateVacuumEntity):
             start_value = self.vacuum.getRoboVacCommandValue(
                 RobovacCommand.START_PAUSE, "start"
             )
-            if start_pause_code not in payload:
+            if start_value != "start" and start_pause_code not in payload:
                 payload[start_pause_code] = start_value
 
         if not payload:

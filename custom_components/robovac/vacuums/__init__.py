@@ -93,9 +93,17 @@ ROBOVAC_MODELS: Dict[str, Type[RobovacModelDetails]] = {
 
 
 def resolve_model_code(model_code: str) -> str:
-    """Resolve exact registered codes before using the legacy five-character prefix."""
+    """Resolve exact and extended codes before the legacy five-character prefix."""
     if model_code in ROBOVAC_MODELS:
         return model_code
+
+    extended_prefixes = [
+        registered_code
+        for registered_code in ROBOVAC_MODELS
+        if len(registered_code) > 5 and model_code.startswith(registered_code)
+    ]
+    if extended_prefixes:
+        return max(extended_prefixes, key=lambda code: (len(code), code.casefold()))
 
     model_prefix = model_code[:5]
     if model_prefix in ROBOVAC_MODELS:

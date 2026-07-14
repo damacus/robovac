@@ -103,7 +103,30 @@ def test_t2080a_values_and_readback() -> None:
 
 def test_model_resolution_prefers_exact_code_then_legacy_prefix() -> None:
     assert resolve_model_code("T2080A") == "T2080A"
+    assert resolve_model_code("T2080A product suffix") == "T2080A"
     assert resolve_model_code("T2278 product suffix") == "T2278"
+
+
+def test_suffixed_t2080a_preserves_device_and_entity_model(
+    mock_vacuum_data,
+) -> None:
+    configured_model = "T2080A product suffix"
+    with patch(
+        "custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None
+    ):
+        robovac = RoboVac(
+            model_code=configured_model,
+            device_id="test_id",
+            host="192.168.1.100",
+            local_key="test_key",
+        )
+        entity = RoboVacEntity({**mock_vacuum_data, CONF_MODEL: configured_model})
+
+    assert robovac.model_code == "T2080A"
+    assert robovac.model_details is T2080A
+    assert entity.vacuum is not None
+    assert entity.vacuum.model_code == "T2080A"
+    assert entity.vacuum.model_details is T2080A
 
 
 def test_entity_preserves_full_registered_model_code(mock_vacuum_data) -> None:
