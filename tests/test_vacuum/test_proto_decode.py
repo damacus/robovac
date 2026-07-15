@@ -992,10 +992,12 @@ def test_error_code_with_extended_codes() -> None:
     # Should return string or None
     assert result is None or isinstance(result, str)
 
+
 def test_decode_error_code_7032() -> None:
     """Test decode_error_code returns correct string for error 7032 observed on T2267 hardware."""
     result = decode_error_code("FAjBqImMubPtzgEaAvg2UgQSAvg2")
     assert result == "Station not found, returning to start"
+
 
 def test_decode_t2320_room_meta_live_payload_shape() -> None:
     """Decode X9 Pro DPS 165 length-prefixed room metadata."""
