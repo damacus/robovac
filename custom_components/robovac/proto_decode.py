@@ -51,6 +51,7 @@ T2277_ERROR_CODES = {
     7002: "Robot suspended",
     7010: "Robot entered no go zone",
     7031: "Return to dock failed",
+    7032: "Station not found, returning to start",
     7050: "Inaccessible areas not cleaned",
 }
 
