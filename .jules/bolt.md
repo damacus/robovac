@@ -34,3 +34,6 @@
 ## 2026-03-03 - [Python set intersection vs isdisjoint]
 **Learning:** `set.intersection()` constructs and returns a new set, causing an unnecessary memory allocation, which is particularly wasteful in a hot path if the result is only used for a boolean check (e.g., `if not set_a.intersection(dict_b)`).
 **Action:** Replace `set.intersection()` with `set.isdisjoint()` when only a boolean presence check is needed to avoid object allocations and allow for early-exit evaluation.
+## 2024-05-14 - Hoisting Function-Local Constants
+**Learning:** While CPython optimizes `x in [1, 2, 3]` to a constant tuple, declaring dictionaries (e.g., `lookup = {1: "a"}`) or lists for indexing (e.g., `names[val]`) inside a function body causes the interpreter to re-allocate those objects on *every single invocation*.
+**Action:** When working with frequently called functions (like decoding loops or state parsers), hoist static mapping dictionaries and lists to module-level constants (e.g., `_LOOKUP_MAP`) to avoid redundant memory allocations and garbage collection overhead.
