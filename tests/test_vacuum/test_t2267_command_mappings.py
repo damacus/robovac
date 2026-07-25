@@ -220,7 +220,7 @@ def test_t2267_decode_dps_unmapped_error_logs_warning(
     """Test that an unmapped error code logs a warning with instructions to report it."""
     import logging
     import base64
-    from custom_components.robovac.proto_decode import _parse_proto, _encode_varint
+    from custom_components.robovac.proto_decode import _encode_varint
 
     # Build a minimal DPS 177 payload with an unknown error code (99999)
     # Field 3 = repeated uint32 warn, wire type 0

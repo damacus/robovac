@@ -1,7 +1,6 @@
 """Tests for T2251 command mappings and DPS codes."""
 
 import pytest
-from typing import Any
 from unittest.mock import patch
 
 from custom_components.robovac.robovac import RoboVac

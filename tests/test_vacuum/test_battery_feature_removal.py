@@ -5,7 +5,6 @@ from all vacuum models while maintaining backward compatibility with battery
 command mappings and battery sensor functionality.
 """
 
-import pytest
 from homeassistant.components.vacuum import VacuumEntityFeature
 
 from custom_components.robovac.vacuums import ROBOVAC_MODELS

@@ -1,6 +1,5 @@
 """Tests to analyze DPS codes for all models."""
 
-import pytest
 from typing import Any, Dict
 from unittest.mock import patch
 

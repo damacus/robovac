@@ -1,7 +1,7 @@
 """Tests for rate-limited logging in RoboVac vacuum entity."""
 
 import time
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from typing import Any

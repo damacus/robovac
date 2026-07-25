@@ -2,14 +2,12 @@
 
 import struct
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 from custom_components.robovac.tuyalocalapi import (
     Message,
     TuyaCipher,
-    TuyaDevice,
     MAGIC_PREFIX,
-    MAGIC_SUFFIX,
 )
 
 
