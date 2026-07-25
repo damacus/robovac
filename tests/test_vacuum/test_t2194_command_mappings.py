@@ -85,3 +85,16 @@ def test_t2194_model_has_commands(mock_t2194_robovac) -> None:
     assert RobovacCommand.LOCATE in commands
     assert RobovacCommand.BATTERY in commands
     assert RobovacCommand.ERROR in commands
+
+
+def test_t2194_return_home_value(mock_t2194_robovac) -> None:
+    """Test T2194 RETURN_HOME maps 'return' to boolean True.
+
+    RETURN_HOME had no 'values' mapping, so getRoboVacCommandValue()
+    fell back to returning the raw string "return" instead of the
+    boolean the device expects on DPS code 101 (confirmed via debug
+    logs showing DPS 101 reported as a bool in every status update).
+    This caused the vacuum to start cleaning instead of returning to
+    dock when 'Return to Dock' was pressed in Home Assistant.
+    """
+    assert mock_t2194_robovac.getRoboVacCommandValue(RobovacCommand.RETURN_HOME, "return") is True
