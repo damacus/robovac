@@ -3,6 +3,7 @@
 import importlib
 import pytest
 import sys
+from typing import Any
 from unittest.mock import patch
 
 from custom_components.robovac.robovac import RoboVac

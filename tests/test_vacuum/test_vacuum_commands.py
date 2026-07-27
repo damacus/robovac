@@ -5,7 +5,7 @@ import json
 
 import pytest
 from typing import Any
-from unittest.mock import patch, AsyncMock
+from unittest.mock import patch, MagicMock, AsyncMock, call
 
 from homeassistant.const import (
     CONF_ACCESS_TOKEN,

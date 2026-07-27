@@ -1,8 +1,10 @@
 """Tests for L60 DPS codes handling."""
 
+import asyncio
 import pytest
-from unittest.mock import patch, MagicMock, AsyncMock
+from unittest.mock import patch, MagicMock, call, AsyncMock
 
+from custom_components.robovac.robovac import RoboVac
 from custom_components.robovac.vacuum import RoboVacEntity
 from custom_components.robovac.vacuums.base import RobovacCommand
 from homeassistant.const import (

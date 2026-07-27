@@ -1,5 +1,6 @@
 """Tests for error message handling and context functions."""
 
+import pytest
 
 from custom_components.robovac.errors import getErrorMessage, getErrorMessageWithContext
 

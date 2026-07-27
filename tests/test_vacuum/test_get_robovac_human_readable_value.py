@@ -1,7 +1,8 @@
 """Tests for the getRoboVacHumanReadableValue method."""
 
 import pytest
-from unittest.mock import patch
+from typing import Any
+from unittest.mock import patch, MagicMock
 
 from custom_components.robovac.robovac import RoboVac
 from custom_components.robovac.vacuums.base import RobovacCommand
