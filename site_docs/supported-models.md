@@ -37,13 +37,14 @@ This page lists all currently supported Eufy RoboVac models.
 | T2259      | RoboVac G32 Pro             | 3.3      |
 | T2261      | RoboVac X8 Hybrid           | 3.3      |
 | T2262      | RoboVac X8                  | 3.3      |
+| T2266      | eufy Clean X8 Pro Hybrid    | 3.5      |
 | T2267      | eufy Clean L60              | 3.4      |
 | T2268      | eufy Clean L60 Hybrid       | 3.4      |
 | T2270      | RoboVac G35+                | 3.3      |
 | T2272      | RoboVac G40+                | 3.3      |
 | T2273      | RoboVac G40 Hybrid+         | 3.3      |
 | T2275      | eufy Clean L50 SES          | 3.4      |
-| T2276      | eufy Clean X8 Pro SES       | 3.4      |
+| T2276      | eufy Clean X8 Pro SES       | 3.5      |
 | T2277      | eufy Clean L60 SES          | 3.4      |
 | T2278      | eufy Clean L60 Hybrid SES   | 3.4      |
 | T2280      | eufy Omni C20               | 3.4      |
@@ -68,7 +69,7 @@ series, it may work with an existing configuration.
 ### X Series (Premium)
 
 - **X8**: T2261, T2262
-- **X8 Pro**: T2276
+- **X8 Pro**: T2266, T2276
 - **X9 Pro**: T2320
 - **X10 Pro Omni**: T2351
 
