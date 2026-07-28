@@ -726,6 +726,8 @@ class RoboVacEntity(StateVacuumEntity):
         self._dps_codes_memo: dict[str, str] = {}
         self._last_consumable_data: str | None = None
         self._last_clean_param_data: str | None = None
+        self._last_room_meta_raw: Any = None
+        self._room_discovery_strategy_cache: dict[str, str] | None | bool = False
         self._room_name_registry: dict[str, dict[str, Any]] = {}
         self._eufy_username: str | None = item.get(CONF_USERNAME)
         self._eufy_password: str | None = item.get(CONF_PASSWORD)
@@ -1218,11 +1220,19 @@ class RoboVacEntity(StateVacuumEntity):
 
     def _get_room_discovery_strategy(self) -> dict[str, str] | None:
         """Return the room discovery strategy for the current model."""
+        if self._room_discovery_strategy_cache is not False:
+            return cast(dict[str, str] | None, self._room_discovery_strategy_cache)
+
         if not self.model_code:
+            self._room_discovery_strategy_cache = None
             return None
+
         for model_prefix, strategy in ROOM_DISCOVERY_STRATEGIES.items():
             if str(self.model_code).startswith(model_prefix):
+                self._room_discovery_strategy_cache = strategy
                 return strategy
+
+        self._room_discovery_strategy_cache = None
         return None
 
     def _supports_room_discovery(self) -> bool:
@@ -1260,12 +1270,19 @@ class RoboVacEntity(StateVacuumEntity):
         decoded = decoder(raw)
         return decoded if isinstance(decoded, dict) else {"map_id": None, "rooms": []}
 
-    def _discover_room_meta_from_local_dps(self) -> dict[str, Any]:
-        """Discover room metadata from local DPS values."""
+    def _discover_room_meta_from_local_dps(self) -> dict[str, Any] | None:
+        """Discover room metadata from local DPS values. Returns None if unchanged."""
         strategy = self._get_room_discovery_strategy()
         if not strategy or self.tuyastatus is None:
             return {"map_id": None, "rooms": []}
         raw = self._room_meta_raw_from_dps(self.tuyastatus, strategy)
+
+        # ⚡ Bolt optimization: Avoid expensive protobuf/base64 parsing on every
+        # state update if the raw metadata hasn't changed.
+        if raw == self._last_room_meta_raw:
+            return None
+        self._last_room_meta_raw = raw
+
         return self._decode_room_meta(raw, strategy)
 
     def _merge_room_meta(self, meta: dict[str, Any], source: str) -> bool:
@@ -1304,7 +1321,9 @@ class RoboVacEntity(StateVacuumEntity):
         if not self._supports_room_discovery() or self.tuyastatus is None:
             return
         try:
-            self._merge_room_meta(self._discover_room_meta_from_local_dps(), "device")
+            meta = self._discover_room_meta_from_local_dps()
+            if meta is not None:
+                self._merge_room_meta(meta, "device")
         except Exception as ex:
             _LOGGER.debug("Room metadata decode failed for %s: %s", self.name, ex)
 

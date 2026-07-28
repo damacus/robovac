@@ -34,3 +34,7 @@
 ## 2026-03-03 - [Python set intersection vs isdisjoint]
 **Learning:** `set.intersection()` constructs and returns a new set, causing an unnecessary memory allocation, which is particularly wasteful in a hot path if the result is only used for a boolean check (e.g., `if not set_a.intersection(dict_b)`).
 **Action:** Replace `set.intersection()` with `set.isdisjoint()` when only a boolean presence check is needed to avoid object allocations and allow for early-exit evaluation.
+
+## 2026-03-03 - [Redundant String Matching in Update Loops]
+**Learning:** `_get_room_discovery_strategy` iterates through `ROOM_DISCOVERY_STRATEGIES` doing `str.startswith()` checks. This method is called by `_supports_room_discovery`, which is checked in `_update_room_names_from_device_payload` on every device data polling/update cycle. Repetitive string matching loops on static values (`model_code`) consume unnecessary CPU cycles during hot paths.
+**Action:** Cache the resulting strategy on the class instance upon first evaluation (or `__init__`) so that subsequent frequent accesses are O(1) attribute lookups instead of repetitive O(N) string iterations.
