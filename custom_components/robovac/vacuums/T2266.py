@@ -20,6 +20,11 @@ were validated for the T2276 with local packet captures; a cloud DPS snapshot
 cannot show whether the T2266 needs an empty-DPS status query or a DPS 121
 map-data keepalive on ping. Enable them only with a T2266 packet capture
 proving the behavior.
+Both protocol 3.5 network behaviors (protocol_35_empty_dps_query,
+protocol_35_map_data_keepalive) are enabled: live testing on a T2266
+(2026-08, HA 2026.7.4) confirmed it behaves exactly like the T2276 —
+without them the session key negotiates but every DPS query returns
+empty and the device closes the connection ~30 s after connect.
 """
 from homeassistant.components.vacuum import VacuumEntityFeature
 from .base import RoboVacEntityFeature, RobovacCommand, RobovacModelDetails
@@ -27,6 +32,8 @@ from .base import RoboVacEntityFeature, RobovacCommand, RobovacModelDetails
 
 class T2266(RobovacModelDetails):
     protocol_version = 3.5
+    protocol_35_empty_dps_query = True
+    protocol_35_map_data_keepalive = True
     homeassistant_features = (
         VacuumEntityFeature.FAN_SPEED
         | VacuumEntityFeature.LOCATE
