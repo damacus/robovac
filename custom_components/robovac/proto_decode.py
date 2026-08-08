@@ -108,7 +108,7 @@ def _parse_proto(data: bytes) -> dict[int, Any]:
 
         elif wire_type == 2:  # length-delimited
             length, pos = _parse_varint(data, pos)
-            raw_value: bytes = data[pos : pos + length]
+            raw_value: bytes = data[pos:pos + length]
             pos += length
             if field_num in fields:
                 # Repeated length-delimited field → accumulate as list
