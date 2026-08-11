@@ -1,0 +1,67 @@
+{
+  "human_authority": "Dan Webb",
+  "seats": {
+    "bucky": {"display_name": "Bucky"},
+    "nightingale": {"display_name": "Nightingale"},
+    "hubble": {"display_name": "Hubble"},
+    "scout": {"display_name": "Scout"}
+  },
+  "writer_owner_count": 1,
+  "active_writer": "nightingale",
+  "handoff": {
+    "old_writer_status": "idle",
+    "summary": "Nightingale acknowledged the completed model-catalog migration boundary.",
+    "verification": "Focused bootstrap checks are required.",
+    "new_writer_acknowledgement": "Nightingale accepts sole implementation ownership after the recorded zero-writer boundary.",
+    "objective": "Install and validate the persistent team bootstrap.",
+    "owned_paths": [".agents/team", ".codex/agents", "AGENTS.md"],
+    "baseline": "Fresh isolated worktree bootstrap.",
+    "dirty_paths": [],
+    "checks": ["Focused bootstrap tests", "bootstrap validator"],
+    "findings": "No unresolved bootstrap findings.",
+    "next_action": "Run the focused validation boundary.",
+    "requested_model": "gpt-5.6-terra",
+    "requested_effort": "xhigh",
+    "requested_reason": "Derived from the captured active runtime model/list snapshot.",
+    "tightly_specified": false
+  },
+  "fixed_policy": {
+    "one_writer": true,
+    "safe_handoff": true,
+    "redaction": true,
+    "routing": "explicit",
+    "sandbox": "fixed"
+  },
+  "model_selection": {
+    "current": {"model": "gpt-5.6-terra", "effort": "xhigh"},
+    "recommended": {"model": "gpt-5.6-terra", "effort": "xhigh"},
+    "luna_status": "not_advertised_in_this_runtime"
+  },
+  "catalog": {
+    "source": "active-runtime:model/list",
+    "pairs": [
+      {"model": "gpt-5.6-sol", "effort": "low"},
+      {"model": "gpt-5.6-sol", "effort": "medium"},
+      {"model": "gpt-5.6-sol", "effort": "high"},
+      {"model": "gpt-5.6-sol", "effort": "xhigh"},
+      {"model": "gpt-5.6-sol", "effort": "max"},
+      {"model": "gpt-5.6-sol", "effort": "ultra"},
+      {"model": "gpt-5.6-terra", "effort": "low"},
+      {"model": "gpt-5.6-terra", "effort": "medium"},
+      {"model": "gpt-5.6-terra", "effort": "high"},
+      {"model": "gpt-5.6-terra", "effort": "xhigh"},
+      {"model": "gpt-5.6-terra", "effort": "max"},
+      {"model": "gpt-5.6-terra", "effort": "ultra"}
+    ]
+  },
+  "verification": {
+    "narrow": [
+      "PYTHONPATH=.agents/skills/persistent-team-bootstrap/scripts python3.11 -m unittest discover -s .agents/skills/persistent-team-bootstrap/tests -p 'test_*.py'",
+      "python3.11 .agents/skills/persistent-team-bootstrap/scripts/validate_bootstrap.py --repo . --config .agents/team/bootstrap.json",
+      "python3.11 .agents/skills/team-improvement-loop/scripts/validate_team_setup.py",
+      "python3.11 .agents/skills/team-improvement-loop/scripts/run_routing_evals.py --repo . --dry-run"
+    ],
+    "broad": ["task lint", "task type-check", "task test"]
+  },
+  "recognition_wording": "Recognize concrete, reviewable contributions without collecting private responses."
+}

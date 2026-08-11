@@ -1,0 +1,32 @@
+# Safe handoff
+
+Record objective, owned paths, baseline, dirty paths, checks, findings, next
+action, requested model/effort/reason, old-writer status, summary,
+verification, and new-writer acknowledgement.
+
+```json
+{
+  "baseline": "Fresh isolated worktree bootstrap.",
+  "checks": [
+    "Focused bootstrap tests",
+    "bootstrap validator"
+  ],
+  "dirty_paths": [],
+  "findings": "No unresolved bootstrap findings.",
+  "new_writer_acknowledgement": "Nightingale accepts sole implementation ownership after the recorded zero-writer boundary.",
+  "next_action": "Run the focused validation boundary.",
+  "objective": "Install and validate the persistent team bootstrap.",
+  "old_writer_status": "idle",
+  "owned_paths": [
+    ".agents/team",
+    ".codex/agents",
+    "AGENTS.md"
+  ],
+  "requested_effort": "xhigh",
+  "requested_model": "gpt-5.6-terra",
+  "requested_reason": "Derived from the captured active runtime model/list snapshot.",
+  "summary": "Nightingale acknowledged the completed model-catalog migration boundary.",
+  "tightly_specified": false,
+  "verification": "Focused bootstrap checks are required."
+}
+```
