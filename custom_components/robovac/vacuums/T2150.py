@@ -55,9 +55,7 @@ class T2150(RobovacModelDetails):
             "code": 102,
             "values": {
                 "standard": "Standard",
-                "turbo": "Turbo",
                 "max": "Max",
-                "boost_iq": "Boost_IQ",
             },
         },
         RobovacCommand.LOCATE: {
