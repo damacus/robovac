@@ -34,8 +34,18 @@ class T2258(RobovacModelDetails):
                 "spot": "Spot",
             },
         },
+        # DPS 15 is not a usable status register on this model: it reports
+        # "Running" while cleaning, paused, stopped and docked alike, so the
+        # entity never leaves CLEANING. DPS 2 is the datapoint that tracks
+        # whether the vacuum is actually active.
+        #
+        # The values map is required rather than cosmetic. DPS 2 is a boolean,
+        # and a raw False is indistinguishable from "no status" to the
+        # `state == 0` check in RoboVacEntity.activity, which then falls back to
+        # the cleaning mode. Decoding to a string avoids that.
         RobovacCommand.STATUS: {
-            "code": 15,
+            "code": 2,
+            "values": {"True": "cleaning", "False": "docked"},
         },
         RobovacCommand.RETURN_HOME: {
             "code": 101,
