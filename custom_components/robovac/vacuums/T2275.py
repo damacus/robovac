@@ -34,7 +34,7 @@ class T2275(RobovacModelDetails):
         RobovacCommand.RETURN_HOME: {
             "code": 153,
             "values": {
-                "return_home": "AggB",
+                "return": "AggB",
             },
         },
         RobovacCommand.CLEAN_PARAM: {
