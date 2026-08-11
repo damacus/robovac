@@ -70,12 +70,12 @@ async def test_async_return_to_base(mock_robovac, mock_vacuum_data) -> None:
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("model_code", ["T2190", "T2259"])
-async def test_async_return_to_base_sends_boolean_payload_for_t2190_and_t2259(
+@pytest.mark.parametrize("model_code", ["T2190", "T2193", "T2259"])
+async def test_async_return_to_base_sends_boolean_payload_for_t2190_t2193_and_t2259(
     mock_vacuum_data,
     model_code,
 ) -> None:
-    """T2190 and T2259 return home through boolean DPS 101."""
+    """T2190, T2193, and T2259 return home through boolean DPS 101."""
     with patch("custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None):
         robovac = RoboVac(
             model_code=model_code,
