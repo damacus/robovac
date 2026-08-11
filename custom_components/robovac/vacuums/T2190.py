@@ -56,6 +56,7 @@ class T2190(RobovacModelDetails):
         },
         RobovacCommand.RETURN_HOME: {
             "code": 101,
+            "values": {"return": True},
         },
         RobovacCommand.FAN_SPEED: {
             "code": 102,
