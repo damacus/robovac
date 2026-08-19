@@ -14,12 +14,11 @@ model, the snapshot shows it does have a station with dust collection (DPS 126,
 base64 JSON). Neither this config nor the T2276 config maps DPS 126, though —
 station / dust-collect control is not exposed as a Home Assistant command.
 
-Unlike the T2276, this config does not opt into the protocol 3.5 network
-behaviors (protocol_35_empty_dps_query, protocol_35_map_data_keepalive). Those
-were validated for the T2276 with local packet captures; a cloud DPS snapshot
-cannot show whether the T2266 needs an empty-DPS status query or a DPS 121
-map-data keepalive on ping. Enable them only with a T2266 packet capture
-proving the behavior.
+Both protocol 3.5 network behaviours (protocol_35_empty_dps_query and
+protocol_35_map_data_keepalive) are enabled. Live T2266 testing confirmed that
+the session key negotiates without them, but every DPS query returns empty and
+the device closes the connection about 30 seconds later. With both behaviours
+enabled, DPS queries and push updates work and the connection remains open.
 """
 from homeassistant.components.vacuum import VacuumEntityFeature
 from .base import RoboVacEntityFeature, RobovacCommand, RobovacModelDetails
@@ -27,6 +26,8 @@ from .base import RoboVacEntityFeature, RobovacCommand, RobovacModelDetails
 
 class T2266(RobovacModelDetails):
     protocol_version = 3.5
+    protocol_35_empty_dps_query = True
+    protocol_35_map_data_keepalive = True
     homeassistant_features = (
         VacuumEntityFeature.FAN_SPEED
         | VacuumEntityFeature.LOCATE

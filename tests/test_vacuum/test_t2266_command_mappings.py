@@ -31,19 +31,18 @@ def test_t2266_protocol_version() -> None:
     assert T2266.protocol_version == 3.5
 
 
-def test_t2266_does_not_opt_into_protocol_35_network_behaviors() -> None:
-    """T2266 must not enable the T2276's protocol 3.5 network opt-ins.
+def test_t2266_enables_protocol_35_network_behaviors() -> None:
+    """T2266 must enable its validated protocol 3.5 network behaviours.
 
     protocol_35_empty_dps_query and protocol_35_map_data_keepalive change what
     the integration sends on the wire (empty-DPS status queries, SET_COMMAND_NEW
-    writes to DPS 121 on ping). They were validated for the T2276 with packet
-    captures; no equivalent T2266 capture exists, so they must stay off until
-    one does.
+    writes to DPS 121 on ping). Live T2266 testing confirmed that both are
+    required for DPS queries, push updates, and a stable connection.
     """
     from custom_components.robovac.vacuums.T2266 import T2266
 
-    assert getattr(T2266, "protocol_35_empty_dps_query", False) is False
-    assert getattr(T2266, "protocol_35_map_data_keepalive", False) is False
+    assert T2266.protocol_35_empty_dps_query is True
+    assert T2266.protocol_35_map_data_keepalive is True
 
 
 def test_t2266_dps_codes(mock_t2266_robovac) -> None:
