@@ -20,6 +20,7 @@ class T2252(RobovacModelDetails):
         | RoboVacEntityFeature.CLEANING_AREA
         | RoboVacEntityFeature.DO_NOT_DISTURB
         | RoboVacEntityFeature.AUTO_RETURN
+        | RoboVacEntityFeature.CONSUMABLES
     )
     commands = {
         RobovacCommand.START_PAUSE: {
