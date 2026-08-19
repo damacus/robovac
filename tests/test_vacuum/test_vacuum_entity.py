@@ -18,6 +18,7 @@ from homeassistant.const import (
 from custom_components.robovac.const import CONF_ROOM_SEGMENT_MAP_ID, CONF_ROOM_SEGMENTS
 from custom_components.robovac.robovac import RoboVac
 from custom_components.robovac.vacuum import (
+    ATTR_CONSUMABLES,
     ATTR_ERROR,
     RoboVacEntity,
     _parse_clean_count,
@@ -25,6 +26,31 @@ from custom_components.robovac.vacuum import (
     _parse_room_segments,
 )
 from custom_components.robovac.vacuums.base import TuyaCodes
+
+
+def test_t2252_exposes_legacy_consumables_after_state_update() -> None:
+    """The G30 Verge exposes its reported consumables to Home Assistant."""
+    data = {
+        CONF_NAME: "Test G30 Verge",
+        CONF_ID: "test_t2252_id",
+        CONF_MODEL: "T2252",
+        CONF_IP_ADDRESS: "192.168.1.100",
+        CONF_ACCESS_TOKEN: "test_key",
+        CONF_DESCRIPTION: "RoboVac G30 Verge",
+        CONF_MAC: "aa:bb:cc:dd:ee:ff",
+    }
+    consumables = base64.b64encode(
+        b'{"consumable": {"duration": 200}}'
+    ).decode("ascii")
+
+    with patch("custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None):
+        entity = RoboVacEntity(data)
+
+    assert entity.vacuum is not None
+    entity.vacuum._dps = {"142": consumables}
+    entity.update_entity_values()
+
+    assert entity.extra_state_attributes[ATTR_CONSUMABLES] == 200
 
 
 def test_entity_with_missing_local_key_reports_actionable_error(mock_vacuum_data) -> None:
