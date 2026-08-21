@@ -5,6 +5,39 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.3](https://github.com/damacus/robovac/compare/v2.4.3...v2.4.3) (2026-08-21)
+
+
+### Features
+
+* add error code 7032 mapping for T2277/T2267 ([#560](https://github.com/damacus/robovac/issues/560)) ([6237872](https://github.com/damacus/robovac/commit/62378728890ee3d0f3665a498b0a35fd33e65e42))
+* Add native Home Assistant clean segment support ([#456](https://github.com/damacus/robovac/issues/456)) ([3d20011](https://github.com/damacus/robovac/commit/3d2001158291a0a72c73ed3674d624a4947a0836))
+* expose T2252 consumables ([#596](https://github.com/damacus/robovac/issues/596)) ([d2be89e](https://github.com/damacus/robovac/commit/d2be89e4aca651e1bd61abe75d086a9c8933cee7))
+* **T2256:** add RoboVac G40 Hybrid support ([#547](https://github.com/damacus/robovac/issues/547)) ([d869a59](https://github.com/damacus/robovac/commit/d869a5999f33365fc12af33aec8cc2a54051fed6))
+* **T2258:** add documented T2258 support ([#522](https://github.com/damacus/robovac/issues/522)) ([bbf4ff9](https://github.com/damacus/robovac/commit/bbf4ff9da0006b4f6fafd6bec6b85ce339af4623))
+* **T2266:** Add X8 Pro ([#561](https://github.com/damacus/robovac/issues/561)) ([061fd0a](https://github.com/damacus/robovac/commit/061fd0ac7c5cbc298e2495d3eb6f524850984eae))
+* **T2267:** add error handling and activity mapping ([#539](https://github.com/damacus/robovac/issues/539)) ([5d8a84d](https://github.com/damacus/robovac/commit/5d8a84d6776219eccbd22df252324da75596c727))
+
+
+### Bug Fixes
+
+* advertise supported G10 Hybrid fan speeds ([398bb42](https://github.com/damacus/robovac/commit/398bb42347f90a21baaf18203470be4df2a4e6c4))
+* correct L35 fan speeds ([#528](https://github.com/damacus/robovac/issues/528)) ([e5a8c93](https://github.com/damacus/robovac/commit/e5a8c931ce0fefd313d52cf0404734abd9ec66da))
+* defined consumables for T2267 ([#543](https://github.com/damacus/robovac/issues/543)) ([8588273](https://github.com/damacus/robovac/commit/8588273a54395e3dd8312008c6bb06defa59bfa8))
+* isolate S1 Pro command mapping ([#530](https://github.com/damacus/robovac/issues/530)) ([779e616](https://github.com/damacus/robovac/commit/779e616fbe83f73f150d60f5564ec8ecbf2ecdd2))
+* keep C10 discovery on Tuya denial ([#536](https://github.com/damacus/robovac/issues/536)) ([2da889d](https://github.com/damacus/robovac/commit/2da889dd552777034851f3d5b6e25f87135bdc22))
+* preserve L60 SES custom starts ([#532](https://github.com/damacus/robovac/issues/532)) ([9b73636](https://github.com/damacus/robovac/commit/9b73636b78e6497421ee5aa61aa2b04f185ef42f))
+* record connection failures by DPS ([#527](https://github.com/damacus/robovac/issues/527)) ([25e25c1](https://github.com/damacus/robovac/commit/25e25c11b9da5f4a0a7aab55a9d82bf5fd54f3cf))
+* reject empty robovac setup ([#531](https://github.com/damacus/robovac/issues/531)) ([e964413](https://github.com/damacus/robovac/commit/e964413b8b9601ff52dff1ee90b7aff5c077792d))
+* restore Apache-2.0 license text ([#564](https://github.com/damacus/robovac/issues/564)) ([6422cfc](https://github.com/damacus/robovac/commit/6422cfc22a3391995cf57ae6eb89cdc8ecd7fc1d))
+* restore protocol 3.5 DPS fetch ([#535](https://github.com/damacus/robovac/issues/535)) ([ea96527](https://github.com/damacus/robovac/commit/ea96527e26448113e10c5ecacb4b12582f573271))
+* send boolean return-home command for T2190 and T2259 ([#593](https://github.com/damacus/robovac/issues/593)) ([44ac0c0](https://github.com/damacus/robovac/commit/44ac0c019543fcb7c75cf4f4db2c80bafb3040a8))
+* send boolean return-home command for T2193 ([c72b094](https://github.com/damacus/robovac/commit/c72b09434e81bfd7121626260781564abef877b6))
+* send lowercase auto for L35 ([#534](https://github.com/damacus/robovac/issues/534)) ([a166c46](https://github.com/damacus/robovac/commit/a166c464b07c15bc57e9afb23875993a0f38626b))
+* stop vacuum without returning to base ([#538](https://github.com/damacus/robovac/issues/538)) ([6e74763](https://github.com/damacus/robovac/commit/6e74763989172f41c159c337cd1f78c820552554))
+* **T2258:** read status from DPS 2, not the stuck DPS 15 ([#598](https://github.com/damacus/robovac/issues/598)) ([63d67e6](https://github.com/damacus/robovac/commit/63d67e60de0d60f52eb5e5544954056bb189633e))
+* **T2266:** enable protocol 3.5 network behaviours ([#590](https://github.com/damacus/robovac/issues/590)) ([bf858ba](https://github.com/damacus/robovac/commit/bf858badb7cc9b9fb43c0de54d6d8d70619e5095))
+
 ## [2.4.3](https://github.com/damacus/robovac/compare/v2.4.3...v2.4.3) (2026-08-19)
 
 
