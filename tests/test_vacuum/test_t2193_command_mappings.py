@@ -56,3 +56,9 @@ def test_t2193_fan_speed_command_values(mock_t2193_robovac) -> None:
     assert mock_t2193_robovac.getRoboVacCommandValue(RobovacCommand.FAN_SPEED, "standard") == "Standard"
     assert mock_t2193_robovac.getRoboVacCommandValue(RobovacCommand.FAN_SPEED, "turbo") == "Turbo"
     assert mock_t2193_robovac.getRoboVacCommandValue(RobovacCommand.FAN_SPEED, "max") == "Max"
+
+
+def test_t2193_fan_speed_dps_code(mock_t2193_robovac) -> None:
+    """Captured LR30 status reports fan speed on DPS 130, not 102."""
+    dps_codes = mock_t2193_robovac.getDpsCodes()
+    assert dps_codes["FAN_SPEED"] == "130"
