@@ -117,8 +117,7 @@ def mock_g30() -> MagicMock:
     mock = MagicMock()
     # Set up common return values
     mock.getHomeAssistantFeatures.return_value = (
-        VacuumEntityFeature.BATTERY
-        | VacuumEntityFeature.CLEAN_SPOT
+        VacuumEntityFeature.CLEAN_SPOT
         | VacuumEntityFeature.FAN_SPEED
         | VacuumEntityFeature.LOCATE
         | VacuumEntityFeature.PAUSE
@@ -176,8 +175,7 @@ def mock_l60() -> MagicMock:
     mock = MagicMock()
     # Set up common return values
     mock.getHomeAssistantFeatures.return_value = (
-        VacuumEntityFeature.BATTERY
-        | VacuumEntityFeature.FAN_SPEED
+        VacuumEntityFeature.FAN_SPEED
         | VacuumEntityFeature.LOCATE
         | VacuumEntityFeature.PAUSE
         | VacuumEntityFeature.RETURN_HOME
@@ -241,8 +239,7 @@ def mock_t2080() -> MagicMock:
     mock = MagicMock()
     # Set up T2080-specific return values
     mock.getHomeAssistantFeatures.return_value = (
-        VacuumEntityFeature.BATTERY
-        | VacuumEntityFeature.CLEAN_SPOT
+        VacuumEntityFeature.CLEAN_SPOT
         | VacuumEntityFeature.FAN_SPEED
         | VacuumEntityFeature.LOCATE
         | VacuumEntityFeature.PAUSE
