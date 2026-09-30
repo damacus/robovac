@@ -151,6 +151,31 @@ def _activity_from_mode(mode: str | None) -> VacuumActivity | None:
     return None
 
 
+# Base-station housekeeping. The robot is parked in the dock while the station
+# runs these, so they are reported as DOCKED rather than reaching the catch-all
+# in RoboVacEntity.activity, which reads an unrecognised status as CLEANING.
+_STATION_MAINTENANCE_STATES = frozenset(
+    {
+        "rollautocleaning",
+        "dustcollecting",
+        "selfcleaning",
+        "mopwashing",
+        "drying",
+    }
+)
+
+
+def _activity_from_station_maintenance(
+    state: int | str | None,
+) -> VacuumActivity | None:
+    """Map a base-station maintenance status to DOCKED."""
+    if not state:
+        return None
+    if str(state).casefold() in _STATION_MAINTENANCE_STATES:
+        return VacuumActivity.DOCKED
+    return None
+
+
 def _activity_from_return_progress(progress: str | None) -> VacuumActivity | None:
     """Map decoded return/dock progress to VacuumActivity."""
     if not progress:
@@ -601,6 +626,15 @@ class RoboVacEntity(StateVacuumEntity):
         elif self._attr_tuya_state == "Paused":
             return VacuumActivity.PAUSED
         else:
+            station_activity = _activity_from_station_maintenance(
+                self._attr_tuya_state
+            )
+            if station_activity is not None:
+                _LOGGER.debug(
+                    "Station maintenance status %s - reporting docked",
+                    self._attr_tuya_state,
+                )
+                return station_activity
             _LOGGER.debug(
                 "State changed to cleaning. Raw Tuya state: %s",
                 self._attr_tuya_state
