@@ -67,7 +67,7 @@ class T2193(RobovacModelDetails):
             "values": {"return": True},
         },
         RobovacCommand.FAN_SPEED: {
-            "code": 102,
+            "code": 130,
             "values": {
                 "quiet": "Quiet",
                 "standard": "Standard",
