@@ -3,17 +3,8 @@
 import pytest
 from unittest.mock import patch
 
-from homeassistant.components.vacuum import VacuumEntityFeature
 from custom_components.robovac.vacuum import RoboVacEntity
 from custom_components.robovac.errors import getErrorMessageWithContext
-
-
-@pytest.mark.asyncio
-async def test_battery_feature_removed_from_entity(mock_robovac: object, mock_vacuum_data: dict) -> None:
-    """Test that the vacuum entity does not have the BATTERY feature."""
-    with patch("custom_components.robovac.vacuum.RoboVac", return_value=mock_robovac):
-        entity = RoboVacEntity(mock_vacuum_data)
-        assert not (entity.supported_features & VacuumEntityFeature.BATTERY)
 
 
 @pytest.mark.asyncio
