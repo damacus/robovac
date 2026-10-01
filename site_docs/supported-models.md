@@ -73,6 +73,11 @@ series, it may work with an existing configuration.
 - **X9 Pro**: T2320
 - **X10 Pro Omni**: T2351
 
+The T2276 exposes native entities for current cleaning area and duration,
+water level, robot volume, cleaning type, suction level, BoostIQ, and do not
+disturb. These use the model's locally reported Tuya datapoints; map and room
+metadata are not available through this local protocol.
+
 ### L Series (Advanced)
 
 - **L35**: T2194

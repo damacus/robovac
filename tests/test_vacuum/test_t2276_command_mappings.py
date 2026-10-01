@@ -35,10 +35,13 @@ def test_t2276_dps_codes(mock_t2276_robovac) -> None:
     assert dps_codes["FAN_SPEED"] == "102"
     assert dps_codes["LOCATE"] == "103"
     assert dps_codes["BATTERY_LEVEL"] == "104"
+    assert dps_codes["WATER_LEVEL"] == "105"
     assert dps_codes["ERROR_CODE"] == "106"
     assert dps_codes["DO_NOT_DISTURB"] == "107"
     assert dps_codes["CLEANING_TIME"] == "109"
     assert dps_codes["CLEANING_AREA"] == "110"
+    assert dps_codes["VOLUME"] == "111"
+    assert dps_codes["CLEANING_TYPE"] == "113"
     assert dps_codes["BOOST_IQ"] == "118"
 
 
@@ -92,8 +95,11 @@ def test_t2276_command_codes(mock_t2276_robovac) -> None:
     assert commands[RobovacCommand.FAN_SPEED]["code"] == 102
     assert commands[RobovacCommand.LOCATE]["code"] == 103
     assert commands[RobovacCommand.BATTERY]["code"] == 104
+    assert commands[RobovacCommand.WATER_LEVEL]["code"] == 105
     assert commands[RobovacCommand.ERROR]["code"] == 106
     assert commands[RobovacCommand.DO_NOT_DISTURB]["code"] == 107
     assert commands[RobovacCommand.CLEANING_TIME]["code"] == 109
     assert commands[RobovacCommand.CLEANING_AREA]["code"] == 110
+    assert commands[RobovacCommand.VOLUME]["code"] == 111
+    assert commands[RobovacCommand.CLEANING_TYPE]["code"] == 113
     assert commands[RobovacCommand.BOOST_IQ]["code"] == 118
