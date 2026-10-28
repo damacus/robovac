@@ -3,9 +3,21 @@ import logging
 from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, Any
 
-from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
+from homeassistant.components.sensor import (
+    SensorDeviceClass,
+    SensorEntity,
+    SensorStateClass,
+)
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import PERCENTAGE, EntityCategory, CONF_NAME, CONF_ID, CONF_MODEL
+from homeassistant.const import (
+    PERCENTAGE,
+    EntityCategory,
+    CONF_NAME,
+    CONF_ID,
+    CONF_MODEL,
+    UnitOfArea,
+    UnitOfTime,
+)
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.device_registry import DeviceInfo
@@ -72,6 +84,70 @@ async def async_setup_entry(
             continue
 
         commands = getattr(model_class, "commands", {})
+
+        if getattr(model_class, "expose_dps_entities", False):
+            dps_sensors = (
+                (
+                    RobovacCommand.CLEANING_AREA,
+                    "cleaning_area",
+                    "Cleaning area",
+                    "mdi:texture-box",
+                    UnitOfArea.SQUARE_METERS,
+                    None,
+                    True,
+                ),
+                (
+                    RobovacCommand.CLEANING_TIME,
+                    "cleaning_time",
+                    "Cleaning time",
+                    "mdi:timer-outline",
+                    UnitOfTime.SECONDS,
+                    SensorDeviceClass.DURATION,
+                    True,
+                ),
+                (
+                    RobovacCommand.WATER_LEVEL,
+                    "water_level",
+                    "Water level",
+                    "mdi:water",
+                    None,
+                    None,
+                    False,
+                ),
+                (
+                    RobovacCommand.VOLUME,
+                    "volume",
+                    "Volume",
+                    "mdi:volume-high",
+                    PERCENTAGE,
+                    None,
+                    True,
+                ),
+                (
+                    RobovacCommand.CLEANING_TYPE,
+                    "cleaning_type",
+                    "Cleaning type",
+                    "mdi:broom",
+                    None,
+                    None,
+                    False,
+                ),
+            )
+            for command, suffix, name, icon, unit, device_class, numeric in dps_sensors:
+                if command not in commands:
+                    continue
+                entities.append(
+                    RobovacDpsSensor(
+                        item,
+                        str(commands[command]["code"]),
+                        suffix,
+                        name,
+                        icon,
+                        unit,
+                        device_class,
+                        numeric,
+                    )
+                )
 
         # Error sensor — any model that has an ERROR command (DPS 177)
         if RobovacCommand.ERROR in commands:
@@ -251,6 +327,57 @@ class RobovacBatterySensor(SensorEntity):
                 ex
             )
             self._attr_available = False
+
+
+class RobovacDpsSensor(SensorEntity):
+    """A native sensor backed by one plain Tuya datapoint."""
+
+    _attr_has_entity_name = True
+    _attr_should_poll = True
+
+    def __init__(
+        self,
+        item: dict,
+        dps_code: str,
+        unique_suffix: str,
+        name: str,
+        icon: str,
+        unit: str | None,
+        device_class: SensorDeviceClass | None,
+        numeric: bool,
+    ) -> None:
+        self.robovac_id = item[CONF_ID]
+        self._dps_code = dps_code
+        self._numeric = numeric
+        self._attr_unique_id = f"{item[CONF_ID]}_{unique_suffix}"
+        self._attr_name = name
+        self._attr_icon = icon
+        self._attr_native_unit_of_measurement = unit
+        self._attr_device_class = device_class
+        self._attr_state_class = SensorStateClass.MEASUREMENT if numeric else None
+        self._attr_device_info = _device_info(item)
+
+    async def async_update(self) -> None:
+        vacuum_entity, tuyastatus = _vacuum_and_status(
+            self.hass, DOMAIN, CONF_VACS, self.robovac_id
+        )
+        if vacuum_entity is None or not tuyastatus:
+            self._attr_available = False
+            return
+        raw = tuyastatus.get(self._dps_code)
+        if raw is None:
+            self._attr_available = False
+            return
+        if self._numeric:
+            try:
+                value = float(raw)
+                self._attr_native_value = int(value) if value.is_integer() else value
+            except (TypeError, ValueError):
+                self._attr_available = False
+                return
+        else:
+            self._attr_native_value = str(raw)
+        self._attr_available = True
 
 
 # ---------------------------------------------------------------------------

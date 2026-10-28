@@ -9,6 +9,7 @@ from homeassistant.components.sensor import SensorDeviceClass
 
 from custom_components.robovac.sensor import (
     RobovacBatterySensor,
+    RobovacDpsSensor,
     RobovacErrorSensor,
     RobovacNotificationSensor,
     RobovacWarningSensor,
@@ -86,6 +87,56 @@ async def test_battery_sensor_init(mock_vacuum_data: Any) -> None:
     assert sensor._attr_unique_id == f"{mock_vacuum_data[CONF_ID]}_battery"
     assert sensor._attr_name == "Battery"
     assert sensor.robovac_id == mock_vacuum_data[CONF_ID]
+
+
+@pytest.mark.asyncio
+async def test_plain_dps_numeric_sensor(mock_vacuum_data: Any) -> None:
+    """Test a numeric T2276 DPS is exposed with its native value."""
+    sensor = RobovacDpsSensor(
+        mock_vacuum_data,
+        "110",
+        "cleaning_area",
+        "Cleaning area",
+        "mdi:texture-box",
+        "m²",
+        None,
+        True,
+    )
+    vacuum = MagicMock()
+    vacuum.tuyastatus = {"110": 67}
+    hass = MagicMock()
+    hass.data = {"robovac": {"vacuums": {mock_vacuum_data[CONF_ID]: vacuum}}}
+    sensor.hass = hass
+
+    await sensor.async_update()
+
+    assert sensor.available is True
+    assert sensor.native_value == 67
+
+
+@pytest.mark.asyncio
+async def test_plain_dps_text_sensor(mock_vacuum_data: Any) -> None:
+    """Test a text T2276 DPS is exposed verbatim."""
+    sensor = RobovacDpsSensor(
+        mock_vacuum_data,
+        "105",
+        "water_level",
+        "Water level",
+        "mdi:water",
+        None,
+        None,
+        False,
+    )
+    vacuum = MagicMock()
+    vacuum.tuyastatus = {"105": "Low"}
+    hass = MagicMock()
+    hass.data = {"robovac": {"vacuums": {mock_vacuum_data[CONF_ID]: vacuum}}}
+    sensor.hass = hass
+
+    await sensor.async_update()
+
+    assert sensor.available is True
+    assert sensor.native_value == "Low"
 
 
 @pytest.mark.asyncio

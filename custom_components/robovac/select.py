@@ -87,7 +87,10 @@ async def async_setup_entry(
         model_class = ROBOVAC_MODELS.get(model_code)
         if model_class is None:
             continue
-        if not getattr(model_class, "expose_config_entities", False):
+        if not (
+            getattr(model_class, "expose_config_entities", False)
+            or getattr(model_class, "expose_dps_entities", False)
+        ):
             continue
         commands = getattr(model_class, "commands", {})
         if RobovacCommand.FAN_SPEED in commands:
