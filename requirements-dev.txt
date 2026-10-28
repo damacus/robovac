@@ -1,15 +1,17 @@
-# Testing dependencies
-pytest>=8.0.0
-pytest-asyncio>=0.23.0
-pytest-cov>=4.1.0
-pytest-homeassistant-custom-component>=0.13.333
-mutmut>=3.6.0
+-r requirements.txt
+
+# Testing dependencies (pytest versions match the Home Assistant test package)
+pytest>=9.0.3
+pytest-asyncio>=1.4.0
+pytest-cov>=7.1.0
+pytest-homeassistant-custom-component>=0.13.375
+mutmut>=3.8.1
 
 # Code quality tools
-flake8>=7.0.0
-mypy>=1.7.1
-pre-commit>=3.5.0
-lefthook>=1.6.0 # Git hooks manager
+flake8>=7.5.0
+mypy>=2.4.1
+pre-commit>=4.7.0
+lefthook>=2.2.2 # Git hooks manager
 
 # Type checking
-types-requests>=2.31.0
+types-requests>=2.33.0.20261006
