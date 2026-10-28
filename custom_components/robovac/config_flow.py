@@ -19,10 +19,9 @@ from __future__ import annotations
 import json
 import logging
 from copy import deepcopy
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 import requests
-import voluptuous as vol
 
 import homeassistant.helpers.config_validation as cv
 from homeassistant import config_entries
@@ -44,6 +43,12 @@ from homeassistant.const import (
 )
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
+
+if TYPE_CHECKING:
+    import probatio as vol
+else:
+    # Home Assistant 2026.9+ aliases voluptuous to Probatio at startup.
+    import voluptuous as vol
 
 from .const import (
     CONF_AUTODISCOVERY,
