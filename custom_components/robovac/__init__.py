@@ -21,7 +21,7 @@ from typing import Any, Dict, Optional
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EVENT_HOMEASSISTANT_STOP, Platform, CONF_IP_ADDRESS
 from homeassistant.core import HomeAssistant
-from .const import CONF_VACS, DOMAIN
+from .const import CONF_AUTODISCOVERY, CONF_VACS, DOMAIN
 
 from .tuyalocaldiscovery import TuyaLocalDiscovery
 
@@ -52,21 +52,21 @@ async def async_setup(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         if not entry.state.recoverable:
             return
 
-        hass_data = entry.data.copy()
+        device_id = device["gwId"]
+        discovered_ip = device.get("ip")
+        vacuum = entry.data[CONF_VACS].get(device_id)
         if (
-            device["gwId"] in hass_data[CONF_VACS]
-            and device.get("ip") is not None
-            and hass_data[CONF_VACS][device["gwId"]].get("autodiscovery", True)
+            vacuum is not None
+            and discovered_ip
+            and vacuum.get(CONF_AUTODISCOVERY, True)
+            and vacuum.get(CONF_IP_ADDRESS) != discovered_ip
         ):
-            if hass_data[CONF_VACS][device["gwId"]][CONF_IP_ADDRESS] != device["ip"]:
-                hass_data[CONF_VACS][device["gwId"]][CONF_IP_ADDRESS] = device["ip"]
-                hass.config_entries.async_update_entry(entry, data=hass_data)
-                await hass.config_entries.async_reload(entry.entry_id)
-                _LOGGER.debug(
-                    "Updated ip address of {} to {}".format(
-                        device["gwId"], device["ip"]
-                    )
-                )
+            updated_vacuums = entry.data[CONF_VACS].copy()
+            updated_vacuums[device_id] = {**vacuum, CONF_IP_ADDRESS: discovered_ip}
+            hass.config_entries.async_update_entry(
+                entry, data={**entry.data, CONF_VACS: updated_vacuums}
+            )
+            _LOGGER.debug("Updated ip address of %s to %s", device_id, discovered_ip)
 
     tuyalocaldiscovery = TuyaLocalDiscovery(update_device)
     try:
