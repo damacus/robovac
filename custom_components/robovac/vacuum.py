@@ -550,6 +550,20 @@ class RoboVacEntity(StateVacuumEntity):
             return VacuumActivity.ERROR
         if return_progress_activity == VacuumActivity.DOCKED:
             return return_progress_activity
+        # These models translate DPS 15 before it reaches this property. Their
+        # MODE remains "auto" after pause/return, so status must take precedence.
+        if self.model_code in {"T2181", "T2261"} and self._attr_tuya_state is not None:
+            status = str(self._attr_tuya_state).casefold()
+            if status == "standby":
+                if (
+                    self.tuyastatus is not None
+                    and self.tuyastatus.get(self.get_dps_code("START_PAUSE")) is False
+                    and mode_activity == VacuumActivity.CLEANING
+                ):
+                    return VacuumActivity.PAUSED
+                return VacuumActivity.IDLE
+            if status == "returning to dock":
+                return VacuumActivity.RETURNING
         if self._attr_tuya_state is None or self._attr_tuya_state == 0:
             if return_progress_activity is not None:
                 _LOGGER.debug(
