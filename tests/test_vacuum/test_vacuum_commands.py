@@ -728,6 +728,43 @@ async def test_room_clean_accepts_room_id_list(mock_robovac, mock_vacuum_data) -
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("model_code", "needs_start"),
+    [("T2193", False), ("T2276", True), ("T2194", True)],
+)
+async def test_room_clean_start_trigger_is_model_specific(
+    mock_vacuum_data, model_code, needs_start
+) -> None:
+    """T2193 starts on room selection; other legacy models still need DPS 2."""
+    with patch("custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None):
+        robovac = RoboVac(
+            model_code=model_code,
+            device_id="test_id",
+            host="192.168.1.100",
+            local_key="test_key",
+        )
+    robovac.async_set = AsyncMock(return_value=True)
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=robovac):
+        entity = RoboVacEntity({**mock_vacuum_data, CONF_MODEL: model_code})
+
+    with patch("custom_components.robovac.vacuum.asyncio.sleep", new_callable=AsyncMock) as sleep:
+        await entity.async_send_command("roomClean", {"roomIds": [2], "count": 2})
+
+    payload = robovac.async_set.await_args_list[0].args[0]
+    assert set(payload) == {"124"}
+    assert json.loads(base64.b64decode(payload["124"]))["data"] == {
+        "roomIds": [2], "cleanTimes": 2
+    }
+    if needs_start:
+        sleep.assert_awaited_once_with(1)
+        assert robovac.async_set.await_args_list[1] == call({"2": True})
+        assert robovac.async_set.await_count == 2
+    else:
+        sleep.assert_not_awaited()
+        robovac.async_set.assert_awaited_once()
+
+
+@pytest.mark.asyncio
 async def test_room_clean_ignores_unexpected_params(
     mock_robovac, mock_vacuum_data
 ) -> None:

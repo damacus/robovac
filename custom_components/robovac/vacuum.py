@@ -1884,11 +1884,11 @@ class RoboVacEntity(StateVacuumEntity):
                 base64_str = base64.b64encode(json_str.encode("utf8")).decode("utf8")
                 _LOGGER.debug("roomClean JSON: %s", json_str)
                 await self.vacuum.async_set({TuyaCodes.ROOM_CLEAN: base64_str})
-                # Wait for the vacuum to ACK DPS 124 before sending the start command.
-                # Without this delay, DPS 2 arrives before the room selection is processed
-                # and the vacuum ignores the start command.
-                await asyncio.sleep(1)
-                await self.vacuum.async_set({TuyaCodes.START_PAUSE: True})
+                # T2193 starts room cleaning on DPS 124; DPS 2 switches it to auto.
+                # Other legacy models need a separate start after room selection.
+                if self.model_code != "T2193":
+                    await asyncio.sleep(1)
+                    await self.vacuum.async_set({TuyaCodes.START_PAUSE: True})
 
     async def async_will_remove_from_hass(self) -> None:
         """Handle removal from Home Assistant."""
