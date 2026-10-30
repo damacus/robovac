@@ -206,6 +206,45 @@ async def test_options_flow_edit_submit_with_ip(hass: HomeAssistant, mock_config
 
 
 @pytest.mark.asyncio
+async def test_options_flow_static_ip_preserves_account_and_other_devices(
+    hass: HomeAssistant,
+) -> None:
+    """Selecting a static IP must not discard login or unrelated vacuums."""
+    entry = create_mock_config_entry()
+    entry.data = {
+        **entry.data,
+        CONF_USERNAME: "test@example.invalid",
+        CONF_PASSWORD: "fixture-only-password",
+        "client_id": "fixture-client",
+    }
+    before = dict(entry.data)
+    before_other = dict(before[CONF_VACS]["test_device_id_2"])
+    hass.config_entries.async_update_entry = MagicMock()
+    flow = OptionsFlowHandler(entry)
+    flow.hass = hass
+    flow.selected_vacuum = "test_device_id"
+
+    with patch.object(type(flow), "config_entry", new_callable=lambda: property(lambda self: self._config_entry)):
+        result = await flow.async_step_edit(
+            {
+                CONF_AUTODISCOVERY: False,
+                CONF_IP_ADDRESS: "192.0.2.110",
+                CONF_ROOM_SEGMENT_MAP_ID: 1,
+                CONF_ROOM_SEGMENTS: "",
+            }
+        )
+
+    assert result["type"] == data_entry_flow.FlowResultType.CREATE_ENTRY
+    data = hass.config_entries.async_update_entry.call_args.kwargs["data"]
+    assert data[CONF_USERNAME] == before[CONF_USERNAME]
+    assert data[CONF_PASSWORD] == before[CONF_PASSWORD]
+    assert data["client_id"] == before["client_id"]
+    assert data[CONF_VACS]["test_device_id"][CONF_IP_ADDRESS] == "192.0.2.110"
+    assert data[CONF_VACS]["test_device_id"][CONF_AUTODISCOVERY] is False
+    assert data[CONF_VACS]["test_device_id_2"] == before_other
+
+
+@pytest.mark.asyncio
 async def test_options_flow_edit_submit_without_ip(
     hass: HomeAssistant, mock_config_entry: MagicMock
 ) -> None:

@@ -348,7 +348,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
             self.hass.config_entries.async_update_entry(
                 self.config_entry,
-                data={CONF_VACS: updated_vacuums},
+                data={**self.config_entry.data, CONF_VACS: updated_vacuums},
             )
 
             return self.async_create_entry(title="", data={})  # type: ignore[return-value]
