@@ -30,6 +30,7 @@ from __future__ import annotations
 import datetime
 import hashlib
 import hmac
+import math
 import struct
 from dataclasses import dataclass
 from typing import Any
@@ -235,6 +236,8 @@ def fetch_and_decode(session: TuyaAPISession, dev_id: str) -> RoboVacMapLayout:
 #       decoded.
 POSE_UNITS_PER_PIXEL = 10
 _HEADER_FRAME_LEN = 24
+_MAX_JUMP_PIXELS = 60
+_OFF_MAP_MARGIN = 3
 
 
 @dataclass(frozen=True)
@@ -336,6 +339,16 @@ class RouteTracker:
         self.record_id = 0
         self._offsets: list[tuple[int, int]] = []
         self._max_points = max_points
+        self._dock_fixed = False
+
+    def set_layout_dock(self, dock: tuple[int, int]) -> None:
+        """Use the dock from the current map layout; media headers no longer change it.
+
+        A new map can move the dock, so the layout is refreshed during a clean
+        and this keeps the route and the drawn map in the same frame.
+        """
+        self.dock = dock
+        self._dock_fixed = True
 
     def update(self, record_id: int, frames: list[str]) -> bool:
         """Add polled frames; return True when the drawable route changed."""
@@ -346,7 +359,8 @@ class RouteTracker:
             self._offsets = []
         changed = False
         for frame_hex in frames:
-            self.dock, _ = decode_pose_frame(frame_hex, self.dock)
+            if not self._dock_fixed:
+                self.dock, _ = decode_pose_frame(frame_hex, self.dock)
             offset = pose_offset(frame_hex)
             if offset is not None and (
                 not self._offsets or self._offsets[-1] != offset
@@ -360,6 +374,34 @@ class RouteTracker:
     def point_count(self) -> int:
         """Return how many route points are held, with or without a dock."""
         return len(self._offsets)
+
+    def segments(self, width: int, height: int) -> list[list[tuple[float, float]]]:
+        """Return the route as drawable pieces that stay on a width x height map.
+
+        A point outside the map, or a jump of more than ``_MAX_JUMP_PIXELS``
+        from the previous point, starts a new piece. The robot cannot move that
+        far between two polls, so such points are glitches or a changed map and
+        must not be joined by a straight line.
+        """
+        pieces: list[list[tuple[float, float]]] = []
+        current: list[tuple[float, float]] = []
+        for x, y in self.path():
+            on_map = (
+                -_OFF_MAP_MARGIN <= x < width + _OFF_MAP_MARGIN
+                and -_OFF_MAP_MARGIN <= y < height + _OFF_MAP_MARGIN
+            )
+            if not on_map:
+                if current:
+                    pieces.append(current)
+                    current = []
+                continue
+            if current and math.hypot(x - current[-1][0], y - current[-1][1]) > _MAX_JUMP_PIXELS:
+                pieces.append(current)
+                current = []
+            current.append((x, y))
+        if current:
+            pieces.append(current)
+        return pieces
 
     def path(self) -> list[tuple[float, float]]:
         """Return the route in map pixels, or an empty list without a dock."""

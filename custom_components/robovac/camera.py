@@ -8,6 +8,7 @@ operation, only for this optional camera).
 from __future__ import annotations
 
 import logging
+import time
 from datetime import timedelta
 from typing import Any
 
@@ -47,6 +48,9 @@ MAP_UPDATE_INTERVAL = timedelta(minutes=15)
 # Polling is skipped entirely when it is docked or idle.
 ROUTE_POLL_INTERVAL = timedelta(seconds=1)
 _MAX_ROUTE_POINTS = 20000
+# The map grows while the vacuum explores, and a clean can start on a new map,
+# so reload the layout this often while polling the route.
+_LAYOUT_REFRESH_WHILE_ACTIVE = 60.0
 _ROUTE_ACTIVE_STATES = {"cleaning", "returning"}
 _MAP_SCALE = 4
 _ROUTE_COLOR = (255, 255, 255)
@@ -104,11 +108,13 @@ def _build_tuya_session(item: dict[str, Any]) -> TuyaAPISession | None:
 
 
 def _render_png(
-    layout: RoboVacMapLayout, path: list[tuple[float, float]] | None = None
+    layout: RoboVacMapLayout,
+    route: list[list[tuple[float, float]]] | None = None,
 ) -> bytes:
     """Render a decoded layout as a PNG, scaled up for visibility.
 
-    ``path`` is the robot route in map pixels; it is drawn over the rooms.
+    ``route`` is the robot route as pieces of map-pixel points; each piece is
+    drawn as a line over the rooms and the last point gets a dot.
     """
     from io import BytesIO
 
@@ -129,12 +135,13 @@ def _render_png(
     img = img.resize(
         (layout.width * scale, layout.height * scale), Image.NEAREST
     )
-    if path:
+    if route:
         draw = ImageDraw.Draw(img)
-        points = [((x + 0.5) * scale, (y + 0.5) * scale) for x, y in path]
-        if len(points) > 1:
-            draw.line(points, fill=_ROUTE_COLOR, width=scale // 2)
-        rx, ry = points[-1]
+        for piece in route:
+            points = [((x + 0.5) * scale, (y + 0.5) * scale) for x, y in piece]
+            if len(points) > 1:
+                draw.line(points, fill=_ROUTE_COLOR, width=scale // 2)
+        rx, ry = ((route[-1][-1][0] + 0.5) * scale, (route[-1][-1][1] + 0.5) * scale)
         radius = scale
         draw.ellipse(
             [rx - radius, ry - radius, rx + radius, ry + radius],
@@ -159,15 +166,23 @@ class RoboVacMapCoordinator(DataUpdateCoordinator[bytes]):
         self._item = item
         self._session: TuyaAPISession | None = None
         self._layout: RoboVacMapLayout | None = None
-        # Pose frames are offsets from the dock. The dock comes from the map
-        # layout, and a media header frame also carries it.
+        # Pose frames are offsets from the dock, which comes from the map
+        # layout. The vacuum can build a new map, so the layout is reloaded
+        # when a clean starts and while it runs.
         self._route = RouteTracker(_MAX_ROUTE_POINTS)
+        self._layout_loaded = 0.0
+
+    def _apply_layout(self, layout: RoboVacMapLayout) -> None:
+        """Remember a freshly loaded layout and its dock."""
+        self._layout = layout
+        self._layout_loaded = time.monotonic()
+        if layout.dock is not None:
+            self._route.set_layout_dock(layout.dock)
 
     async def async_poll_route(self) -> None:
         """Add the newest robot position to the route and re-render the map."""
         if self._session is None or self._layout is None:
             return
-        layout = self._layout
         try:
             record_id, frames = await self.hass.async_add_executor_job(
                 fetch_frames, self._session, self._item[CONF_ID]
@@ -175,10 +190,24 @@ class RoboVacMapCoordinator(DataUpdateCoordinator[bytes]):
         except Exception as err:  # noqa: BLE001 - a missed poll must not break the camera
             _LOGGER.debug("Route poll failed: %s", err)
             return
-        if not self._route.update(record_id, frames):
+        previous_record = self._route.record_id
+        changed = self._route.update(record_id, frames)
+        stale = time.monotonic() - self._layout_loaded >= _LAYOUT_REFRESH_WHILE_ACTIVE
+        if self._route.record_id != previous_record or stale:
+            try:
+                self._apply_layout(
+                    await self.hass.async_add_executor_job(
+                        fetch_and_decode, self._session, self._item[CONF_ID]
+                    )
+                )
+                changed = True
+            except Exception as err:  # noqa: BLE001 - keep drawing on the old layout
+                _LOGGER.debug("Layout reload failed: %s", err)
+        if not changed or self._layout is None:
             return
+        layout = self._layout
         png: bytes = await self.hass.async_add_executor_job(
-            _render_png, layout, self._route.path()
+            _render_png, layout, self._route.segments(layout.width, layout.height)
         )
         self.async_set_updated_data(png)
 
@@ -197,11 +226,9 @@ class RoboVacMapCoordinator(DataUpdateCoordinator[bytes]):
             layout = await self.hass.async_add_executor_job(
                 fetch_and_decode, self._session, dev_id
             )
-            self._layout = layout
-            if layout.dock is not None:
-                self._route.dock = layout.dock
+            self._apply_layout(layout)
             png: bytes = await self.hass.async_add_executor_job(
-                _render_png, layout, self._route.path()
+                _render_png, layout, self._route.segments(layout.width, layout.height)
             )
             return png
         except MapFetchError as err:
