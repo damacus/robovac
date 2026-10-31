@@ -107,6 +107,10 @@ class RoboVacMapLayout:
     width: int
     height: int
     pixels: bytes  # len == width * height, each byte's top 6 bits = room id
+    # Dock position in 1/10 map pixel (header bytes 12-15). Pose frames are
+    # offsets from it, so the route can be drawn without waiting for a media
+    # header frame.
+    dock: tuple[int, int] | None = None
 
     def room_ids(self) -> set[int]:
         """Return the set of real room ids (0-31) present in this map."""
@@ -211,7 +215,8 @@ def decode_layout(raw: bytes) -> RoboVacMapLayout:
         raise MapFetchError(
             f"decompressed size {len(data)} != width*height {width}*{height}"
         )
-    return RoboVacMapLayout(width=width, height=height, pixels=data)
+    dock = (int.from_bytes(raw[12:14], "big"), int.from_bytes(raw[14:16], "big"))
+    return RoboVacMapLayout(width=width, height=height, pixels=data, dock=dock)
 
 
 def fetch_and_decode(session: TuyaAPISession, dev_id: str) -> RoboVacMapLayout:
@@ -257,6 +262,29 @@ def _unzigzag(value: int) -> int:
     return (value >> 1) ^ -(value & 1)
 
 
+def pose_offset(frame_hex: str) -> tuple[int, int] | None:
+    """Decode a pose frame to its raw (x, y) offset from the dock.
+
+    The offset is in 1/10 map pixel. Header frames and malformed frames give
+    ``None``. The dock is not needed, so offsets can be kept until a header
+    frame reveals it.
+    """
+    try:
+        raw = bytes.fromhex(frame_hex)
+        if len(raw) == _HEADER_FRAME_LEN or raw[0] != len(raw) - 1:
+            return None
+        fields: dict[int, int] = {}
+        pos = 1
+        while pos < len(raw):
+            tag, pos = _read_varint(raw, pos)
+            fields[tag >> 3], pos = _read_varint(raw, pos)
+        if 1 not in fields or 2 not in fields:
+            return None
+        return _unzigzag(fields[1]), _unzigzag(fields[2])
+    except (ValueError, IndexError):
+        return None
+
+
 def decode_pose_frame(
     frame_hex: str, dock: tuple[int, int] | None
 ) -> tuple[tuple[int, int] | None, tuple[float, float] | None]:
@@ -273,35 +301,34 @@ def decode_pose_frame(
             return (dock_x, dock_y), (
                 robot_x / POSE_UNITS_PER_PIXEL, robot_y / POSE_UNITS_PER_PIXEL,
             )
-        if dock is None or raw[0] != len(raw) - 1:
-            return dock, None
-        fields: dict[int, int] = {}
-        pos = 1
-        while pos < len(raw):
-            tag, pos = _read_varint(raw, pos)
-            fields[tag >> 3], pos = _read_varint(raw, pos)
-        if 1 not in fields or 2 not in fields:
-            return dock, None
-        return dock, (
-            (dock[0] + _unzigzag(fields[1])) / POSE_UNITS_PER_PIXEL,
-            (dock[1] + _unzigzag(fields[2])) / POSE_UNITS_PER_PIXEL,
-        )
-    except (ValueError, IndexError, struct.error):
+    except (ValueError, struct.error):
         return dock, None
+    offset = pose_offset(frame_hex)
+    if dock is None or offset is None:
+        return dock, None
+    return dock, (
+        (dock[0] + offset[0]) / POSE_UNITS_PER_PIXEL,
+        (dock[1] + offset[1]) / POSE_UNITS_PER_PIXEL,
+    )
+
+
+def fetch_frames(session: TuyaAPISession, dev_id: str) -> tuple[int, list[str]]:
+    """Fetch the newest media frame(s) as (clean record id, hex frames)."""
+    resp: dict[str, Any] = session._request(  # noqa: SLF001 - same private API the integration already calls for dp.get
+        action="tuya.m.device.media.latest",
+        version="3.0",
+        data={"devId": dev_id, "start": 0, "size": 20},
+    )
+    return int(resp.get("subRecordId") or 0), list(resp.get("dataList") or [])
 
 
 def fetch_pose(
     session: TuyaAPISession, dev_id: str, dock: tuple[int, int] | None
 ) -> tuple[tuple[int, int] | None, RoboVacPose | None]:
     """Fetch the newest media frame and decode it to (dock, pose)."""
-    resp: dict[str, Any] = session._request(  # noqa: SLF001 - same private API the integration already calls for dp.get
-        action="tuya.m.device.media.latest",
-        version="3.0",
-        data={"devId": dev_id, "start": 0, "size": 20},
-    )
-    record_id = int(resp.get("subRecordId") or 0)
+    record_id, frames = fetch_frames(session, dev_id)
     pose: RoboVacPose | None = None
-    for frame_hex in resp.get("dataList") or []:
+    for frame_hex in frames:
         dock, xy = decode_pose_frame(frame_hex, dock)
         if xy is not None:
             pose = RoboVacPose(record_id=record_id, x=xy[0], y=xy[1])
