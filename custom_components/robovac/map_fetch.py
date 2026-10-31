@@ -322,6 +322,56 @@ def fetch_frames(session: TuyaAPISession, dev_id: str) -> tuple[int, list[str]]:
     return int(resp.get("subRecordId") or 0), list(resp.get("dataList") or [])
 
 
+class RouteTracker:
+    """Accumulates the route of the current clean from polled media frames.
+
+    Pose frames are offsets from the dock, so offsets are kept raw and turned
+    into map pixels once the dock is known. A new clean record id starts a new
+    route. An empty poll answer has no record id and is not a new clean, so it
+    must never reset the route.
+    """
+
+    def __init__(self, max_points: int = 20000) -> None:
+        self.dock: tuple[int, int] | None = None
+        self.record_id = 0
+        self._offsets: list[tuple[int, int]] = []
+        self._max_points = max_points
+
+    def update(self, record_id: int, frames: list[str]) -> bool:
+        """Add polled frames; return True when the drawable route changed."""
+        if not record_id or not frames:
+            return False
+        if record_id != self.record_id:
+            self.record_id = record_id
+            self._offsets = []
+        changed = False
+        for frame_hex in frames:
+            self.dock, _ = decode_pose_frame(frame_hex, self.dock)
+            offset = pose_offset(frame_hex)
+            if offset is not None and (
+                not self._offsets or self._offsets[-1] != offset
+            ):
+                self._offsets.append(offset)
+                del self._offsets[:-self._max_points]
+                changed = True
+        return changed and self.dock is not None
+
+    @property
+    def point_count(self) -> int:
+        """Return how many route points are held, with or without a dock."""
+        return len(self._offsets)
+
+    def path(self) -> list[tuple[float, float]]:
+        """Return the route in map pixels, or an empty list without a dock."""
+        if self.dock is None:
+            return []
+        dock_x, dock_y = self.dock
+        return [
+            ((dock_x + dx) / POSE_UNITS_PER_PIXEL, (dock_y + dy) / POSE_UNITS_PER_PIXEL)
+            for dx, dy in self._offsets
+        ]
+
+
 def fetch_pose(
     session: TuyaAPISession, dev_id: str, dock: tuple[int, int] | None
 ) -> tuple[tuple[int, int] | None, RoboVacPose | None]:

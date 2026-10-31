@@ -30,11 +30,9 @@ from .eufywebapi import EufyLogon
 from .map_fetch import (
     MapFetchError,
     RoboVacMapLayout,
-    POSE_UNITS_PER_PIXEL,
-    decode_pose_frame,
+    RouteTracker,
     fetch_and_decode,
     fetch_frames,
-    pose_offset,
 )
 from .tuyawebapi import TuyaAPISession
 
@@ -162,12 +160,8 @@ class RoboVacMapCoordinator(DataUpdateCoordinator[bytes]):
         self._session: TuyaAPISession | None = None
         self._layout: RoboVacMapLayout | None = None
         # Pose frames are offsets from the dock. The dock comes from the map
-        # layout, and a media header frame also carries it; offsets are kept
-        # raw until it is known and across map refreshes.
-        self._dock: tuple[int, int] | None = None
-        self._record_id = 0
-        self._offsets: list[tuple[int, int]] = []
-        self._path: list[tuple[float, float]] = []
+        # layout, and a media header frame also carries it.
+        self._route = RouteTracker(_MAX_ROUTE_POINTS)
 
     async def async_poll_route(self) -> None:
         """Add the newest robot position to the route and re-render the map."""
@@ -181,33 +175,10 @@ class RoboVacMapCoordinator(DataUpdateCoordinator[bytes]):
         except Exception as err:  # noqa: BLE001 - a missed poll must not break the camera
             _LOGGER.debug("Route poll failed: %s", err)
             return
-        if record_id != self._record_id:
-            # A new clean started: the previous route no longer applies.
-            self._record_id = record_id
-            self._offsets = []
-            self._path = []
-        changed = False
-        for frame_hex in frames:
-            self._dock, _ = decode_pose_frame(frame_hex, self._dock)
-            offset = pose_offset(frame_hex)
-            if offset is not None and (
-                not self._offsets or self._offsets[-1] != offset
-            ):
-                self._offsets.append(offset)
-                del self._offsets[:-_MAX_ROUTE_POINTS]
-                changed = True
-        if not changed or self._dock is None:
-            _LOGGER.debug(
-                "Route poll: %d offsets, dock %s", len(self._offsets), self._dock
-            )
+        if not self._route.update(record_id, frames):
             return
-        dock_x, dock_y = self._dock
-        self._path = [
-            ((dock_x + dx) / POSE_UNITS_PER_PIXEL, (dock_y + dy) / POSE_UNITS_PER_PIXEL)
-            for dx, dy in self._offsets
-        ]
         png: bytes = await self.hass.async_add_executor_job(
-            _render_png, layout, self._path
+            _render_png, layout, self._route.path()
         )
         self.async_set_updated_data(png)
 
@@ -228,9 +199,9 @@ class RoboVacMapCoordinator(DataUpdateCoordinator[bytes]):
             )
             self._layout = layout
             if layout.dock is not None:
-                self._dock = layout.dock
+                self._route.dock = layout.dock
             png: bytes = await self.hass.async_add_executor_job(
-                _render_png, layout, self._path
+                _render_png, layout, self._route.path()
             )
             return png
         except MapFetchError as err:

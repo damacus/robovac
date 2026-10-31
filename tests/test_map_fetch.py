@@ -6,6 +6,7 @@ import pytest
 
 from custom_components.robovac.map_fetch import (
     RoboVacPose,
+    RouteTracker,
     decode_layout,
     decode_pose_frame,
     fetch_frames,
@@ -121,6 +122,72 @@ def test_offsets_buffered_before_header_resolve_to_same_positions() -> None:
 
     assert resolved[0] == pytest.approx(decode_pose_frame(POSE_FRAME_1, DOCK)[1])
     assert resolved[1] == pytest.approx(decode_pose_frame(POSE_FRAME_2, DOCK)[1])
+
+
+def test_tracker_collects_points_once_dock_is_known() -> None:
+    """Points are returned in map pixels when the dock comes from the layout."""
+    tracker = RouteTracker()
+    tracker.dock = DOCK
+
+    assert tracker.update(7, [POSE_FRAME_1]) is True
+    assert tracker.update(7, [POSE_FRAME_2]) is True
+
+    first, second = tracker.path()
+    assert first == pytest.approx((158.4, 16.1))
+    assert second == pytest.approx((142.9, 16.3))
+
+
+def test_tracker_buffers_offsets_until_a_header_gives_the_dock() -> None:
+    """Without a dock nothing is drawable; a header resolves the buffered points."""
+    tracker = RouteTracker()
+
+    assert tracker.update(7, [POSE_FRAME_1]) is False
+    assert tracker.path() == []
+    assert tracker.point_count == 1
+
+    assert tracker.update(7, [HEADER_FRAME, POSE_FRAME_2]) is True
+    assert tracker.dock == DOCK
+    assert len(tracker.path()) == 2
+
+
+@pytest.mark.parametrize(
+    ("record_id", "frames"), [(0, []), (0, [POSE_FRAME_1]), (7, []), (0, [HEADER_FRAME])]
+)
+def test_tracker_ignores_empty_poll_answers(record_id: int, frames: list[str]) -> None:
+    """An answer without a record id or frames is not a new clean and keeps the route."""
+    tracker = RouteTracker()
+    tracker.dock = DOCK
+    tracker.update(7, [POSE_FRAME_1, POSE_FRAME_2])
+
+    assert tracker.update(record_id, frames) is False
+
+    assert tracker.record_id == 7
+    assert len(tracker.path()) == 2
+
+
+def test_tracker_starts_a_new_route_for_a_new_record() -> None:
+    """A new clean record id drops the previous route."""
+    tracker = RouteTracker()
+    tracker.dock = DOCK
+    tracker.update(7, [POSE_FRAME_1, POSE_FRAME_2])
+
+    assert tracker.update(8, [POSE_FRAME_2]) is True
+
+    assert tracker.record_id == 8
+    assert len(tracker.path()) == 1
+
+
+def test_tracker_skips_repeated_frames_and_caps_length() -> None:
+    """The same newest frame polled twice adds one point; old points age out."""
+    tracker = RouteTracker(max_points=2)
+    tracker.dock = DOCK
+
+    assert tracker.update(7, [POSE_FRAME_1]) is True
+    assert tracker.update(7, [POSE_FRAME_1]) is False
+    tracker.update(7, [POSE_FRAME_2])
+    tracker.update(7, ["0908870710990418aa18"])
+
+    assert tracker.point_count == 2
 
 
 class _FakeSession:
