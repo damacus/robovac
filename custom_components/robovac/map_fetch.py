@@ -117,6 +117,36 @@ class RoboVacMapLayout:
         """Return the set of real room ids (0-31) present in this map."""
         return {b >> 2 for b in self.pixels if (b >> 2) < ROOM_ID_NO_DATA}
 
+    def room_summary(self) -> list[dict[str, Any]]:
+        """Describe each real room: id, pixel count and centre in map pixels.
+
+        The centre is measured from the dock (or from the map corner when the
+        dock is unknown). The map origin can shift when the vacuum builds a new
+        map, but a room keeps its place relative to the dock, so this is what
+        lets a room be recognised again after the ids change.
+        """
+        counts: dict[int, int] = {}
+        sums: dict[int, list[int]] = {}
+        for index, byte in enumerate(self.pixels):
+            room = byte >> 2
+            if room >= ROOM_ID_NO_DATA:
+                continue
+            counts[room] = counts.get(room, 0) + 1
+            total = sums.setdefault(room, [0, 0])
+            total[0] += index % self.width
+            total[1] += index // self.width
+        dock_x = self.dock[0] / POSE_UNITS_PER_PIXEL if self.dock else 0.0
+        dock_y = self.dock[1] / POSE_UNITS_PER_PIXEL if self.dock else 0.0
+        return [
+            {
+                "id": room,
+                "pixels": counts[room],
+                "x": round(sums[room][0] / counts[room] - dock_x, 1),
+                "y": round(sums[room][1] / counts[room] - dock_y, 1),
+            }
+            for room in sorted(counts)
+        ]
+
 
 def _presign_s3_get(
     *, access_key: str, secret_key: str, session_token: str,
