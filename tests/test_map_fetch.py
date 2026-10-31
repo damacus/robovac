@@ -190,6 +190,74 @@ def test_tracker_skips_repeated_frames_and_caps_length() -> None:
     assert tracker.point_count == 2
 
 
+def _frame(dx: int, dy: int) -> str:
+    """Build a pose frame hex string for a raw offset (zigzag-encodes dx, dy)."""
+
+    def varint(value: int) -> bytes:
+        out = bytearray()
+        while True:
+            byte = value & 0x7F
+            value >>= 7
+            out.append(byte | (0x80 if value else 0))
+            if not value:
+                return bytes(out)
+
+    def zigzag(value: int) -> int:
+        return (value << 1) ^ (value >> 31)
+
+    body = b"\x08" + varint(zigzag(dx)) + b"\x10" + varint(zigzag(dy)) + b"\x18\x00"
+    return (bytes([len(body)]) + body).hex()
+
+
+def test_segments_split_at_off_map_points_and_jumps() -> None:
+    """A point off the map or a huge jump must not be joined to its neighbours."""
+    tracker = RouteTracker()
+    tracker.set_layout_dock((500, 500))  # dock at pixel (50, 50)
+    frames = [
+        _frame(0, 0),        # (50, 50) on the map
+        _frame(100, 0),      # (60, 50) normal step
+        _frame(9000, 0),     # (950, 50) far off a 100 px wide map
+        _frame(-100, 100),   # (40, 60) back on the map
+        _frame(-100, -900),  # (40, -30) off the map
+        _frame(0, 0),        # (50, 50) back on the map
+        _frame(700, 0),      # (120, 50) on a 200 px map but a 70 px jump
+    ]
+    for index, frame in enumerate(frames):
+        tracker.update(7, [frame])
+        assert tracker.point_count == index + 1
+
+    assert tracker.segments(200, 100) == [
+        [(50.0, 50.0), (60.0, 50.0)],
+        [(40.0, 60.0)],
+        [(50.0, 50.0)],
+        [(120.0, 50.0)],
+    ]
+
+
+def test_segments_of_a_smooth_route_stay_in_one_piece() -> None:
+    """Normal robot steps give a single connected piece."""
+    tracker = RouteTracker()
+    tracker.set_layout_dock((500, 500))
+    for step in range(5):
+        tracker.update(7, [_frame(step * 50, step * 20)])
+
+    pieces = tracker.segments(200, 100)
+
+    assert len(pieces) == 1
+    assert len(pieces[0]) == 5
+
+
+def test_layout_dock_wins_over_media_header() -> None:
+    """After the layout sets the dock, a header frame must not move it."""
+    tracker = RouteTracker()
+    tracker.set_layout_dock((1780, 490))
+
+    tracker.update(7, [HEADER_FRAME, POSE_FRAME_1])  # header says dock (1720, 430)
+
+    assert tracker.dock == (1780, 490)
+    assert tracker.path()[0] == pytest.approx((164.4, 22.1))
+
+
 class _FakeSession:
     """Stands in for TuyaAPISession; records the request it receives."""
 
