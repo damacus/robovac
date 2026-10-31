@@ -30,8 +30,11 @@ from .eufywebapi import EufyLogon
 from .map_fetch import (
     MapFetchError,
     RoboVacMapLayout,
+    POSE_UNITS_PER_PIXEL,
+    decode_pose_frame,
     fetch_and_decode,
-    fetch_pose,
+    fetch_frames,
+    pose_offset,
 )
 from .tuyawebapi import TuyaAPISession
 
@@ -42,8 +45,10 @@ _LOGGER = logging.getLogger(__name__)
 MAP_UPDATE_INTERVAL = timedelta(minutes=15)
 
 # While the vacuum is on the move the cloud delivers a new pose frame every
-# ~2 s. Polling is skipped entirely when it is docked or idle.
-ROUTE_POLL_INTERVAL = timedelta(seconds=2)
+# ~1.7 s, and only the newest one can be read, so poll faster than that.
+# Polling is skipped entirely when it is docked or idle.
+ROUTE_POLL_INTERVAL = timedelta(seconds=1)
+_MAX_ROUTE_POINTS = 20000
 _ROUTE_ACTIVE_STATES = {"cleaning", "returning"}
 _MAP_SCALE = 4
 _ROUTE_COLOR = (255, 255, 255)
@@ -156,8 +161,12 @@ class RoboVacMapCoordinator(DataUpdateCoordinator[bytes]):
         self._item = item
         self._session: TuyaAPISession | None = None
         self._layout: RoboVacMapLayout | None = None
+        # Pose frames are offsets from the dock. The dock comes from the map
+        # layout, and a media header frame also carries it; offsets are kept
+        # raw until it is known and across map refreshes.
         self._dock: tuple[int, int] | None = None
         self._record_id = 0
+        self._offsets: list[tuple[int, int]] = []
         self._path: list[tuple[float, float]] = []
 
     async def async_poll_route(self) -> None:
@@ -166,22 +175,37 @@ class RoboVacMapCoordinator(DataUpdateCoordinator[bytes]):
             return
         layout = self._layout
         try:
-            self._dock, pose = await self.hass.async_add_executor_job(
-                fetch_pose, self._session, self._item[CONF_ID], self._dock
+            record_id, frames = await self.hass.async_add_executor_job(
+                fetch_frames, self._session, self._item[CONF_ID]
             )
         except Exception as err:  # noqa: BLE001 - a missed poll must not break the camera
             _LOGGER.debug("Route poll failed: %s", err)
             return
-        if pose is None:
-            return
-        if pose.record_id != self._record_id:
+        if record_id != self._record_id:
             # A new clean started: the previous route no longer applies.
-            self._record_id = pose.record_id
+            self._record_id = record_id
+            self._offsets = []
             self._path = []
-        point = (pose.x, pose.y)
-        if self._path and self._path[-1] == point:
+        changed = False
+        for frame_hex in frames:
+            self._dock, _ = decode_pose_frame(frame_hex, self._dock)
+            offset = pose_offset(frame_hex)
+            if offset is not None and (
+                not self._offsets or self._offsets[-1] != offset
+            ):
+                self._offsets.append(offset)
+                del self._offsets[:-_MAX_ROUTE_POINTS]
+                changed = True
+        if not changed or self._dock is None:
+            _LOGGER.debug(
+                "Route poll: %d offsets, dock %s", len(self._offsets), self._dock
+            )
             return
-        self._path.append(point)
+        dock_x, dock_y = self._dock
+        self._path = [
+            ((dock_x + dx) / POSE_UNITS_PER_PIXEL, (dock_y + dy) / POSE_UNITS_PER_PIXEL)
+            for dx, dy in self._offsets
+        ]
         png: bytes = await self.hass.async_add_executor_job(
             _render_png, layout, self._path
         )
@@ -203,6 +227,8 @@ class RoboVacMapCoordinator(DataUpdateCoordinator[bytes]):
                 fetch_and_decode, self._session, dev_id
             )
             self._layout = layout
+            if layout.dock is not None:
+                self._dock = layout.dock
             png: bytes = await self.hass.async_add_executor_job(
                 _render_png, layout, self._path
             )

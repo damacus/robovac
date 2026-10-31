@@ -6,8 +6,11 @@ import pytest
 
 from custom_components.robovac.map_fetch import (
     RoboVacPose,
+    decode_layout,
     decode_pose_frame,
+    fetch_frames,
     fetch_pose,
+    pose_offset,
 )
 
 # Frames captured from a real T2276 clean on 2026-10-31.
@@ -15,6 +18,36 @@ HEADER_FRAME = "fe0000006e000000b8060000ae010000b0060000d2010000"
 POSE_FRAME_1 = "09088f0210990418a419"
 POSE_FRAME_2 = "0908c50410950418c018"
 DOCK = (1720, 430)
+
+
+def _lay_bin(width: int, height: int, dock: tuple[int, int], pixels: bytes) -> bytes:
+    """Build a minimal lay.bin: header plus an LZ4 block of literals only."""
+    block = bytes([len(pixels) << 4]) + pixels  # token: literal length, no match
+    header = (
+        b"0pam"
+        + (16).to_bytes(2, "big") + (256).to_bytes(2, "big")
+        + width.to_bytes(2, "big") + height.to_bytes(2, "big")
+        + dock[0].to_bytes(2, "big") + dock[1].to_bytes(2, "big")
+        + (0).to_bytes(2, "big") + len(block).to_bytes(2, "big")
+        + (0).to_bytes(2, "big") + len(pixels).to_bytes(2, "big")
+    )
+    return header + block
+
+
+def test_decode_layout_reads_dock_from_header() -> None:
+    """Header bytes 12-15 are the dock position, in 1/10 map pixel."""
+    layout = decode_layout(_lay_bin(2, 2, DOCK, bytes([0, 4, 8, 12])))
+
+    assert (layout.width, layout.height) == (2, 2)
+    assert layout.dock == DOCK
+    assert layout.pixels == bytes([0, 4, 8, 12])
+
+
+def test_header_frame_dock_matches_layout_dock() -> None:
+    """The media header frame and the layout header agree on the dock."""
+    layout = decode_layout(_lay_bin(2, 2, DOCK, bytes([0, 4, 8, 12])))
+
+    assert decode_pose_frame(HEADER_FRAME, None)[0] == layout.dock
 
 
 def test_header_frame_yields_dock_and_robot_position() -> None:
@@ -61,6 +94,35 @@ def test_malformed_frame_is_ignored_and_keeps_dock(frame: str) -> None:
     assert xy is None
 
 
+def test_pose_offset_needs_no_dock() -> None:
+    """A pose frame decodes to its raw zigzag offset even before the dock is known."""
+    assert pose_offset(POSE_FRAME_1) == (-136, -269)
+    assert pose_offset(POSE_FRAME_2) == (-291, -267)
+
+
+@pytest.mark.parametrize(
+    "frame", [HEADER_FRAME, "", "zz", "09", "0908", "0608" + "0000000000"]
+)
+def test_pose_offset_ignores_header_and_malformed_frames(frame: str) -> None:
+    """Only well-formed pose frames give an offset."""
+    assert pose_offset(frame) is None
+
+
+def test_offsets_buffered_before_header_resolve_to_same_positions() -> None:
+    """Offsets kept before the dock is known give the same points as a known dock."""
+    offsets = [pose_offset(f) for f in (POSE_FRAME_1, POSE_FRAME_2)]
+    _, late = decode_pose_frame(HEADER_FRAME, None)
+    assert late is not None  # header reveals the dock
+
+    resolved = [
+        ((DOCK[0] + dx) / 10, (DOCK[1] + dy) / 10)
+        for dx, dy in offsets  # type: ignore[misc]
+    ]
+
+    assert resolved[0] == pytest.approx(decode_pose_frame(POSE_FRAME_1, DOCK)[1])
+    assert resolved[1] == pytest.approx(decode_pose_frame(POSE_FRAME_2, DOCK)[1])
+
+
 class _FakeSession:
     """Stands in for TuyaAPISession; records the request it receives."""
 
@@ -88,6 +150,24 @@ def test_fetch_pose_requests_media_latest_and_decodes() -> None:
     ]
     assert dock == DOCK
     assert pose == RoboVacPose(record_id=1566, x=171.2, y=46.6)
+
+
+@pytest.mark.parametrize(
+    ("response", "expected"),
+    [
+        ({"subRecordId": 5, "dataList": [POSE_FRAME_1]}, (5, [POSE_FRAME_1])),
+        ({"subRecordId": 5, "dataList": None}, (5, [])),
+        ({}, (0, [])),
+    ],
+)
+def test_fetch_frames_returns_record_id_and_raw_frames(
+    response: dict[str, Any], expected: tuple[int, list[str]]
+) -> None:
+    """Frames are returned undecoded, with the clean record id (0 when missing)."""
+    session = _FakeSession(response)
+
+    assert fetch_frames(session, "dev1") == expected  # type: ignore[arg-type]
+    assert session.calls[0]["action"] == "tuya.m.device.media.latest"
 
 
 def test_fetch_pose_reuses_dock_from_earlier_header() -> None:
