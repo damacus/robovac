@@ -30,6 +30,7 @@ from __future__ import annotations
 import datetime
 import hashlib
 import hmac
+import struct
 from dataclasses import dataclass
 from typing import Any
 from urllib.parse import quote
@@ -216,3 +217,92 @@ def decode_layout(raw: bytes) -> RoboVacMapLayout:
 def fetch_and_decode(session: TuyaAPISession, dev_id: str) -> RoboVacMapLayout:
     """Fetch and decode a device's current map layout in one call."""
     return decode_layout(fetch_layout_bytes(session, dev_id))
+
+
+# Live robot pose, reverse engineered 2026-10-31. ``tuya.m.device.media.latest``
+# v3.0 returns only the newest frame of the current clean record
+# (``subRecordId``), so a route has to be built by polling and accumulating
+# points. Two frame kinds alternate:
+#   header, 24 bytes: little-endian int32 x6 = map width, map height,
+#       dock x, dock y, robot x, robot y (position unit: 1/10 map pixel)
+#   pose, 10 bytes: length prefix 0x09 + protobuf {1: x, 2: y, 3: z}. x and y
+#       are zigzag-encoded offsets from the dock, in the same unit. z is not
+#       decoded.
+POSE_UNITS_PER_PIXEL = 10
+_HEADER_FRAME_LEN = 24
+
+
+@dataclass(frozen=True)
+class RoboVacPose:
+    """A robot position in map pixels, tagged with its clean record id."""
+
+    record_id: int
+    x: float
+    y: float
+
+
+def _read_varint(data: bytes, pos: int) -> tuple[int, int]:
+    """Read one protobuf varint, returning (value, next position)."""
+    value = shift = 0
+    while True:
+        byte = data[pos]
+        pos += 1
+        value |= (byte & 0x7F) << shift
+        if not byte & 0x80:
+            return value, pos
+        shift += 7
+
+
+def _unzigzag(value: int) -> int:
+    return (value >> 1) ^ -(value & 1)
+
+
+def decode_pose_frame(
+    frame_hex: str, dock: tuple[int, int] | None
+) -> tuple[tuple[int, int] | None, tuple[float, float] | None]:
+    """Decode one media frame into (dock, robot position in map pixels).
+
+    A header frame yields the dock and the robot position it carries. A pose
+    frame yields only a position and needs ``dock`` from an earlier header.
+    Unknown or malformed frames yield ``(dock, None)``.
+    """
+    try:
+        raw = bytes.fromhex(frame_hex)
+        if len(raw) == _HEADER_FRAME_LEN:
+            _, _, dock_x, dock_y, robot_x, robot_y = struct.unpack("<6i", raw)
+            return (dock_x, dock_y), (
+                robot_x / POSE_UNITS_PER_PIXEL, robot_y / POSE_UNITS_PER_PIXEL,
+            )
+        if dock is None or raw[0] != len(raw) - 1:
+            return dock, None
+        fields: dict[int, int] = {}
+        pos = 1
+        while pos < len(raw):
+            tag, pos = _read_varint(raw, pos)
+            fields[tag >> 3], pos = _read_varint(raw, pos)
+        if 1 not in fields or 2 not in fields:
+            return dock, None
+        return dock, (
+            (dock[0] + _unzigzag(fields[1])) / POSE_UNITS_PER_PIXEL,
+            (dock[1] + _unzigzag(fields[2])) / POSE_UNITS_PER_PIXEL,
+        )
+    except (ValueError, IndexError, struct.error):
+        return dock, None
+
+
+def fetch_pose(
+    session: TuyaAPISession, dev_id: str, dock: tuple[int, int] | None
+) -> tuple[tuple[int, int] | None, RoboVacPose | None]:
+    """Fetch the newest media frame and decode it to (dock, pose)."""
+    resp: dict[str, Any] = session._request(  # noqa: SLF001 - same private API the integration already calls for dp.get
+        action="tuya.m.device.media.latest",
+        version="3.0",
+        data={"devId": dev_id, "start": 0, "size": 20},
+    )
+    record_id = int(resp.get("subRecordId") or 0)
+    pose: RoboVacPose | None = None
+    for frame_hex in resp.get("dataList") or []:
+        dock, xy = decode_pose_frame(frame_hex, dock)
+        if xy is not None:
+            pose = RoboVacPose(record_id=record_id, x=xy[0], y=xy[1])
+    return dock, pose
