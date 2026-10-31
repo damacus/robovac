@@ -5,6 +5,7 @@ from typing import Any
 import pytest
 
 from custom_components.robovac.map_fetch import (
+    RoboVacMapLayout,
     RoboVacPose,
     RouteTracker,
     decode_layout,
@@ -42,6 +43,51 @@ def test_decode_layout_reads_dock_from_header() -> None:
     assert (layout.width, layout.height) == (2, 2)
     assert layout.dock == DOCK
     assert layout.pixels == bytes([0, 4, 8, 12])
+
+
+def _layout(rows: list[list[int]], dock: tuple[int, int] | None) -> RoboVacMapLayout:
+    """Build a layout from rows of room ids (63 = outside)."""
+    return RoboVacMapLayout(
+        width=len(rows[0]),
+        height=len(rows),
+        pixels=bytes((room << 2) | (3 if room == 63 else 0) for row in rows for room in row),
+        dock=dock,
+    )
+
+
+def test_room_summary_gives_id_size_and_centre_from_the_dock() -> None:
+    """Centres are relative to the dock; outside pixels are ignored."""
+    layout = _layout([[0, 0, 2, 2], [0, 0, 2, 63]], dock=(20, 10))  # dock at (2.0, 1.0)
+
+    assert layout.room_summary() == [
+        {"id": 0, "pixels": 4, "x": -1.5, "y": -0.5},
+        {"id": 2, "pixels": 3, "x": 0.3, "y": -0.7},
+    ]
+
+
+def test_room_summary_is_unchanged_when_the_whole_map_shifts_with_the_dock() -> None:
+    """A new map origin moves the dock too, so dock-relative centres stay equal."""
+    first = _layout([[0, 0, 2, 2], [0, 0, 2, 2]], dock=(10, 10))
+    shifted = _layout(
+        [[63, 63, 63, 63], [63, 0, 0, 2], [63, 0, 0, 2]],  # same rooms, one px right and down
+        dock=(20, 20),
+    )
+    shifted_rooms = _layout([[63, 0, 0, 2, 2], [63, 0, 0, 2, 2]], dock=(20, 10))
+
+    assert first.room_summary() == shifted_rooms.room_summary()
+    assert [room["id"] for room in shifted.room_summary()] == [0, 2]
+
+
+def test_room_summary_without_dock_uses_the_map_corner() -> None:
+    """Without a dock the centre is measured from pixel (0, 0)."""
+    layout = _layout([[5, 5]], dock=None)
+
+    assert layout.room_summary() == [{"id": 5, "pixels": 2, "x": 0.5, "y": 0.0}]
+
+
+def test_room_summary_of_a_map_without_rooms_is_empty() -> None:
+    """A map of only outside pixels has no rooms."""
+    assert _layout([[63, 63]], dock=(0, 0)).room_summary() == []
 
 
 def test_header_frame_dock_matches_layout_dock() -> None:

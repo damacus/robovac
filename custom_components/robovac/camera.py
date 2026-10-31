@@ -171,11 +171,13 @@ class RoboVacMapCoordinator(DataUpdateCoordinator[bytes]):
         # when a clean starts and while it runs.
         self._route = RouteTracker(_MAX_ROUTE_POINTS)
         self._layout_loaded = 0.0
+        self.rooms: list[dict[str, Any]] = []
 
     def _apply_layout(self, layout: RoboVacMapLayout) -> None:
         """Remember a freshly loaded layout and its dock."""
         self._layout = layout
         self._layout_loaded = time.monotonic()
+        self.rooms = layout.room_summary()
         if layout.dock is not None:
             self._route.set_layout_dock(layout.dock)
 
@@ -271,6 +273,16 @@ class RoboVacMapCamera(CoordinatorEntity[RoboVacMapCoordinator], Camera):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, self._dev_id)}, name=item[CONF_NAME],
         )
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Expose the rooms of the current map for automations.
+
+        Each room has its id, pixel count and centre (x, y) in map pixels
+        measured from the dock, so a room can be recognised again by position
+        after the vacuum assigns new ids.
+        """
+        return {"rooms": self.coordinator.rooms}
 
     async def async_added_to_hass(self) -> None:
         """Start the route poll that runs while the vacuum is moving."""
