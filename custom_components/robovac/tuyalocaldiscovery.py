@@ -26,7 +26,7 @@ def _decrypt_ecb(data_bytes: bytes) -> str:
     decryptor = cipher.decryptor()
     padded_data = decryptor.update(data_bytes) + decryptor.finalize()
     padding_size = padded_data[-1]
-    return padded_data[:-padding_size].decode("utf-8")
+    return str(padded_data[:-padding_size].decode("utf-8"))
 
 
 def _decrypt_v35(data: bytes) -> str:
@@ -53,7 +53,7 @@ def _decrypt_v35(data: bytes) -> str:
         json_start = plaintext.find(b"{")
         if json_start > 0:
             plaintext = plaintext[json_start:]
-    return plaintext.decode("utf-8")
+    return str(plaintext.decode("utf-8"))
 
 
 class DiscoveryPortsNotAvailableException(Exception):
