@@ -123,6 +123,7 @@ def _render_png(
     scale = _MAP_SCALE
     img = Image.new("RGB", (layout.width, layout.height))
     px = img.load()
+    assert px is not None
     for y in range(layout.height):
         row_base = y * layout.width
         for x in range(layout.width):
@@ -133,7 +134,7 @@ def _render_png(
                 color = _DEFAULT_ROOM_COLORS[room % len(_DEFAULT_ROOM_COLORS)]
             px[x, y] = color
     img = img.resize(
-        (layout.width * scale, layout.height * scale), Image.NEAREST
+        (layout.width * scale, layout.height * scale), Image.Resampling.NEAREST
     )
     if route:
         draw = ImageDraw.Draw(img)
