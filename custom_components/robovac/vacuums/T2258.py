@@ -1,5 +1,6 @@
 """RoboVac G20 Hybrid (T2258)."""
 from homeassistant.components.vacuum import VacuumEntityFeature
+from homeassistant.components.vacuum import VacuumActivity
 from .base import RoboVacEntityFeature, RobovacCommand, RobovacModelDetails
 
 
@@ -34,18 +35,8 @@ class T2258(RobovacModelDetails):
                 "spot": "Spot",
             },
         },
-        # DPS 15 is not a usable status register on this model: it reports
-        # "Running" while cleaning, paused, stopped and docked alike, so the
-        # entity never leaves CLEANING. DPS 2 is the datapoint that tracks
-        # whether the vacuum is actually active.
-        #
-        # The values map is required rather than cosmetic. DPS 2 is a boolean,
-        # and a raw False is indistinguishable from "no status" to the
-        # `state == 0` check in RoboVacEntity.activity, which then falls back to
-        # the cleaning mode. Decoding to a string avoids that.
         RobovacCommand.STATUS: {
-            "code": 2,
-            "values": {"True": "cleaning", "False": "docked"},
+            "code": 15,
         },
         RobovacCommand.RETURN_HOME: {
             "code": 101,
@@ -72,4 +63,12 @@ class T2258(RobovacModelDetails):
                 "0": "No error",
             },
         },
+    }
+    activity_mapping = {
+        "Paused": VacuumActivity.PAUSED,
+        "Running": VacuumActivity.CLEANING,
+        "Charging": VacuumActivity.DOCKED,
+        "Recharge": VacuumActivity.RETURNING,
+        "completed": VacuumActivity.IDLE,
+        "Error": VacuumActivity.ERROR,
     }
