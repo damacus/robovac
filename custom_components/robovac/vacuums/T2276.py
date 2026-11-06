@@ -10,6 +10,9 @@ from .base import RoboVacEntityFeature, RobovacCommand, RobovacModelDetails
 
 
 class T2276(RobovacModelDetails):
+    # Expose the plain Tuya datapoints as native HA entities. Unlike the newer
+    # protobuf models, these settings and runtime values are independent DPS.
+    expose_dps_entities = True
     protocol_version = 3.5
     protocol_35_empty_dps_query = True
     protocol_35_map_data_keepalive = True
@@ -71,6 +74,9 @@ class T2276(RobovacModelDetails):
         RobovacCommand.BATTERY: {
             "code": 104,
         },
+        RobovacCommand.WATER_LEVEL: {
+            "code": 105,
+        },
         RobovacCommand.ERROR: {
             "code": 106,
         },
@@ -82,6 +88,12 @@ class T2276(RobovacModelDetails):
         },
         RobovacCommand.CLEANING_AREA: {
             "code": 110,
+        },
+        RobovacCommand.VOLUME: {
+            "code": 111,
+        },
+        RobovacCommand.CLEANING_TYPE: {
+            "code": 113,
         },
         RobovacCommand.BOOST_IQ: {
             "code": 118,
