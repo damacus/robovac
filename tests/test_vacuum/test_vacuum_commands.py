@@ -222,6 +222,25 @@ async def test_async_set_fan_speed_sends_t2080a_fan_dps(
 
 
 @pytest.mark.asyncio
+async def test_t2181_return_to_base_sends_boolean_dps_101(mock_vacuum_data) -> None:
+    """The LR30 Hybrid+ returns home when DPS 101 receives true (GH-632)."""
+    with patch("custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None):
+        robovac = RoboVac(
+            model_code="T2181",
+            device_id="test_id",
+            host="192.168.1.100",
+            local_key="test_key",
+        )
+    robovac.async_set = AsyncMock(return_value=True)
+
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=robovac):
+        entity = RoboVacEntity({**mock_vacuum_data, CONF_MODEL: "T2181"})
+        await entity.async_return_to_base()
+
+    robovac.async_set.assert_awaited_once_with({"101": True})
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize("model_code", ["T2277", "T2278"])
 async def test_async_return_to_base_does_not_overwrite_shared_dps_code(
     mock_vacuum_data,
