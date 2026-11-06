@@ -32,12 +32,7 @@ class T2280(RobovacModelDetails):
         RobovacCommand.STATUS: {
             "code": 173,
         },
-        RobovacCommand.RETURN_HOME: {
-            "code": 153,
-            "values": {
-                "return_home": "AggB",
-            }
-        },
+        RobovacCommand.RETURN_HOME: {"code": 153},
         RobovacCommand.FAN_SPEED: {
             "code": 154,
             "values": {
