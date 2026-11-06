@@ -43,6 +43,10 @@ class T2267(RobovacModelDetails):
     def decode_dps(dps_code: int, value: str) -> str | None:
         """Decode binary protobuf DPS values for the L60 (T2267)."""
         if dps_code == 177:
+            # The local transport writes this sentinel to DPS 177 on timeout.
+            # It is not a base64 protobuf payload from the robot.
+            if value == "CONNECTION_FAILED":
+                return value
             try:
                 from custom_components.robovac.proto_decode import decode_error_code
 

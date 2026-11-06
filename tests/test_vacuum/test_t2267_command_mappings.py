@@ -202,6 +202,25 @@ def test_t2267_decode_dps_robot_suspended() -> None:
     assert T2267.decode_dps(177, "FAiP84Hms4ztzgEaAto2UgQSAto2") == "Robot suspended"
 
 
+def test_t2267_decode_dps_connection_failure_sentinel(
+    mock_t2267_robovac: RoboVac, caplog: pytest.LogCaptureFixture,
+) -> None:
+    """A local transport failure is not a protobuf error code."""
+    import logging
+
+    with caplog.at_level(
+        logging.WARNING, logger="custom_components.robovac.vacuums.T2267"
+    ):
+        assert (
+            mock_t2267_robovac.getRoboVacHumanReadableValue(
+                RobovacCommand.ERROR, "CONNECTION_FAILED"
+            )
+            == "CONNECTION_FAILED"
+        )
+
+    assert "unmapped error code" not in caplog.text
+
+
 def test_t2267_decode_dps_invalid_base64() -> None:
     """Test DPS 177 with invalid base64 falls back to 'no_error'."""
     assert T2267.decode_dps(177, "!!!invalid!!!") == "no_error"
