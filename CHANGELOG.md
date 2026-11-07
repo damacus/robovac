@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.2](https://github.com/damacus/robovac/compare/v2.5.1...v2.5.2) (2026-11-06)
+
+
+### Bug Fixes
+
+* route return-home mappings ([#578](https://github.com/damacus/robovac/issues/578)) ([3be3e53](https://github.com/damacus/robovac/commit/3be3e53cfb8779d1e832a2bee94c383236b3f63c))
+
 ## [2.5.1](https://github.com/damacus/robovac/compare/v2.5.0...v2.5.1) (2026-11-06)
 
 
