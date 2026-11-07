@@ -202,6 +202,11 @@ class RobovacBatterySensor(SensorEntity):
 
             # Get battery value using the correct DPS code
             battery_value = vacuum_entity.tuyastatus.get(battery_dps_code)
+            # Some T2267 L60 devices report charge on DPS 161 rather than 163.
+            if battery_value is None and vacuum_entity.model_code == "T2267":
+                battery_value = vacuum_entity.tuyastatus.get("161")
+                if battery_value is not None:
+                    battery_dps_code = "161"
 
             if battery_value is not None:
                 try:
