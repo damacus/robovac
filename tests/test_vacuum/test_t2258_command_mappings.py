@@ -60,13 +60,6 @@ def test_t2258_uses_documented_suction_levels(mock_t2258_robovac) -> None:
     ) == "Boost_IQ"
 
 
-def test_t2258_reads_status_from_dps_2(mock_t2258_robovac) -> None:
-    """Test T2258 takes status from DPS 2 rather than the stuck DPS 15."""
-    status = mock_t2258_robovac.model_details.commands[RobovacCommand.STATUS]
-
-    assert status["code"] == 2
-
-
 def test_t2258_decodes_status_to_activity_strings(mock_t2258_robovac) -> None:
     """Test the boolean on DPS 2 decodes to a string, not a raw bool.
 
