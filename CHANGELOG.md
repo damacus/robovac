@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.3](https://github.com/damacus/robovac/compare/v2.5.2...v2.5.3) (2026-11-07)
+
+
+### Bug Fixes
+
+* read L60 battery from DPS 161 when 163 is absent ([#640](https://github.com/damacus/robovac/issues/640)) ([fc99a07](https://github.com/damacus/robovac/commit/fc99a071b1a64bd45a01fb76cb9800b747e9064b))
+
 ## [2.5.2](https://github.com/damacus/robovac/compare/v2.5.1...v2.5.2) (2026-11-06)
 
 
