@@ -66,6 +66,7 @@ map_modes:
   - name: Clean room
     icon: mdi:home-floor-1
     selection_type: ROOM
+    max_selections: 1
     service_call_schema:
       service: script.turn_on
       service_data:

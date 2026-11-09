@@ -1,16 +1,20 @@
 """Tests for decoding the live robot pose frames of the cloud map."""
 
 from typing import Any
+from unittest.mock import MagicMock, patch
 
 import pytest
+import requests
 
 from custom_components.robovac.map_fetch import (
+    MapFetchError,
     RoboVacMapLayout,
     RoboVacPose,
     RouteTracker,
     decode_layout,
     decode_pose_frame,
     fetch_frames,
+    fetch_layout_bytes,
     fetch_pose,
     pose_offset,
 )
@@ -377,3 +381,79 @@ def test_fetch_pose_without_usable_frame_returns_no_pose(
 
     assert dock == DOCK
     assert pose is None
+
+
+def test_decode_layout_ignores_the_two_byte_length_field() -> None:
+    """A map above 65,535 pixels still loads: the size is width * height."""
+    width = height = 256
+    raw = bytearray(_lay_bin(2, 2, DOCK, bytes(4)))
+    raw[8:10] = width.to_bytes(2, "big")
+    raw[10:12] = height.to_bytes(2, "big")
+    pixels = bytes(width * height)
+    # LZ4 block: a literal run of 65,536 bytes needs extended length bytes.
+    extra = len(pixels) - 15
+    block = bytes([0xF0]) + b"\xff" * (extra // 255) + bytes([extra % 255]) + pixels
+    layout = decode_layout(bytes(raw[:24]) + block)
+
+    assert len(layout.pixels) == 65536
+
+
+def test_room_ids_exclude_reserved_ids_from_32_up() -> None:
+    """Only ids 0-31 are real rooms; 32-59 are reserved by the format."""
+    layout = _layout([[0, 31, 32, 59, 60, 63]], dock=None)
+
+    assert layout.room_ids() == {0, 31}
+    assert [room["id"] for room in layout.room_summary()] == [0, 31]
+
+
+def _storage_session(**overrides: Any) -> _FakeSession:
+    cfg: dict[str, Any] = {
+        "ak": "AKIA-SECRET", "sk": "SECRET-KEY", "token": "SESSION-TOKEN",
+        "bucket": "bucket", "endpoint": "s3.example.com", "region": "eu-central-1",
+        "pathConfig": {"common": "/maps/dev"},
+    }
+    cfg.update(overrides)
+    return _FakeSession(cfg)
+
+
+def test_missing_storage_field_error_does_not_leak_credentials() -> None:
+    """The missing-field error names the key and nothing from the config."""
+    session = _storage_session()
+    del session.response["region"]
+
+    with pytest.raises(MapFetchError) as excinfo:
+        fetch_layout_bytes(session, "dev1")  # type: ignore[arg-type]
+
+    message = str(excinfo.value)
+    assert "region" in message
+    for secret in ("AKIA-SECRET", "SECRET-KEY", "SESSION-TOKEN"):
+        assert secret not in message
+
+
+def test_http_error_is_sanitized_and_chain_is_suppressed() -> None:
+    """A rejected download reports the status only, without the signed URL."""
+    response = MagicMock(status_code=403)
+    response.raise_for_status.side_effect = requests.HTTPError(
+        "403 for url: https://x?X-Amz-Signature=SIG&X-Amz-Security-Token=TOK",
+        response=response,
+    )
+
+    with patch("custom_components.robovac.map_fetch.requests.get", return_value=response):
+        with pytest.raises(MapFetchError) as excinfo:
+            fetch_layout_bytes(_storage_session(), "dev1")  # type: ignore[arg-type]
+
+    assert str(excinfo.value) == "map download failed (HTTP 403)"
+    assert excinfo.value.__cause__ is None
+    assert excinfo.value.__suppress_context__
+
+
+def test_connection_error_is_sanitized() -> None:
+    """A failed connection reports the error type only, without the signed URL."""
+    boom = requests.ConnectionError("failed https://x?X-Amz-Signature=SIG")
+
+    with patch("custom_components.robovac.map_fetch.requests.get", side_effect=boom):
+        with pytest.raises(MapFetchError) as excinfo:
+            fetch_layout_bytes(_storage_session(), "dev1")  # type: ignore[arg-type]
+
+    assert "SIG" not in str(excinfo.value)
+    assert excinfo.value.__suppress_context__

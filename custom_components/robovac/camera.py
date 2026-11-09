@@ -7,6 +7,7 @@ operation, only for this optional camera).
 """
 from __future__ import annotations
 
+import asyncio
 import logging
 import time
 from datetime import timedelta
@@ -172,6 +173,9 @@ class RoboVacMapCoordinator(DataUpdateCoordinator[bytes]):
         # when a clean starts and while it runs.
         self._route = RouteTracker(_MAX_ROUTE_POINTS)
         self._layout_loaded = 0.0
+        # The route timer ticks faster than a cloud request can finish, and a
+        # late response must not move the tracker back to an older record.
+        self._poll_lock = asyncio.Lock()
         self.rooms: list[dict[str, Any]] = []
 
     def _apply_layout(self, layout: RoboVacMapLayout) -> None:
@@ -184,6 +188,13 @@ class RoboVacMapCoordinator(DataUpdateCoordinator[bytes]):
 
     async def async_poll_route(self) -> None:
         """Add the newest robot position to the route and re-render the map."""
+        if self._session is None or self._layout is None or self._poll_lock.locked():
+            return
+        async with self._poll_lock:
+            await self._async_poll_route_locked()
+
+    async def _async_poll_route_locked(self) -> None:
+        """Run one poll. The caller holds ``_poll_lock``."""
         if self._session is None or self._layout is None:
             return
         try:

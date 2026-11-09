@@ -44,6 +44,8 @@ MAP_MAGIC = b"0pam"
 MAP_HEADER_LEN = 24
 
 # Pixel byte (data[i]) -> (room_id, pixel_type). room_id = byte >> 2.
+# Only ids 0-31 are real rooms; the other ids in use are the special values below.
+ROOM_ID_MAX = 31
 ROOM_ID_NO_DATA = 60
 ROOM_ID_GAP = 61
 ROOM_ID_OBSTACLE = 62
@@ -115,7 +117,7 @@ class RoboVacMapLayout:
 
     def room_ids(self) -> set[int]:
         """Return the set of real room ids (0-31) present in this map."""
-        return {b >> 2 for b in self.pixels if (b >> 2) < ROOM_ID_NO_DATA}
+        return {b >> 2 for b in self.pixels if (b >> 2) <= ROOM_ID_MAX}
 
     def room_summary(self) -> list[dict[str, Any]]:
         """Describe each real room: id, pixel count and centre in map pixels.
@@ -129,7 +131,7 @@ class RoboVacMapLayout:
         sums: dict[int, list[int]] = {}
         for index, byte in enumerate(self.pixels):
             room = byte >> 2
-            if room >= ROOM_ID_NO_DATA:
+            if room > ROOM_ID_MAX:
                 continue
             counts[room] = counts.get(room, 0) + 1
             total = sums.setdefault(room, [0, 0])
@@ -212,7 +214,7 @@ def fetch_layout_bytes(session: TuyaAPISession, dev_id: str) -> bytes:
     )
     for key in ("ak", "sk", "token", "bucket", "endpoint", "region", "pathConfig"):
         if key not in cfg:
-            raise MapFetchError(f"storage config missing {key!r}: {cfg}")
+            raise MapFetchError(f"storage config missing {key!r}")
 
     host = f"{cfg['bucket']}.{cfg['endpoint']}"
     path = cfg["pathConfig"]["common"].rstrip("/") + "/layout/lay.bin"
@@ -220,8 +222,18 @@ def fetch_layout_bytes(session: TuyaAPISession, dev_id: str) -> bytes:
         access_key=cfg["ak"], secret_key=cfg["sk"], session_token=cfg["token"],
         region=cfg["region"], host=host, path=path,
     )
-    resp = requests.get(url, timeout=15)
-    resp.raise_for_status()
+    # The URL carries the STS token and signature, and requests echoes it in
+    # its exceptions, so report only the status and drop the original chain.
+    try:
+        resp = requests.get(url, timeout=15)
+        resp.raise_for_status()
+    except requests.HTTPError as err:
+        status = err.response.status_code if err.response is not None else "unknown"
+        raise MapFetchError(f"map download failed (HTTP {status})") from None
+    except requests.RequestException as err:
+        raise MapFetchError(
+            f"map download failed ({type(err).__name__})"
+        ) from None
     return resp.content
 
 
@@ -232,7 +244,9 @@ def decode_layout(raw: bytes) -> RoboVacMapLayout:
 
     width = int.from_bytes(raw[8:10], "big")
     height = int.from_bytes(raw[10:12], "big")
-    uncompressed_len = int.from_bytes(raw[22:24], "big")
+    # One byte per pixel, so width * height is the decompressed size. The
+    # 2-byte length field at raw[22:24] would cap maps at 65,535 bytes.
+    uncompressed_len = width * height
     payload = raw[MAP_HEADER_LEN:]
 
     try:
