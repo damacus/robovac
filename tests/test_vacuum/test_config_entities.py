@@ -13,6 +13,7 @@ from homeassistant.const import (
     CONF_MODEL,
     CONF_NAME,
 )
+from homeassistant.core import HomeAssistant
 
 from custom_components.robovac.const import CONF_VACS
 from custom_components.robovac.select import async_setup_entry as async_setup_select_entry
@@ -66,12 +67,12 @@ async def test_other_clean_param_models_do_not_get_t2320_config_entities() -> No
 
 
 @pytest.mark.asyncio
-async def test_t2320_does_not_duplicate_clean_type_as_diagnostic_sensor() -> None:
+async def test_t2320_does_not_duplicate_clean_type_as_diagnostic_sensor(hass: HomeAssistant) -> None:
     """T2320 exposes clean type as configuration, not a duplicate sensor."""
     entry = SimpleNamespace(data={CONF_VACS: {"vacuum": _vacuum_config("T2320")}})
     sensor_entities = []
 
-    await async_setup_sensor_entry(None, entry, sensor_entities.extend)
+    await async_setup_sensor_entry(hass, entry, sensor_entities.extend)
 
     sensor_names = [entity.name for entity in sensor_entities]
     assert "Clean Type" not in sensor_names
@@ -87,26 +88,26 @@ async def test_t2320_does_not_duplicate_clean_type_as_diagnostic_sensor() -> Non
 
 
 @pytest.mark.asyncio
-async def test_other_clean_param_models_keep_clean_type_diagnostic_sensor() -> None:
+async def test_other_clean_param_models_keep_clean_type_diagnostic_sensor(hass: HomeAssistant) -> None:
     """Models without config controls still expose DPS 154 as diagnostics."""
     entry = SimpleNamespace(data={CONF_VACS: {"vacuum": _vacuum_config("T2277")}})
     sensor_entities = []
 
-    await async_setup_sensor_entry(None, entry, sensor_entities.extend)
+    await async_setup_sensor_entry(hass, entry, sensor_entities.extend)
 
     assert "Clean Type" in [entity.name for entity in sensor_entities]
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("model", ["T2080A", "T2080A product suffix"])
-async def test_t2080a_only_creates_battery_auxiliary_entity(model: str) -> None:
+async def test_t2080a_only_creates_battery_auxiliary_entity(hass: HomeAssistant, model: str) -> None:
     """T2080A must not inherit T2080-only diagnostics or controls."""
     entry = SimpleNamespace(data={CONF_VACS: {"vacuum": _vacuum_config(model)}})
     sensor_entities = []
     select_entities = []
     switch_entities = []
 
-    await async_setup_sensor_entry(None, entry, sensor_entities.extend)
+    await async_setup_sensor_entry(hass, entry, sensor_entities.extend)
     await async_setup_select_entry(None, entry, select_entities.extend)
     await async_setup_switch_entry(None, entry, switch_entities.extend)
 

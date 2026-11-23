@@ -7,6 +7,7 @@ from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import PERCENTAGE, EntityCategory, CONF_NAME, CONF_ID, CONF_MODEL
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.device_registry import DeviceInfo
 
@@ -52,17 +53,32 @@ def _device_info(item: dict) -> DeviceInfo:
     )
 
 
+def _migrate_battery_entity_registry(registry: er.EntityRegistry, device_id: str) -> None:
+    """Migrate battery registrations that used the bare device ID before #21."""
+    old_entity_id = registry.async_get_entity_id("sensor", DOMAIN, device_id)
+    if old_entity_id is None:
+        return
+
+    new_unique_id = f"{device_id}_battery"
+    if registry.async_get_entity_id("sensor", DOMAIN, new_unique_id) is not None:
+        registry.async_remove(old_entity_id)
+    else:
+        registry.async_update_entity(old_entity_id, new_unique_id=new_unique_id)
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     config_entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the Eufy RoboVac sensor platform."""
+    registry = er.async_get(hass)
     vacuums = config_entry.data[CONF_VACS]
     entities: list[SensorEntity] = []
 
     for item in vacuums:
         item = vacuums[item]
+        _migrate_battery_entity_registry(registry, item[CONF_ID])
         entities.append(RobovacBatterySensor(item))
 
         # Look up model class to determine which optional sensors to create.
