@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.6.0](https://github.com/damacus/robovac/compare/v2.5.2...v2.6.0) (2026-11-23)
+
+
+### Features
+
+* **T2276:** add map camera for X8-Pro-class devices ([#636](https://github.com/damacus/robovac/issues/636)) ([fa8a4b5](https://github.com/damacus/robovac/commit/fa8a4b5c2b5e0ae80bfc6ee4029e653253fd1ba2))
+* **T2276:** expose native DPS entities for X8 Pro SES ([#621](https://github.com/damacus/robovac/issues/621)) ([14e2a70](https://github.com/damacus/robovac/commit/14e2a702b1f34217bc56ba1cd7a3ececc14f4935))
+
+
+### Bug Fixes
+
+* **ci:** use the installed HA test harness ([#661](https://github.com/damacus/robovac/issues/661)) ([126a71c](https://github.com/damacus/robovac/commit/126a71c86a4c75011c7096496ea78d1bf74b1391))
+* read L60 battery from DPS 161 when 163 is absent ([#640](https://github.com/damacus/robovac/issues/640)) ([fc99a07](https://github.com/damacus/robovac/commit/fc99a071b1a64bd45a01fb76cb9800b747e9064b))
+* **sensor:** migrate legacy battery unique_id to post-[#21](https://github.com/damacus/robovac/issues/21) scheme ([#623](https://github.com/damacus/robovac/issues/623)) ([52bf690](https://github.com/damacus/robovac/commit/52bf690a354dd4e54a0ca585b0ad8b23083ee269))
+* **T2258:** show return to dock on the G20 Hybrid ([#648](https://github.com/damacus/robovac/issues/648)) ([47e9549](https://github.com/damacus/robovac/commit/47e95493e73b378663aae95efe1e834f0b71a6ab))
+
 ## [2.5.2](https://github.com/damacus/robovac/compare/v2.5.1...v2.5.2) (2026-11-06)
 
 
