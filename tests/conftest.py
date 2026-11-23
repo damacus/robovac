@@ -10,8 +10,6 @@ from unittest.mock import MagicMock, patch, AsyncMock
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
-# Import from pytest_homeassistant_custom_component instead of directly from homeassistant
-from pytest_homeassistant_custom_component.common import MockConfigEntry
 from homeassistant.components.vacuum import VacuumEntityFeature
 from homeassistant.const import (
     CONF_ACCESS_TOKEN,
@@ -24,13 +22,6 @@ from homeassistant.const import (
 )
 
 from custom_components.robovac.vacuums.base import RoboVacEntityFeature, RobovacCommand
-
-
-# This fixture is required for testing custom components
-@pytest.fixture(autouse=True)
-def auto_enable_custom_integrations(enable_custom_integrations: object) -> object:
-    """Enable custom integrations for testing."""
-    yield
 
 
 @pytest.fixture

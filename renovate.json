@@ -2,5 +2,21 @@
     "$schema": "https://docs.renovatebot.com/renovate-schema.json",
     "extends": [
         "local>damacus/renovate-config"
+    ],
+    "packageRules": [
+        {
+            "description": "Wait for the matching Home Assistant test harness release",
+            "matchManagers": ["pip_requirements"],
+            "matchFileNames": ["requirements.txt"],
+            "matchPackageNames": ["homeassistant"],
+            "overridePackageName": "pytest-homeassistant"
+        },
+        {
+            "description": "Resolve the test harness from the Home Assistant pin",
+            "matchManagers": ["pip_requirements"],
+            "matchFileNames": ["requirements-dev.txt"],
+            "matchPackageNames": ["pytest-homeassistant"],
+            "enabled": false
+        }
     ]
 }

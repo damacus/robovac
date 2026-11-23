@@ -42,8 +42,7 @@ disallow_incomplete_defs = true
 module = [
     "voluptuous.*",
     "homeassistant.*",
-    "numpy.*",
-    "pytest_homeassistant_custom_component.*"
+    "numpy.*"
 ]
 ignore_missing_imports = true
 
