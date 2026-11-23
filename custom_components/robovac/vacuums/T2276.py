@@ -76,6 +76,12 @@ class T2276(RobovacModelDetails):
         },
         RobovacCommand.WATER_LEVEL: {
             "code": 105,
+            # Values the mobile app writes and the robot reports on DPS 105.
+            "values": {
+                "low": "Low",
+                "medium": "Mid",
+                "high": "High",
+            },
         },
         RobovacCommand.ERROR: {
             "code": 106,

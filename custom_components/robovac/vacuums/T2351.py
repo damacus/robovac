@@ -36,7 +36,7 @@ class T2351(RobovacModelDetails):
         RobovacCommand.STATUS: {
             "code": 173,
         },
-        RobovacCommand.RETURN_HOME: {"code": 153, "values": {"return_home": True}},
+        RobovacCommand.RETURN_HOME: {"code": 153, "values": {"return": True}},
         RobovacCommand.FAN_SPEED: {
             "code": 154,
             "values": {

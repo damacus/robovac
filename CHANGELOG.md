@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.2](https://github.com/damacus/robovac/compare/v2.5.1...v2.5.2) (2026-11-06)
+
+
+### Bug Fixes
+
+* route return-home mappings ([#578](https://github.com/damacus/robovac/issues/578)) ([3be3e53](https://github.com/damacus/robovac/commit/3be3e53cfb8779d1e832a2bee94c383236b3f63c))
+
+## [2.5.1](https://github.com/damacus/robovac/compare/v2.5.0...v2.5.1) (2026-11-06)
+
+
+### Bug Fixes
+
+* avoid duplicate reload and invalid discovery IP updates ([#642](https://github.com/damacus/robovac/issues/642)) ([0cc9809](https://github.com/damacus/robovac/commit/0cc98096a7d8d158dbfde603c76e11fd0623e680))
+* map translated X8 and LR30 vacuum status ([#643](https://github.com/damacus/robovac/issues/643)) ([57fa849](https://github.com/damacus/robovac/commit/57fa8490045483021a30ce372e6cab2d86e3657f))
+* preserve config entry data when setting static IP ([#641](https://github.com/damacus/robovac/issues/641)) ([b2c385f](https://github.com/damacus/robovac/commit/b2c385fc8aa885292a02cab8549da9e104e2150e))
+* return T2181 vacuum to dock ([#650](https://github.com/damacus/robovac/issues/650)) ([9be90a4](https://github.com/damacus/robovac/commit/9be90a437575ba2e397106c273226e01bc0d7761))
+* **T2193:** avoid auto clean trigger after room selection ([#644](https://github.com/damacus/robovac/issues/644)) ([4df236c](https://github.com/damacus/robovac/commit/4df236c42959a6ec197a3d7408d577830d43c0cc))
+* **T2267:** preserve connection failure sentinel ([#645](https://github.com/damacus/robovac/issues/645)) ([0cf8e1a](https://github.com/damacus/robovac/commit/0cf8e1a53f8c4031487f69234839819deb916d94))
+
 ## [2.5.0](https://github.com/damacus/robovac/compare/v2.4.3...v2.5.0) (2026-09-30)
 
 
