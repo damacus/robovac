@@ -1,148 +1,124 @@
-"""Tests for the battery entity registry migration.
+"""Test battery migration during Home Assistant config entry setup."""
 
-Commit 1989921 (#21) changed the battery sensor unique_id from the bare
-device ID to ``<device_id>_battery`` without a registry migration. These
-tests cover ``_migrate_battery_entity_registry`` for every install shape:
-
-- fresh installs (no legacy registration): no-op
-- upgraded installs with only the legacy registration: remove + re-register
-  on the legacy slot, preserving entity_id, device, and enabled state
-- upgraded installs with both registrations: remove only the orphan
-- safety: never touch registrations owned by other platforms
-"""
-
-from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
-from homeassistant.const import CONF_ID, CONF_NAME
+from homeassistant.config_entries import ConfigEntryState
+from homeassistant.const import CONF_ID
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers import area_registry as ar
+from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers import label_registry as lr
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.robovac.const import DOMAIN
-from custom_components.robovac.sensor import _migrate_battery_entity_registry
-
-DEVICE_ID = "eb5580d8cb5ce440aan1r7"
-OLD_UNIQUE_ID = DEVICE_ID
-NEW_UNIQUE_ID = f"{DEVICE_ID}_battery"
-OLD_ENTITY_ID = "sensor.vac_battery"
-
-
-def _item() -> dict:
-    """Return a vacuum config item as stored in the config entry."""
-    return {CONF_ID: DEVICE_ID, CONF_NAME: "Vac"}
+from custom_components.robovac.const import CONF_VACS, DOMAIN
 
 
-def _registry_with(old_entry: MagicMock | None, new_entity_id: str | None) -> MagicMock:
-    """Return a mocked entity registry.
-
-    ``async_get_entity_id`` resolves the legacy lookup first and the
-    new-unique_id lookup second (side_effect order matches call order).
-    """
-    registry = MagicMock()
-    registry.async_get_entity_id.side_effect = [OLD_ENTITY_ID, new_entity_id]
-    registry.async_get.return_value = old_entry
-    return registry
+@pytest.fixture
+def config_entry(hass: HomeAssistant, mock_vacuum_data: dict) -> MockConfigEntry:
+    """Register a RoboVac config entry without loading it."""
+    device_id = mock_vacuum_data[CONF_ID]
+    entry = MockConfigEntry(domain=DOMAIN, data={CONF_VACS: {device_id: mock_vacuum_data}})
+    entry.add_to_hass(hass)
+    return entry
 
 
-@pytest.mark.asyncio
-async def test_noop_when_no_legacy_registration() -> None:
-    """Fresh installs (or already-migrated) must not be touched."""
-    hass = MagicMock()
-    registry = MagicMock()
-    registry.async_get_entity_id.return_value = None
-
-    with patch("custom_components.robovac.sensor.er.async_get", return_value=registry):
-        await _migrate_battery_entity_registry(hass, _item())
-
-    registry.async_remove.assert_not_called()
-    registry.async_get_or_create.assert_not_called()
+async def _start_robovac(hass: HomeAssistant, entry: MockConfigEntry) -> None:
+    """Set up the integration with vacuum and discovery networking mocked."""
+    with (
+        patch("custom_components.robovac.TuyaLocalDiscovery.start"),
+        patch("custom_components.robovac.vacuum.RoboVac", autospec=True),
+    ):
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+    assert entry.state is ConfigEntryState.LOADED
 
 
-@pytest.mark.asyncio
-async def test_noop_when_legacy_entry_platform_mismatch() -> None:
-    """A registration owned by another platform must never be removed."""
-    hass = MagicMock()
-    foreign = MagicMock(platform="some_other_integration")
-    registry = _registry_with(foreign, new_entity_id=None)
-
-    with patch("custom_components.robovac.sensor.er.async_get", return_value=registry):
-        await _migrate_battery_entity_registry(hass, _item())
-
-    registry.async_remove.assert_not_called()
-    registry.async_get_or_create.assert_not_called()
-
-
-@pytest.mark.asyncio
-async def test_legacy_only_migration_preserves_entity_state() -> None:
-    """Legacy-only installs: remove orphan, re-register new id on old slot."""
-    hass = MagicMock()
-    old_entry = MagicMock(
-        platform=DOMAIN,
-        device_id="device-123",
-        disabled_by=None,
+@pytest.mark.parametrize("disabled_by", [None, er.RegistryEntryDisabler.USER])
+async def test_legacy_battery_keeps_customisations(
+    hass: HomeAssistant,
+    config_entry: MockConfigEntry,
+    entity_registry: er.EntityRegistry,
+    device_registry: dr.DeviceRegistry,
+    disabled_by: er.RegistryEntryDisabler | None,
+) -> None:
+    """Keep the legacy sensor's identity and settings when changing its unique ID."""
+    device_id = next(iter(config_entry.data[CONF_VACS]))
+    device = device_registry.async_get_or_create(
+        config_entry_id=config_entry.entry_id, identifiers={(DOMAIN, device_id)}
     )
-    registry = _registry_with(old_entry, new_entity_id=None)
-
-    with patch("custom_components.robovac.sensor.er.async_get", return_value=registry):
-        await _migrate_battery_entity_registry(hass, _item())
-
-    registry.async_remove.assert_called_once_with(OLD_ENTITY_ID)
-    registry.async_get_or_create.assert_called_once_with(
-        "sensor",
-        DOMAIN,
-        NEW_UNIQUE_ID,
-        suggested_object_id="vac_battery",
-        device_id="device-123",
-        disabled_by=None,
+    legacy = entity_registry.async_get_or_create(
+        "sensor", DOMAIN, device_id,
+        config_entry=config_entry, device_id=device.id,
+        suggested_object_id="hallway_charge", disabled_by=disabled_by,
+    )
+    area = ar.async_get(hass).async_create("Hallway")
+    label = lr.async_get(hass).async_create("Robot")
+    legacy = entity_registry.async_update_entity(
+        legacy.entity_id, name="Hallway battery", icon="mdi:battery-heart",
+        hidden_by=er.RegistryEntryHider.USER, area_id=area.id, labels={label.label_id},
     )
 
+    await _start_robovac(hass, config_entry)
 
-@pytest.mark.asyncio
-async def test_both_present_removes_only_orphan() -> None:
-    """Installs with a working new-style entity: remove the orphan only."""
-    hass = MagicMock()
-    old_entry = MagicMock(
-        platform=DOMAIN,
-        device_id="device-123",
-        disabled_by=None,
+    assert entity_registry.async_get_entity_id("sensor", DOMAIN, device_id) is None
+    assert entity_registry.async_get_entity_id("sensor", DOMAIN, f"{device_id}_battery") == legacy.entity_id
+    migrated = entity_registry.async_get(legacy.entity_id)
+    assert migrated is not None
+    assert migrated.id == legacy.id
+    assert migrated.config_entry_id == config_entry.entry_id
+    assert migrated.device_id == device.id
+    assert migrated.name == legacy.name
+    assert migrated.icon == legacy.icon
+    assert migrated.hidden_by == legacy.hidden_by
+    assert migrated.area_id == legacy.area_id
+    assert migrated.labels == legacy.labels
+    assert migrated.disabled_by == disabled_by
+    assert (hass.states.get(legacy.entity_id) is not None) == (disabled_by is None)
+
+
+async def test_duplicate_cleanup_keeps_working_battery(
+    hass: HomeAssistant,
+    config_entry: MockConfigEntry,
+    entity_registry: er.EntityRegistry,
+) -> None:
+    """Remove the obsolete sensor and preserve the working registration."""
+    device_id = next(iter(config_entry.data[CONF_VACS]))
+    legacy = entity_registry.async_get_or_create(
+        "sensor", DOMAIN, device_id, config_entry=config_entry,
+        suggested_object_id="obsolete_charge",
     )
-    registry = _registry_with(old_entry, new_entity_id="sensor.vac_battery_2")
-
-    with patch("custom_components.robovac.sensor.er.async_get", return_value=registry):
-        await _migrate_battery_entity_registry(hass, _item())
-
-    registry.async_remove.assert_called_once_with(OLD_ENTITY_ID)
-    registry.async_get_or_create.assert_not_called()
-
-
-@pytest.mark.asyncio
-async def test_migration_preserves_disabled_state() -> None:
-    """A user-disabled legacy entity stays disabled after migration."""
-    hass = MagicMock()
-    old_entry = MagicMock(
-        platform=DOMAIN,
-        device_id="device-123",
-        disabled_by="user",
+    working = entity_registry.async_get_or_create(
+        "sensor", DOMAIN, f"{device_id}_battery", config_entry=config_entry,
+        suggested_object_id="working_charge",
     )
-    registry = _registry_with(old_entry, new_entity_id=None)
+    working = entity_registry.async_update_entity(working.entity_id, name="Working battery")
 
-    with patch("custom_components.robovac.sensor.er.async_get", return_value=registry):
-        await _migrate_battery_entity_registry(hass, _item())
+    await _start_robovac(hass, config_entry)
 
-    registry.async_remove.assert_called_once_with(OLD_ENTITY_ID)
-    registry.async_get_or_create.assert_called_once_with(
-        "sensor",
-        DOMAIN,
-        NEW_UNIQUE_ID,
-        suggested_object_id="vac_battery",
-        device_id="device-123",
-        disabled_by="user",
-    )
+    assert entity_registry.async_get(legacy.entity_id) is None
+    assert hass.states.get(legacy.entity_id) is None
+    assert entity_registry.async_get_entity_id("sensor", DOMAIN, f"{device_id}_battery") == working.entity_id
+    current = entity_registry.async_get(working.entity_id)
+    assert current is not None
+    assert current.id == working.id
+    assert current.name == working.name
+    assert hass.states.get(working.entity_id) is not None
 
 
-@pytest.mark.asyncio
-async def test_battery_sensor_still_uses_new_unique_id() -> None:
-    """Guard: the sensor entity itself must keep the migrated unique_id."""
-    from custom_components.robovac.sensor import RobovacBatterySensor
+async def test_fresh_battery_keeps_other_platform_registration(
+    hass: HomeAssistant,
+    config_entry: MockConfigEntry,
+    entity_registry: er.EntityRegistry,
+) -> None:
+    """Register a new sensor while leaving another platform's matching unique ID alone."""
+    device_id = next(iter(config_entry.data[CONF_VACS]))
+    other = entity_registry.async_get_or_create("sensor", "mqtt", device_id)
 
-    sensor = RobovacBatterySensor(_item())
-    assert sensor._attr_unique_id == NEW_UNIQUE_ID
+    await _start_robovac(hass, config_entry)
+
+    assert entity_registry.async_get(other.entity_id) == other
+    battery_id = entity_registry.async_get_entity_id("sensor", DOMAIN, f"{device_id}_battery")
+    assert battery_id is not None
+    assert hass.states.get(battery_id) is not None

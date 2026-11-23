@@ -53,46 +53,17 @@ def _device_info(item: dict) -> DeviceInfo:
     )
 
 
-async def _migrate_battery_entity_registry(hass: HomeAssistant, item: dict) -> None:
-    """Migrate battery entities created before the unique_id scheme change in #21.
-
-    Commit 1989921 (#21) changed the battery sensor unique_id from the bare
-    device ID to ``<device_id>_battery`` without a registry migration.
-    Installations that upgraded were left with an orphaned registration that
-    never updates again ("unavailable" in Diagnostics) alongside a second,
-    working battery entity.
-
-    Behaviour:
-    - Legacy registration only: remove it and register the new unique_id on
-      the old entity's slot, preserving the entity_id and enabled state so
-      dashboards and automations keep working.
-    - Both registrations present: remove only the legacy one; the working
-      entity is left untouched.
-    - No legacy registration: no-op.
-    """
-    registry = er.async_get(hass)
-    old_unique_id = item[CONF_ID]
-    new_unique_id = f"{item[CONF_ID]}_battery"
-
-    old_entity_id = registry.async_get_entity_id("sensor", DOMAIN, old_unique_id)
+def _migrate_battery_entity_registry(registry: er.EntityRegistry, device_id: str) -> None:
+    """Migrate battery registrations that used the bare device ID before #21."""
+    old_entity_id = registry.async_get_entity_id("sensor", DOMAIN, device_id)
     if old_entity_id is None:
         return
 
-    old_entry = registry.async_get(old_entity_id)
-    if old_entry is None or old_entry.platform != DOMAIN:
-        return
-
-    registry.async_remove(old_entity_id)
-
-    if registry.async_get_entity_id("sensor", DOMAIN, new_unique_id) is None:
-        registry.async_get_or_create(
-            "sensor",
-            DOMAIN,
-            new_unique_id,
-            suggested_object_id=old_entity_id.split(".", 1)[1],
-            device_id=old_entry.device_id,
-            disabled_by=old_entry.disabled_by,
-        )
+    new_unique_id = f"{device_id}_battery"
+    if registry.async_get_entity_id("sensor", DOMAIN, new_unique_id) is not None:
+        registry.async_remove(old_entity_id)
+    else:
+        registry.async_update_entity(old_entity_id, new_unique_id=new_unique_id)
 
 
 async def async_setup_entry(
@@ -101,12 +72,13 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the Eufy RoboVac sensor platform."""
+    registry = er.async_get(hass)
     vacuums = config_entry.data[CONF_VACS]
     entities: list[SensorEntity] = []
 
     for item in vacuums:
         item = vacuums[item]
-        await _migrate_battery_entity_registry(hass, item)
+        _migrate_battery_entity_registry(registry, item[CONF_ID])
         entities.append(RobovacBatterySensor(item))
 
         # Look up model class to determine which optional sensors to create.
