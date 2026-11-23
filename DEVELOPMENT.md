@@ -72,6 +72,13 @@ Device responses are matched case-insensitively, so `"AUTO"`, `"auto"`, and `"Au
 3. Install development dependencies: `pip install -r requirements-dev.txt`
 4. Run tests to verify setup: `task test`
 
+Change only the Home Assistant pin in `requirements.txt` when upgrading.
+The resolver selects the matching `pytest-homeassistant` release. Renovate
+proposes upgrades once that test harness version is available on PyPI.
+If your existing virtual environment has the old test plugin, run
+`uv pip uninstall pytest-homeassistant-custom-component` before installing the
+development dependencies. The two plugins provide overlapping fixtures.
+
 ### Running Tests
 
 ```bash
