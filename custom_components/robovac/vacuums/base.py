@@ -36,6 +36,8 @@ class RobovacCommand(StrEnum):
     DO_NOT_DISTURB = "do_not_disturb"
     BOOST_IQ = "boost_iq"
     WATER_LEVEL = "water_level"
+    VOLUME = "volume"
+    CLEANING_TYPE = "cleaning_type"
     CONSUMABLES = "consumables"
     DEVICE_INFO = "device_info"
     ANALYSIS_STATS = "analysis_stats"
@@ -65,6 +67,9 @@ class TuyaCodes(StrEnum):
     CLEANING_TIME = "109"
     CLEANING_AREA = "110"
     BOOST_IQ = "118"
+    WATER_LEVEL = "105"
+    VOLUME = "111"
+    CLEANING_TYPE = "113"
     ROOM_CLEAN = "124"
     AUTO_RETURN = "135"
 

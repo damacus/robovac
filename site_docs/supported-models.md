@@ -73,6 +73,11 @@ series, it may work with an existing configuration.
 - **X9 Pro**: T2320
 - **X10 Pro Omni**: T2351
 
+The T2276 reports cleaning area, cleaning duration, robot volume, and
+cleaning type through local sensors. Use the water level and fan speed selects
+and the BoostIQ and Do not disturb switches to view or change those settings.
+The map camera uses the Eufy cloud when account credentials are configured.
+
 ### L Series (Advanced)
 
 - **L35**: T2194

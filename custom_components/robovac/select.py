@@ -96,11 +96,13 @@ async def async_setup_entry(
                     item, str(water_level["code"]), dict(water_level["values"])
                 )
             )
-        if not getattr(model_class, "expose_config_entities", False):
-            continue
-        if RobovacCommand.FAN_SPEED in commands:
+        expose_config = getattr(model_class, "expose_config_entities", False)
+        expose_dps = getattr(model_class, "expose_dps_entities", False)
+        if (expose_config or expose_dps) and RobovacCommand.FAN_SPEED in commands:
             entities.append(RobovacFanSpeedSelect(item))
 
+        if not expose_config:
+            continue
         if RobovacCommand.CLEAN_PARAM in commands:
             dps = str(commands[RobovacCommand.CLEAN_PARAM]["code"])
             clean_keys: tuple[str, ...] = getattr(
