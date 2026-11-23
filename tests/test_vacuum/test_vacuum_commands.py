@@ -70,12 +70,22 @@ async def test_async_return_to_base(mock_robovac, mock_vacuum_data) -> None:
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("model_code", ["T2190", "T2193", "T2259"])
-async def test_async_return_to_base_sends_boolean_payload_for_t2190_t2193_and_t2259(
+@pytest.mark.parametrize(
+    ("model_code", "expected_payload"),
+    [
+        ("T2190", {"101": True}),
+        ("T2193", {"101": True}),
+        ("T2259", {"101": True}),
+        ("T2275", {"153": "AggB"}),
+        ("T2351", {"153": True}),
+    ],
+)
+async def test_async_return_to_base_uses_model_specific_value(
     mock_vacuum_data,
     model_code,
+    expected_payload,
 ) -> None:
-    """T2190, T2193, and T2259 return home through boolean DPS 101."""
+    """Test return-to-base sends each model's device-specific DPS value."""
     with patch("custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None):
         robovac = RoboVac(
             model_code=model_code,
@@ -90,7 +100,7 @@ async def test_async_return_to_base_sends_boolean_payload_for_t2190_t2193_and_t2
         entity = RoboVacEntity(model_data)
         await entity.async_return_to_base()
 
-    robovac.async_set.assert_awaited_once_with({"101": True})
+    robovac.async_set.assert_awaited_once_with(expected_payload)
 
 
 @pytest.mark.asyncio
@@ -219,6 +229,25 @@ async def test_async_set_fan_speed_sends_t2080a_fan_dps(
         await entity.async_set_fan_speed("Standard")
 
         robovac.async_set.assert_called_once_with({"158": "Standard"})
+
+
+@pytest.mark.asyncio
+async def test_t2181_return_to_base_sends_boolean_dps_101(mock_vacuum_data) -> None:
+    """The LR30 Hybrid+ returns home when DPS 101 receives true (GH-632)."""
+    with patch("custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None):
+        robovac = RoboVac(
+            model_code="T2181",
+            device_id="test_id",
+            host="192.168.1.100",
+            local_key="test_key",
+        )
+    robovac.async_set = AsyncMock(return_value=True)
+
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=robovac):
+        entity = RoboVacEntity({**mock_vacuum_data, CONF_MODEL: "T2181"})
+        await entity.async_return_to_base()
+
+    robovac.async_set.assert_awaited_once_with({"101": True})
 
 
 @pytest.mark.asyncio
@@ -725,6 +754,43 @@ async def test_room_clean_accepts_room_id_list(mock_robovac, mock_vacuum_data) -
         "roomIds": [2, 3],
         "cleanTimes": 1,
     }
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("model_code", "needs_start"),
+    [("T2193", False), ("T2276", True), ("T2194", True)],
+)
+async def test_room_clean_start_trigger_is_model_specific(
+    mock_vacuum_data, model_code, needs_start
+) -> None:
+    """T2193 starts on room selection; other legacy models still need DPS 2."""
+    with patch("custom_components.robovac.robovac.TuyaDevice.__init__", return_value=None):
+        robovac = RoboVac(
+            model_code=model_code,
+            device_id="test_id",
+            host="192.168.1.100",
+            local_key="test_key",
+        )
+    robovac.async_set = AsyncMock(return_value=True)
+    with patch("custom_components.robovac.vacuum.RoboVac", return_value=robovac):
+        entity = RoboVacEntity({**mock_vacuum_data, CONF_MODEL: model_code})
+
+    with patch("custom_components.robovac.vacuum.asyncio.sleep", new_callable=AsyncMock) as sleep:
+        await entity.async_send_command("roomClean", {"roomIds": [2], "count": 2})
+
+    payload = robovac.async_set.await_args_list[0].args[0]
+    assert set(payload) == {"124"}
+    assert json.loads(base64.b64decode(payload["124"]))["data"] == {
+        "roomIds": [2], "cleanTimes": 2
+    }
+    if needs_start:
+        sleep.assert_awaited_once_with(1)
+        assert robovac.async_set.await_args_list[1] == call({"2": True})
+        assert robovac.async_set.await_count == 2
+    else:
+        sleep.assert_not_awaited()
+        robovac.async_set.assert_awaited_once()
 
 
 @pytest.mark.asyncio

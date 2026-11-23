@@ -24,12 +24,6 @@ def t2320_robovac() -> RoboVac:
 class TestT2320CommandMappings:
     """Test T2320 command mappings match debug log expectations."""
 
-    def test_return_home_command_value(self, t2320_robovac):
-        """Test RETURN_HOME command returns boolean true as seen in debug logs."""
-        # Debug log shows: "dps": {"153": true}
-        result = t2320_robovac.getRoboVacCommandValue(RobovacCommand.RETURN_HOME, "return_home")
-        assert result is True
-
     def test_start_pause_command_exists(self, t2320_robovac):
         """Test START_PAUSE command is defined for T2320."""
         # Debug log shows: "dps": {"2": false}

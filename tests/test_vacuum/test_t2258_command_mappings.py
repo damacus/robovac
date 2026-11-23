@@ -1,9 +1,14 @@
 """Tests for T2258 command mappings and DPS codes."""
 
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
-from unittest.mock import patch
+from homeassistant.components.vacuum import VacuumActivity
+from homeassistant.const import CONF_ACCESS_TOKEN, CONF_MODEL
 
 from custom_components.robovac.robovac import RoboVac
+from custom_components.robovac.tuyalocalapi import Message
+from custom_components.robovac.vacuum import RoboVacEntity
 from custom_components.robovac.vacuums.base import RobovacCommand
 
 
@@ -60,26 +65,37 @@ def test_t2258_uses_documented_suction_levels(mock_t2258_robovac) -> None:
     ) == "Boost_IQ"
 
 
-def test_t2258_reads_status_from_dps_2(mock_t2258_robovac) -> None:
-    """Test T2258 takes status from DPS 2 rather than the stuck DPS 15."""
-    status = mock_t2258_robovac.model_details.commands[RobovacCommand.STATUS]
+@pytest.mark.parametrize(
+    "return_report, expected_activity",
+    [
+        ("Recharge", VacuumActivity.RETURNING),
+        ("Running", VacuumActivity.CLEANING),
+    ],
+)
+async def test_t2258_return_to_dock_reports(
+    mock_vacuum_data, return_report: str, expected_activity: VacuumActivity
+) -> None:
+    """Report a positive return signal and preserve DPS 2 across partial reports."""
+    with patch("custom_components.robovac.robovac.TuyaDevice.process_queue", new_callable=AsyncMock):
+        entity = RoboVacEntity({
+            **mock_vacuum_data,
+            CONF_MODEL: "T2258",
+            CONF_ACCESS_TOKEN: "0123456789abcdef",
+        })
+    vacuum = entity.vacuum
+    assert vacuum is not None
 
-    assert status["code"] == 2
-
-
-def test_t2258_decodes_status_to_activity_strings(mock_t2258_robovac) -> None:
-    """Test the boolean on DPS 2 decodes to a string, not a raw bool.
-
-    A raw False reaching RoboVacEntity.activity is caught by its `state == 0`
-    check and falls back to the cleaning mode, so the decode is what keeps a
-    stopped vacuum from reporting as cleaning.
-    """
-    assert mock_t2258_robovac.getRoboVacHumanReadableValue(
-        RobovacCommand.STATUS, True
-    ) == "cleaning"
-    assert mock_t2258_robovac.getRoboVacHumanReadableValue(
-        RobovacCommand.STATUS, False
-    ) == "docked"
+    for dps, expected in (
+        ({"2": True, "5": "Auto", "15": "Running", "106": 0}, VacuumActivity.CLEANING),
+        ({"15": return_report}, expected_activity),
+        ({"2": False}, VacuumActivity.DOCKED),
+        ({"2": True}, VacuumActivity.CLEANING),
+    ):
+        message = MagicMock(spec=Message, payload={"dps": dps})
+        with patch.object(entity, "async_write_ha_state") as write_state:
+            await vacuum.async_gratuitous_update_state(message)
+        write_state.assert_called_once_with()
+        assert entity.activity == expected, dps
 
 
 def test_t2258_does_not_expose_direction_command(mock_t2258_robovac) -> None:

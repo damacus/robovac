@@ -91,7 +91,6 @@ class T2320(RobovacModelDetails):
         RobovacCommand.RETURN_HOME: {
             "code": 153,
             "values": {
-                "return_home": True,
                 "return": True,
             },
         },

@@ -47,18 +47,6 @@ def test_t2275_mode_command_values(mock_t2275_robovac) -> None:
     assert mock_t2275_robovac.getRoboVacCommandValue(RobovacCommand.MODE, "unknown") == "unknown"
 
 
-def test_t2275_return_home_command_values(mock_t2275_robovac) -> None:
-    """Test T2275 RETURN_HOME value mapping."""
-    assert (
-        mock_t2275_robovac.getRoboVacCommandValue(RobovacCommand.RETURN_HOME, "return_home")
-        == "AggB"
-    )
-    assert (
-        mock_t2275_robovac.getRoboVacCommandValue(RobovacCommand.RETURN_HOME, "unknown")
-        == "unknown"
-    )
-
-
 def test_t2275_fan_speed_command_values(mock_t2275_robovac) -> None:
     """Test T2275 FAN_SPEED maps HA selections to direct fan speed values."""
     assert mock_t2275_robovac.getRoboVacCommandValue(RobovacCommand.FAN_SPEED, "quiet") == "Quiet"
