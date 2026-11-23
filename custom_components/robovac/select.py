@@ -11,6 +11,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.event import async_call_later
 
 from .const import CONF_VACS, DOMAIN
 from .vacuums import ROBOVAC_MODELS, resolve_model_code
@@ -87,9 +88,16 @@ async def async_setup_entry(
         model_class = ROBOVAC_MODELS.get(model_code)
         if model_class is None:
             continue
+        commands = getattr(model_class, "commands", {})
+        water_level = commands.get(RobovacCommand.WATER_LEVEL, {})
+        if isinstance(water_level, dict) and water_level.get("values"):
+            entities.append(
+                RobovacWaterLevelSelect(
+                    item, str(water_level["code"]), dict(water_level["values"])
+                )
+            )
         if not getattr(model_class, "expose_config_entities", False):
             continue
-        commands = getattr(model_class, "commands", {})
         if RobovacCommand.FAN_SPEED in commands:
             entities.append(RobovacFanSpeedSelect(item))
 
@@ -104,6 +112,77 @@ async def async_setup_entry(
             entities.append(RobovacRoomSelect(item))
 
     async_add_entities(entities)
+
+
+class RobovacWaterLevelSelect(_RobovacSelectEntity):
+    """Mop water level backed by one plain Tuya datapoint (e.g. T2276 DPS 105)."""
+
+    _attr_has_entity_name = True
+    _attr_should_poll = True
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_icon = "mdi:cup-water"
+
+    def __init__(self, item: dict, dps_code: str, values: dict[str, str]) -> None:
+        self.robovac_id = item[CONF_ID]
+        self._dps_code = dps_code
+        self._option_to_value = {
+            key.replace("_", " ").title(): str(value) for key, value in values.items()
+        }
+        self._attr_unique_id = f"{item[CONF_ID]}_water_level_select"
+        self._attr_name = "Water level"
+        self._attr_device_info = _device_info(item)
+        self._attr_options = list(self._option_to_value)
+        self._attr_current_option: str | None = None
+
+    def _vacuum(self) -> RoboVacEntity | None:
+        try:
+            return cast(
+                "RoboVacEntity | None",
+                self.hass.data[DOMAIN][CONF_VACS].get(self.robovac_id),
+            )
+        except KeyError:
+            return None
+
+    async def async_update(self) -> None:
+        """Read the water level from the last device status."""
+        vacuum_entity = self._vacuum()
+        if not _vacuum_ready(vacuum_entity):
+            self._attr_available = False
+            self._attr_current_option = None
+            return
+        raw = (cast("RoboVacEntity", vacuum_entity).tuyastatus or {}).get(self._dps_code)
+        if raw is None:
+            self._attr_available = False
+            self._attr_current_option = None
+            return
+        self._attr_available = True
+        self._attr_current_option = next(
+            (
+                option
+                for option, value in self._option_to_value.items()
+                if value.casefold() == str(raw).strip().casefold()
+            ),
+            None,
+        )
+
+    async def async_select_option(self, option: str) -> None:
+        """Write the chosen water level to the device."""
+        vacuum_entity = self._vacuum()
+        if not _vacuum_ready(vacuum_entity) or option not in self._option_to_value:
+            return
+        vacuum_entity = cast("RoboVacEntity", vacuum_entity)
+        value = self._option_to_value[option]
+        await cast(Any, vacuum_entity.vacuum).async_set({self._dps_code: value})
+        if vacuum_entity.tuyastatus is not None:
+            vacuum_entity.tuyastatus[self._dps_code] = value
+        self._attr_current_option = option
+        self._attr_available = True
+        self.async_write_ha_state()
+        async_call_later(self.hass, 2, self._delayed_refresh_after_write)
+
+    async def _delayed_refresh_after_write(self, _: Any) -> None:
+        await self.async_update()
+        self.async_write_ha_state()
 
 
 class RobovacCleanTypeSelect(_RobovacSelectEntity):
