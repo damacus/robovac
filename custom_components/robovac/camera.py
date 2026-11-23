@@ -307,9 +307,13 @@ class RoboVacMapCamera(CoordinatorEntity[RoboVacMapCoordinator], Camera):
 
     def _vacuum_entity_id(self) -> str | None:
         """Find this device's vacuum entity in the entity registry."""
+        registry_entry = self.registry_entry
+        if registry_entry is None or registry_entry.config_entry_id is None:
+            return None
+
         registry = er.async_get(self.hass)
         for entry in er.async_entries_for_config_entry(
-            registry, self.registry_entry.config_entry_id  # type: ignore[union-attr]
+            registry, registry_entry.config_entry_id
         ):
             if entry.domain == "vacuum" and self._dev_id in entry.unique_id:
                 entity_id: str = entry.entity_id
