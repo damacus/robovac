@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 import pytest
 from homeassistant.config_entries import ConfigEntryState
-from homeassistant.const import CONF_ID
+from homeassistant.const import CONF_ID, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import area_registry as ar
 from homeassistant.helpers import device_registry as dr
@@ -25,10 +25,10 @@ def config_entry(hass: HomeAssistant, mock_vacuum_data: dict) -> MockConfigEntry
 
 
 async def _start_robovac(hass: HomeAssistant, entry: MockConfigEntry) -> None:
-    """Set up the integration with vacuum and discovery networking mocked."""
+    """Load the sensor platform through the config entry without discovery sockets."""
     with (
         patch("custom_components.robovac.TuyaLocalDiscovery.start"),
-        patch("custom_components.robovac.vacuum.RoboVac", autospec=True),
+        patch("custom_components.robovac.PLATFORMS", [Platform.SENSOR]),
     ):
         assert await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
