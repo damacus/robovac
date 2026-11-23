@@ -35,6 +35,7 @@ class RobovacCommand(StrEnum):
     AUTO_RETURN = "auto_return"
     DO_NOT_DISTURB = "do_not_disturb"
     BOOST_IQ = "boost_iq"
+    WATER_LEVEL = "water_level"
     CONSUMABLES = "consumables"
     DEVICE_INFO = "device_info"
     ANALYSIS_STATS = "analysis_stats"
