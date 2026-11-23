@@ -3,7 +3,7 @@ from collections.abc import Mapping
 from homeassistant.components.vacuum import VacuumActivity
 
 from .case_insensitive_lookup import case_insensitive_lookup
-from .tuyalocalapi import TuyaDevice
+from .tuyalocalapi import Message, TuyaDevice
 from .vacuums import ROBOVAC_MODELS, resolve_model_code
 from .vacuums.base import RobovacCommand, RobovacModelDetails
 
@@ -83,6 +83,14 @@ class RoboVac(TuyaDevice):
         self.model_code = resolved_model_code
         self.model_details = current_model_details
         self._dps_codes_cache: dict[str, str] | None = None
+
+    async def async_update_state(self, state_message: Message, _: Any = None) -> None:
+        """Drop retained T2258 return telemetry when DPS 2 becomes inactive."""
+        t2258_was_not_inactive = self.model_code == "T2258" and self._dps.get("2") is not False
+        await super().async_update_state(state_message, _)
+        if t2258_was_not_inactive and self._dps.get("2") is False and self._dps.get("15") == "Recharge":
+            # Partial reports can omit DPS 15 at arrival and on the next start.
+            self._dps.pop("15")
 
     def getHomeAssistantFeatures(self) -> int:
         """Get the Home Assistant supported features for this vacuum model.
