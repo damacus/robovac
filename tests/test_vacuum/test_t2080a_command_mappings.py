@@ -76,7 +76,7 @@ def test_t2080a_protocol_and_exact_command_surface() -> None:
     }
     assert robovac.getDpsCodes() == {
         "START_PAUSE": "160",
-        "STATUS": "6",
+        "STATUS": "153",
         "FAN_SPEED": "158",
         "BATTERY_LEVEL": "8",
     }
@@ -90,15 +90,16 @@ def test_t2080a_values_and_readback() -> None:
     assert robovac.getFanSpeeds() == ["Quiet", "Standard", "Turbo", "Max"]
     assert [
         robovac.getRoboVacHumanReadableValue(RobovacCommand.STATUS, value)
-        for value in (0, 1, 2, 5, 34)
-    ] == ["Standby", "Cleaning", "Paused", "Returning", "Docked"]
-    assert robovac.getRoboVacActivityMapping() == {
-        "Standby": VacuumActivity.IDLE,
-        "Cleaning": VacuumActivity.CLEANING,
-        "Paused": VacuumActivity.PAUSED,
-        "Returning": VacuumActivity.RETURNING,
-        "Docked": VacuumActivity.DOCKED,
-    }
+        for value in ("AA==", "BgoAEAUyAA==", "CAoAEAUyAggB", "BBAHQgA=", "BhADGgIIAQ==")
+    ] == ["Standby", "Auto Cleaning", "Paused", "Heading Home", "Completed"]
+    activity = robovac.getRoboVacActivityMapping()
+    assert activity["Standby"] == VacuumActivity.IDLE
+    assert activity["Auto Cleaning"] == VacuumActivity.CLEANING
+    assert activity["Paused"] == VacuumActivity.PAUSED
+    assert activity["Heading Home"] == VacuumActivity.RETURNING
+    assert activity["Completed"] == VacuumActivity.DOCKED
+    assert activity["Washing Mop"] == VacuumActivity.DOCKED
+    assert activity["Error"] == VacuumActivity.ERROR
 
 
 def test_model_resolution_prefers_exact_code_then_legacy_prefix() -> None:
@@ -175,7 +176,7 @@ async def test_t2080a_entity_reads_state_battery_and_fan_without_mode_leak(
     mock_vacuum_data,
 ) -> None:
     robovac = _t2080a_robovac()
-    robovac._dps = {"6": 1, "8": 82, "158": "Turbo", "160": True}
+    robovac._dps = {"6": 29, "153": "BgoAEAUyAA==", "8": 82, "158": "Turbo", "160": True}
     data = {**mock_vacuum_data, CONF_MODEL: "T2080A"}
 
     with patch("custom_components.robovac.vacuum.RoboVac", return_value=robovac):

@@ -1,8 +1,9 @@
 """RoboVac S1 Pro (T2080A)."""
 
-from homeassistant.components.vacuum import VacuumActivity, VacuumEntityFeature
+from homeassistant.components.vacuum import VacuumEntityFeature
 
 from .base import RobovacCommand, RobovacModelDetails
+from .T2080 import T2080
 
 
 class T2080A(RobovacModelDetails):
@@ -23,13 +24,14 @@ class T2080A(RobovacModelDetails):
             "values": {"start": True, "pause": False},
         },
         RobovacCommand.STATUS: {
-            "code": 6,
+            # DPS 6 contains elapsed cleaning minutes on this S1 Pro.
+            # DPS 153 carries the actual encoded work status.
+            **T2080.commands[RobovacCommand.STATUS],
             "values": {
-                "0": "Standby",
-                "1": "Cleaning",
-                "2": "Paused",
-                "5": "Returning",
-                "34": "Docked",
+                **T2080.commands[RobovacCommand.STATUS]["values"],
+                # Observed with an EB14 alert. Expose generic error activity;
+                # the error number itself is not decoded from this payload.
+                "EgoAEAIaAggBMgIIAToECAEQAQ==": "Error",
             },
         },
         RobovacCommand.FAN_SPEED: {
@@ -43,10 +45,4 @@ class T2080A(RobovacModelDetails):
         },
         RobovacCommand.BATTERY: {"code": 8},
     }
-    activity_mapping = {
-        "Standby": VacuumActivity.IDLE,
-        "Cleaning": VacuumActivity.CLEANING,
-        "Paused": VacuumActivity.PAUSED,
-        "Returning": VacuumActivity.RETURNING,
-        "Docked": VacuumActivity.DOCKED,
-    }
+    activity_mapping = dict(T2080.activity_mapping)
