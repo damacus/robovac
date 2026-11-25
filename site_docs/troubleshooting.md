@@ -44,6 +44,22 @@
 2. For newer models, try protocol 3.5
 3. Check the logs for specific error messages
 
+### S1 Pro T2080A Activity Status
+
+The T2080A profile reads encoded work status from DPS 153. DPS 6 is elapsed
+cleaning time and must not be interpreted as a cleaning/docking status enum.
+Local protocol 3.3 responses can omit DPS 153, so activity is refreshed from
+Tuya cloud using the existing Eufy account on the normal polling interval.
+This requires internet access; updates can lag by one polling interval.
+
+The fault payload observed with an EB14 water-sink blockage alert reports
+the generic Home Assistant `error` state. The integration does not decode
+the specific EB14 error number. Check the Eufy app for the detailed fault.
+After cleaning, the observed mop-washing payload reports `docked`.
+
+An offline device, a failed cloud status read, or an unrecognized payload
+reports `unknown` rather than retaining a stale `docked` state.
+
 ## Getting Help
 
 If you're still having issues:

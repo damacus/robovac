@@ -791,6 +791,7 @@ class RoboVacEntity(StateVacuumEntity):
         self._eufy_country_code: str | None = item.get(CONF_COUNTRY_CODE)
         self._eufy_time_zone: str | None = item.get(CONF_TIME_ZONE)
         self._cloud_room_lookup_attempted = False
+        self._s1_status_session: TuyaAPISession | None = None
 
         # Initialize the RoboVac connection
         if not self.access_token:
@@ -915,6 +916,13 @@ class RoboVacEntity(StateVacuumEntity):
         # Try to update the vacuum state
         try:
             await self.vacuum.async_get()
+            if self.vacuum.model_code == "T2080A":
+                status = await self.hass.async_add_executor_job(
+                    self._fetch_s1_status_from_cloud_sync
+                )
+                # Local 3.3 telemetry omits work status. Clear stale status
+                # after a failed cloud read rather than retaining docked.
+                self.vacuum._dps["153"] = status
             self.update_failures = 0
             self.update_entity_values()
             _LOGGER.debug("Successfully updated vacuum %s", self._attr_name)
@@ -1428,6 +1436,23 @@ class RoboVacEntity(StateVacuumEntity):
             timezone=time_zone,
             phone_code=country_code,
         )
+
+    def _fetch_s1_status_from_cloud_sync(self) -> str | None:
+        """Read S1 Pro work status omitted from local protocol 3.3 telemetry."""
+        try:
+            if self._s1_status_session is None:
+                self._s1_status_session = self._build_tuya_session_sync()
+            if self._s1_status_session is None:
+                return None
+            device = self._s1_status_session.get_device(str(self.unique_id))
+            if not device.get("isOnline", False):
+                return None
+            status = device.get("dps", {}).get("153")
+            return status if isinstance(status, str) and status else None
+        except Exception:
+            self._s1_status_session = None
+            _LOGGER.warning("S1 Pro cloud status unavailable for %s", self.name)
+            return None
 
     def _fetch_t2320_dps_from_cloud_sync(self) -> dict[str, Any]:
         session = self._build_tuya_session_sync()
